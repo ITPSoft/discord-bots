@@ -1,0 +1,31 @@
+name: Build BasedSchizoBOT Docker image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_ENDPOINT }}
+          username: ${{ secrets.ACR_LOGINNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+          
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag ${{ secrets.ACR_ENDPOINT }}/basedschizo:1.0.${{github.run_number}}
+      
+      - name: Also tag as latest (smh)
+        run: docker tag ${{ secrets.ACR_ENDPOINT }}/basedschizo:1.0.${{github.run_number}} ${{ secrets.ACR_ENDPOINT }}/basedschizo:latest
+  
+      - name: Publish image to ACR
+        run: docker push ${{ secrets.ACR_ENDPOINT }}/basedschizo --all-tags
