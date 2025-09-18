@@ -2,4 +2,15 @@
 ## A schizo impersonation bot
 
 ### Introduction
-TODO
+the funny one
+
+### note
+use venv.
+
+currently running bare metal, no docker 
+
+### env
+DISCORD_TOKEN= ---
+BOT_PREFIX=---
+
+
