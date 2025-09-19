@@ -1,53 +1,27 @@
-# Based Schizo
-## A schizo impersonation bot
+# DecimBOT 2
+## A custom discord bot, that does everything I tell him to do
 
 ### Introduction
-TODO
+The OG DecimBOT was my school project in the junior year. But it was poorly written in
+node.js, so I decided to go back to it, after I migrated to Discord as my main comms
+platform. And now it's time to rewrite it in python and dockerise it.
 
-### Development
+### Some technical stuff
+WIP
 
-This package uses [uv](https://docs.astral.sh/uv/) and python 3.12.
+### Discordeno is trash, dont use it
 
-Make sure you make `.env` file with proper env vars.
+### Running it
 
-#### Develop Locally
-
-Install dependencies:
-```shell
-uv sync --frozen
+Run as
+```bash
+docker build -t decimbot2 .
+docker run -it decimbot2
 ```
 
-run the script locally:
-```shell
-uv run main.py
+Create an .env file and add this stuff to it:
+```cfg
+DISCORD_TOKEN={DISCORD_API_TOKEN} # cuz we won't push ours to the repo XD
+BOT_PREFIX=$
+NETHACK_PATH=/usr/games/nethack -u kouzelnik
 ```
-
-Lock dependencies:
-```shell
-uv lock
-```
-
-#### Checks and tests
-
-Run formatting:
-```shell
-uv run ruff check --fix
-```
-
-Check the formatting
-```shell
-uv run ruff check
-```
-
-Run tests:
-```shell
-uv run pytest
-```
-
-#### Run in docker
-
-Build and run the image:
-```shell
-docker compose up --build
-```
-

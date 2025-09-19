@@ -1,4 +1,4 @@
-HELP = """
+HELP = '''
     ***Bot commands:***
     _arguments in \{\} are optional, arguments with \[\] are required_
     $_bothelp_ or _commands_
@@ -18,9 +18,9 @@ HELP = """
         Use underscores as spaces. Bot will automatically edit them for you.
     $_today_
         Tells you which international day it is today.
-    """
+    '''
 
-WARCRAFTY_CZ = """
+WARCRAFTY_CZ = '''
 <@&871817685439234108> - Warcrafty 3 dnes{0}?
 React with attendance:
 :white_check_mark: Ano
@@ -35,10 +35,30 @@ Chceme hrát:
 :five: - Luckery/Uther Party/Temple Escape
 :six: - Objevovat nové mapy.
 :question: - Něco jiného? Napište jako reply.
-"""
+'''
 
-GMOD_CZ = """
-<@&951457356221394975> - Garry's Mod dnes{0}?
+WOWKA_CZ = '''
+<@&1120426868697473024> Další raid je naplánován na {0}, od {1}.
+Půjde se:
+{3}
+
+Ready buďte alespoň 15 minut před začátkem.
+
+Dorazíte?
+:white_check_mark: Ano
+:negative_squared_cross_mark: Ne
+:thinking: Možná
+:orthodox_cross: Ano, ale pozdě.
+
+Role?
+:regional_indicator_t: Tank
+:regional_indicator_h: Healer
+:regional_indicator_d: Dps
+:regional_indicator_o: Můžu víc rolí
+'''
+
+GMOD_CZ = '''
+<@&951457356221394975> - Garry's Mod dnes v cca {0}?
     React with attendance:
     :white_check_mark: Ano
     :negative_squared_cross_mark: Ne
@@ -52,7 +72,7 @@ GMOD_CZ = """
     :five: - Flood
     :question: - Něco jiného? Napište jako reply.
 
-"""
+'''
 
 MOT_HLASKY = [
     "Zatímco ztrácíme svůj čas váháním a odkládáním, život utíká.",
@@ -145,15 +165,16 @@ MOT_HLASKY = [
     "Když je ti smutno, když je ti zle... Možná je na čase opustit Adastru.",
     "Péro a koule.",
     "Když nevíš, jak na to, tak pomůže lajna párna.",
-    "Kdo nesmaží s náma, smaží proti nám.",
-]
+    "Kdo nesmaží s náma, smaží proti nám."]
 
-LINUX_COPYPASTA = """
+LINUX_COPYPASTA = '''
 I'd just like to interject for a moment. What you're refering to as Linux, is in fact, GNU/Linux, or as I've recently taken to calling it, GNU plus Linux. Linux is not an operating system unto itself, but rather another free component of a fully functioning GNU system made useful by the GNU corelibs, shell utilities and vital system components comprising a full OS as defined by POSIX.
 
 Many computer users run a modified version of the GNU system every day, without realizing it. Through a peculiar turn of events, the version of GNU which is widely used today is often called Linux, and many of its users are not aware that it is basically the GNU system, developed by the GNU Project.
 
 There really is a Linux, and these people are using it, but it is just a part of the system they use. Linux is the kernel: the program in the system that allocates the machine's resources to the other programs that you run. The kernel is an essential part of an operating system, but useless by itself; it can only function in the context of a complete operating system. Linux is normally used in combination with the GNU operating system: the whole system is basically GNU with Linux added, or GNU/Linux. All the so-called Linux distributions are really distributions of GNU/Linux!
-"""
+'''
+
 GIDS = [276720867344646144]
 TWITTERPERO = 1042052161338626128
+WELCOMEPERO = 1104877855466344569

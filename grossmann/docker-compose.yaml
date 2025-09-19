@@ -1,8 +1,0 @@
-services:
-  vertex_ai_model:
-    image: schizo
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
