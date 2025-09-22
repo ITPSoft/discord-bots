@@ -1,4 +1,0 @@
-disnake
-python-dotenv
-requests
-asyncio
