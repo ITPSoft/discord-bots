@@ -3,6 +3,7 @@ import random
 import datetime as dt
 import disnake
 from disnake import Message
+from disnake.ext import commands
 import requests
 from collections import defaultdict, Counter
 
@@ -29,7 +30,7 @@ ALLOW_CHANNELS = [1000800481397973052, 324970596360257548, 932301697836003358,95
 
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
-client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents)
+client = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 MARKOV_FILE = "markov_twogram.pkl"
 

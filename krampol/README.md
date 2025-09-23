@@ -10,10 +10,4 @@ See [the shared readme](../README.md).
 
 ### Running it
 
-_Dockerfile will be added some day_
-
-Create an .env file and add this stuff to it:
-```cfg
-DISCORD_TOKEN={DISCORD_API_TOKEN} # cuz we won't push ours to the repo XD
-BOT_PREFIX=ß
-```
+Make .env file following [.env.sample](.env.sample).

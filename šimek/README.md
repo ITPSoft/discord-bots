@@ -8,8 +8,6 @@ the funny one
 
 See [the shared readme](../README.md).
 
-### env
-DISCORD_TOKEN= ---
-BOT_PREFIX=---
+### Running it
 
-
+Make .env file following [.env.sample](.env.sample).
