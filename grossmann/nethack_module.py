@@ -4,7 +4,6 @@ import asyncio
 import pexpect
 import pyte
 import disnake
-import datetime
 from disnake.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO

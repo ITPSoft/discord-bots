@@ -71,7 +71,7 @@ class Automaton:
                   return True
               else:
                   return False
-            except Exception as exc:
+            except Exception:
                 print(f"Job {target}|{name} not present or ran for the first time! Running the job...")
                 return True
 
