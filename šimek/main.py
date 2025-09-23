@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import datetime as dt
@@ -20,19 +19,20 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TEXT_SYNTH_TOKEN = os.getenv('TEXT_SYNTH_TOKEN')
 PREFIX = os.getenv('BOT_PREFIX')
-REPLIES = ("Ano.", "Ne.", "Perhaps.")
 
 MOT_HLASKY = decdi.MOT_HLASKY
 LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
+CESKA_LINUX_COPYPASTA = schdic.CESKA_LINUX_COPYPASTA
 RECENZE = schdic.RECENZE
+REPLIES = ("Ano.", "Ne.", "Perhaps.")
+SADPENIS_ID = 786624092706046042
 ALLOW_CHANNELS = [1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
-MARKOV_FILE = "markov_twogram.pkl"
 
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
-client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents)
+client = commands.Bot(command_prefix=PREFIX, intents=intents)
 
-# Trigram Markov chain functions
+MARKOV_FILE = "markov_twogram.pkl"
 
 def build_trigram_counts(messages):
     words = " ".join(messages).split()
@@ -57,7 +57,7 @@ def load_trigram_counts(filename=MARKOV_FILE):
     except Exception:
         return {}
 
-def markov_chain(messages, max_words=30):
+def markov_chain(messages, max_words=20):
     # Build and save trigram counts
     markov_counts = build_trigram_counts(messages)
     save_trigram_counts(markov_counts)
@@ -76,7 +76,7 @@ def markov_chain(messages, max_words=30):
             next_words, weights = zip(*markov_counts[start_key].items())
             next_word = random.choices(next_words, weights=weights)[0]
             sentence.append(next_word)
-            if next_word.endswith(('.', '!', '?' ':', '😂', '🤣')):
+            if next_word.endswith(('.', '!', '?' ':D', ':)', '😂', '🤣')):
                 break
             start_key = (start_key[1], next_word)
         else:
@@ -84,42 +84,34 @@ def markov_chain(messages, max_words=30):
 
     return " ".join(sentence)
 
-# trigram Markov chain functions end
-
-
-async def do_response(reply: str, m: Message, chance=10, reaction=False):
-    '''
-    reply: str - text or emoji to reply with
-    m: Message - message object to reply to
-    chance: int - 1 in `chance` probability to reply
-    reaction: bool - if True, add reaction instead of reply
-    '''
-    if random.randint(1, chance) == 1:
-        if reaction:
-            await m.add_reaction(reply)
-        else:
-            await m.reply(reply)
-
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
 
+@client.command()
+async def say(ctx, *args):
+    if str(ctx.message.author) == 'skavenlord58':
+        await ctx.message.delete()
+        await ctx.send(f'{" ".join(args)}')
+    else:
+        print(f'{ctx.message.author} tried to use "say" command.')
 
 @client.event
 async def on_message(m: Message):
-    if not m.content:
-        return
-    if str(m.author) == "BasedSchizo#7762":
-        return
+    # Track last reaction time per channel
     if not hasattr(client, "last_reaction_time"):
-        client.last_reaction_time = {}    
+        client.last_reaction_time = {}
+
+    if not m.content:
+        pass
+
+    # Check if bot reacted in the last minute in this channel
     now = dt.datetime.utcnow()
     last_time = client.last_reaction_time.get(m.channel.id)
     if last_time and (now - last_time).total_seconds() < 60:
-        return            
-    
-    # TODO change discord user id after new name
+        return
+
     if "@grok" in m.content.lower() or "@schizo" in m.content.lower():
         # Fetch previous 50 messages (excluding the current one)
         messages = []
@@ -129,87 +121,189 @@ async def on_message(m: Message):
         response = f'{random.choice(REPLIES)} Protože '
         response += markov_chain(messages)
         await m.reply(response)
-
-    if m.channel.id not in ALLOW_CHANNELS:
+        client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+    elif m.channel.id not in ALLOW_CHANNELS:
         return
-    
-    match m.content.lower():
-        case "hodný bot":
-            do_response("🙂", m, chance=1, reaction=True)
-        case "windows":
-            do_response("😔", m, chance=2, reaction=True)
-        case "debian":
-            do_response("💜", m, chance=2, reaction=True)
-        case "všechno nejlepší":
-            do_response("🥳", m, chance=1, reaction=True)
-        case "kdo je negr?":
-            do_response("Decim je negr.", m, chance=1)
-        case "kdo je based?":
-            do_response("To jsem já!", m, chance=1)
-        case "linux" | "gnu/linux":
-            do_response("🐧", m, chance=10, reaction=True)
-            do_response(LINUX_COPYPASTA, m, chance=10)
-        case "hilfe" | "pomoc" | "pomocí" | "help":
-            do_response(f'''„{MOT_HLASKY[random.randint(0, len(MOT_HLASKY) - 1)]}“
-                                                                                - Mistr Oogway, {random.randint(470,480)} př. n. l.''', m, chance=3)        
-        case "novinky":
-            do_response("😖", m, chance=3, reaction=True)
-            do_response("Přestaň postovat cringe, bro.", m, chance=10)
-        case "drž hubu":
-            do_response("Ne, ty. 😃", m, chance=1)
-        case "jsem":
-            do_response(f'Ahoj, {" ".join(m.content.split("jsem")[1].split(".")[0].split(",")[0].split(" ")[1:])}. Já jsem táta.', m, chance=4)    
-        case "kdo":
-            do_response('kdo se ptal?', m, chance=3)
-        case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
-            do_response('https://www.youtube.com/watch?v=kyg1uxOsAUY', m, chance=1)
-        case "schizo":
-            do_response('never forgeti', m, chance=4)    
-        case "?":
-            do_response(f'{random.choice(REPLIES)}', m, chance=6)        
-        case "proč" | "proc":
-            do_response("skill issue", m, chance=8)
-        case "jsi":
-            do_response(f'Tvoje máma je {" ".join(m.content.split("jsi")[1].split(" ")[1:])}.', m, chance=8)
-        case "negr":
-            do_response(':sad:', m, chance=10)
-            do_response(':+1:', m, chance=30)
-        case "israel" | "izrael":
-            do_response(':pensive:', m, chance=5)
-        case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
-            apiCall = requests.get("https://www.yomama-jokes.com/api/v1/jokes/random/")
-            if apiCall.status_code == 200:
-                do_response(f'{apiCall.json()["joke"]}', m, chance=4)
-        case "lagtrain":
-            do_response("https://www.youtube.com/watch?v=UnIhRpIT7nc", m, chance=1)
-        case "cum zone":
-            do_response("https://www.youtube.com/watch?v=j0lN0w5HVT8", m, chance=1)
-        case "crab rave":
-            do_response("https://youtu.be/LDU_Txk06tM?t=75", m, chance=1)
-        case "já jo":
-            do_response("já ne", m, chance=2)
-        case "já ne":
-            do_response("já jo", m, chance=2)
-        case "chci se zabít" | "suicidal":
-            do_response("omg don't kill yourself, ur too sexy, haha",m, chance=1)
-        case "v píči" | "v pici":
-            do_response("stejně tak moc v píči jako já včera večer v tvojí mámě loool",m,chance=10)
-        case "buisness" | "buisnes" | "buissnes" | "bussiness" | "bussines":
-            do_response("KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)",m,chance=1)´
-        case "reminder":
-            do_response("kind reminder: ur a bitch :)", m, chance=4)
-        case "youtu.be" | "youtube.com":
-            do_response(RECENZE[random.randint(0,len(RECENZE)-1)],m,chance=1)
-        case "špatný bot" | "spatny bot":
-            do_response("i'm trying my best :pensive:",m,chance=1)
-        case "podle mě" | "myslím si" | "myslim si":
-            do_response(f'{random.choice(["souhlasím","nesouhlasím",""])}')      
-        case _:
-            do_response("Mňau", m, chance=10000)
-            do_response("Pipík", m, chance=500000)
-            do_response("víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat", m, chance=500000)
-            do_response("dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:", m, chance=1000000)
-            do_response('https://www.youtube.com/watch?v=kyg1uxOsAUY', m, chance=1000000)
-                       
-   client.last_reaction_time[m.channel.id] = dt.datetime.utcnow() 
+    elif m.content[0] == PREFIX:
+        # nutnost aby jely commandy    
+        await client.process_commands(m)
+    elif str(m.author) != "BasedSchizo#7762":
+        if  m.content.lower().startswith("hodný bot"):
+            await m.add_reaction("🙂")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "windows" in m.content.lower():
+            if random.randint(0, 4) == 2:
+                await m.add_reaction("😔")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "debian" in m.content.lower():
+            if random.randint(0, 4) == 2:
+                await m.add_reaction("💜")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "všechno nejlepší" in m.content.lower():
+            await m.add_reaction("🥳")
+            await m.add_reaction("🎉")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "kdo je negr?" in m.content.lower():
+            await m.channel.send("Decim je negr.")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "kdo je based schizo?" in m.content.lower():
+            await m.channel.send("To jsem já!")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "linux" in m.content.lower() and "gnu/linux" not in m.content.lower():
+            if random.randint(0, 64) == 4:
+                if bool(random.getrandbits(1)):
+                    await m.reply(LINUX_COPYPASTA)
+                else:
+                    await m.reply(CESKA_LINUX_COPYPASTA)
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "hilfe" in m.content.lower() or "pomoc" in m.content.lower() and "pomocí" not in m.content.lower():
+            if random.randint(0, 3) == 1:
+                await m.reply(f'''
+            „{MOT_HLASKY[random.randint(0, len(MOT_HLASKY) - 1)]}“
+                                                                                - Mistr Oogway, {random.randint(470,480)} př. n. l.
+            ''')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "novinky.cz" in m.content.lower():
+            if random.randint(0, 32) == 4:
+                await m.reply("Přestaň postovat cringe, bro.")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "drž hubu" in m.content.lower() and m.mentions:
+            print(m.mentions)
+            await m.reply("Ne, ty. 😃")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "free primos" in m.content.lower() or "príma džemy" in m.content.lower():
+            await m.reply(
+                "Neklikejte na odkazy s názvem FREE PRIMOS. Obvykle toto bývá phishing scam. https://www.avast.com/cs-cz/c-phishing")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "jsem" in m.content.lower():
+            if random.randint(0, 36) == 4:
+                kdo = " ".join(m.content.split("jsem")[1].split(".")[0].split(",")[0].split(" ")[1:])
+                await m.reply(f'Ahoj, {kdo}. Já jsem táta.')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if m.content.lower() == "kdo":
+            await m.channel.send('kdo se ptal?')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "zhongli" in m.content.lower():
+            await m.reply('haha žongli :clown:')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "aneurysm" in m.content.lower():
+            await m.reply('https://www.youtube.com/watch?v=kyg1uxOsAUY')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "schizo" in m.content.lower():
+            if random.randint(0, 4) == 2: 
+                await m.reply('doslova já')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "?" in m.content.lower():
+            if random.randint(0, 32) == 4:
+                await m.reply(f'{random.choice(REPLIES)}')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "proč " in m.content.lower() or "proc " in m.content.lower():
+            if random.randint(0, 8) == 4:
+                await m.reply('skill issue')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "kiryu" in m.content.lower() or "kyriu" in m.content.lower():
+            if random.randint(0, 4) == 4:
+                await m.reply('Kiryu-chaaaaan!')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "jsi" in m.content.lower():
+            if random.randint(0, 16) == 4:
+                kdo = " ".join(m.content.split("jsi")[1].split(" ")[1:])
+                await m.reply(f'Tvoje máma je {kdo}.')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "negr" in m.content.lower():
+            if random.randint(0, 6969):
+                await m.reply(':+1:')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "žid" in m.content.lower() and "židle" not in m.content.lower():
+            if random.randint(0, 4) == 4:
+                await m.reply('taky nesnáším židy :+1:')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "židle" in m.content.lower():
+            if random.randint(0, 2) == 2:
+                await m.reply('židle jsou ok, krom monoblocu, mrdat monobloc')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "buzna" in m.content.lower():
+            if random.randint(0, 4) == 4:
+                await m.reply(':+1:')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "israel" in m.content.lower() or "izrael" in m.content.lower():
+            if random.randint(0, 4) == 4:
+                await m.reply(':pensive:')
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if random.randint(0, 6969) == 1:
+            await m.reply('mňau')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if random.randint(0, 500000) == 1:
+            await m.reply('pipík')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if random.randint(0, 6969) == 1:
+            if m.channel.id != SADPENIS_ID:
+                await m.reply('víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat')
+            else:
+                await m.reply('dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý, wishing the best for you :slight_smile: :+1:')
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "mama" in m.content.lower() or \
+            "máma" in m.content.lower() or \
+            "mami" in m.content.lower() or \
+            "mommy" in m.content.lower() or \
+            "mamka" in m.content.lower() or \
+            "mamko" in m.content.lower():
+            if random.randint(0, 64) == 1:
+                try:
+                    apiCall = requests.get("https://www.yomama-jokes.com/api/v1/jokes/random/")
+                    if apiCall.status_code == 200:
+                        await m.reply(f'{apiCall.json()["joke"]}')
+                        client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+                except Exception as exc:
+                    print(f"Caught exception:\n {exc}")
+        if "lagtrain" in m.content.lower():
+            await m.reply("https://www.youtube.com/watch?v=UnIhRpIT7nc")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "cum zone" in m.content.lower():
+            await m.reply("https://www.youtube.com/watch?v=j0lN0w5HVT8")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "crab rave" in m.content.lower():
+            await m.reply("https://youtu.be/LDU_Txk06tM?t=75")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "já jo" in m.content.lower():
+            if random.randint(0, 16) == 1:   
+                await m.reply("já ne")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "já ne" in m.content.lower():
+            if random.randint(0, 16) == 1:   
+                await m.reply("já jo")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "chci se zabít" in m.content.lower() or "suicidal" in m.content.lower():
+            await m.reply("omg don't kill yourself, ur too sexy, haha <:catcry:1158475025473622167>")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "v píči" in m.content.lower():
+            await m.reply("stejně tak moc v píči jako já včera večer v tvojí mámě loool <:kekWR:1063089161587933204>")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "buisness" in m.content.lower() \
+            or "bussines" in m.content.lower() \
+            or "bussiness" in m.content.lower() \
+            or "buissnes" in m.content.lower() \
+            or "buisnes" in m.content.lower():
+            await m.reply("KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "reminder" in m.content.lower():
+            if random.randint(0, 4) == 1:
+                await m.reply("kind reminder: ur a bitch :)")
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "youtu.be" in m.content.lower() or "youtube.com" in m.content.lower():
+            if random.randint(0, 5) == 1:
+                await m.reply(RECENZE[random.randint(0,len(RECENZE)-1)])
+                client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if m.content.__len__() >= 625:
+            await m.reply("i ain't reading all of that. im happy for you tho, or sorry that happened. depends on you")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "špatný bot" in m.content.lower() or "spatny bot" in m.content.lower():
+            await m.reply("i'm trying my best :pensive:")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        if "podle mě" in m.content.lower() or "myslím si" in m.content.lower():
+            if bool(random.getrandbits(1)):
+                await m.reply("Souhlasím.")
+            else:
+                await m.reply("Rozhodně nesouhlasím.")
+            client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
 client.run(TOKEN)
