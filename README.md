@@ -1,18 +1,18 @@
-# Discord boti
+# Discord bots
 
-Duchovní nástupci [DecimBOTa](https://github.com/Skavenlord58/DecimBot2) a [BasedSchizoBOTa](https://github.com/Skavenlord58/BasedSchizoBOT),
-tentokrát vyvíjeni jako komunitní projekt v monorepu.
+Spiritual successors to [DecimBOT](https://github.com/Skavenlord58/DecimBot2) and [BasedSchizoBOT](https://github.com/Skavenlord58/BasedSchizoBOT),
+this time developed as a community project in a monorepo.
 
-- [Šimek](https://cs.wikipedia.org/wiki/Miloslav_%C5%A0imek) je nástupce BasedSchizoBOTa (Šimek -> Schizo) (pamatuje se dobře podle S)
-- [Grossmann](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Grossmann) je nástupce DecimBOTa
-- [Krampol](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Krampol) je nástupce [DecimAutomation](https://github.com/Skavenlord58/DecimAutomation)
+- [Šimek](https://cs.wikipedia.org/wiki/Miloslav_%C5%A0imek) is the successor to BasedSchizoBOT (Šimek -> Schizo) (easy to remember by the S)
+- [Grossmann](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Grossmann) is the successor to DecimBOT
+- [Krampol](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Krampol) is the successor to [DecimAutomation](https://github.com/Skavenlord58/DecimAutomation)
 
-## Zprovoznění a prostředí
+## Setup and Environment
 
-Na správu balíčků a verzí pythonu oužíváme [uv](https://docs.astral.sh/uv/).
+We use [uv](https://docs.astral.sh/uv/) for package and Python version management.
 
-- [instalace uv](https://docs.astral.sh/uv/getting-started/installation/)
-- Vlézt do složky bota
+- [uv installation](https://docs.astral.sh/uv/getting-started/installation/)
+- Enter the bot folder
   - ```shell
     cd grossmann
     ```
@@ -22,28 +22,45 @@ Na správu balíčků a verzí pythonu oužíváme [uv](https://docs.astral.sh/u
   - ```shell
     cd krampol
     ```
-- Nainstalování závislostí
+- Install dependencies
   - ```shell
     uv sync --frozen
     ```
-  to nainstaluje vše potřebné do `.venv` složky u daného bota
+  this installs everything needed into the `.venv` folder for the given bot
 
-- Lokální spuštění
+- Local execution
   - ```shell
     uv run main.py
     ```
 
-- Zamykání prostředí
+- Environment locking after updating dependencies
   - ```shell
     uv lock
     ```
 
-## Nasazení
+## Deployment
 
-Momentálně žádný bot neběží v dockeru, ale na bare-metalu.
+Currently no bot runs in Docker, but on bare metal.
 
-## Vývoj
+### Checks and tests
 
-### Přidávání balíčků
+Run formatting:
+```shell
+uv run ruff check --fix
+```
 
-Viz [dokumentaci](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies).
+Check the formatting
+```shell
+uv run ruff check
+```
+
+Run tests:
+```shell
+uv run pytest
+```
+
+## Development
+
+### Adding packages
+
+See the [documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies).

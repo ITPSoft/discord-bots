@@ -1,6 +1,4 @@
-import json
 import os
-from ntpath import join
 from typing import List
 import aiohttp
 import random
@@ -121,17 +119,17 @@ async def roll(ctx, arg_range=None):
     range = None
     try:
         range = int(arg_range)
-    except Exception as exc:
+    except Exception:
         pass
 
     if arg_range == "joint":
-        await ctx.response.send_message(f'https://youtu.be/LF6ok8IelJo?t=56')
+        await ctx.response.send_message('https://youtu.be/LF6ok8IelJo?t=56')
     elif not range:
         await ctx.response.send_message(f'{random.randint(0, 100)} (Defaulted to 100d.)')
     elif type(range) is int and range > 0:
         await ctx.response.send_message(f'{random.randint(0, int(range))} (Used d{range}.)')
     else:
-        await ctx.response.send_message(f'Something\'s wrong. Check your syntax.')
+        await ctx.response.send_message('Something\'s wrong. Check your syntax.')
 
 
 # "twitter" functionality 
@@ -176,7 +174,7 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
     
     if media != "null":
         embed.set_image(url=media)
-    embed.add_field(name=f"_", value=sentfrom, inline=True)
+    embed.add_field(name="_", value=sentfrom, inline=True)
     await ctx.response.send_message(content="Tweet posted! 👍", ephemeral=True)
     m = await twitterpero.send(embed=embed)
     await batch_react(m, ["💜", "🔁", "⬇️", "💭", "🔗"])
@@ -186,7 +184,7 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
 @client.slash_command(name = "pingdecim", description = "check decim latency", guild_ids=decdi.GIDS)
 @commands.default_member_permissions(administrator=True)
 async def ping(ctx):
-    m = await ctx.send(f'Ping?')
+    m = await ctx.send('Ping?')
     ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
     await m.edit(content=f'Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.')
     pass
@@ -392,7 +390,7 @@ async def waifu(ctx, *args):
             else:
                 apiCall = requests.get(f"https://api.waifu.pics/{args[0]}/neko")
         else:
-            apiCall = requests.get(f"https://api.waifu.pics/sfw/neko")
+            apiCall = requests.get("https://api.waifu.pics/sfw/neko")
         
         if apiCall.status_code == 200:
             await ctx.send(apiCall.json()["url"])

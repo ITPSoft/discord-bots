@@ -1,10 +1,8 @@
-import json
 import os
 import random
 import datetime as dt
 import disnake
 from disnake import Message
-from disnake.ext import commands
 import requests
 from collections import defaultdict, Counter
 
@@ -26,7 +24,7 @@ LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
 CESKA_LINUX_COPYPASTA = schdic.CESKA_LINUX_COPYPASTA
 RECENZE = schdic.RECENZE
 REPLIES = ("Ano.", "Ne.", "Perhaps.")
-SADPENIS_ID = 786624092706046042;
+SADPENIS_ID = 786624092706046042
 ALLOW_CHANNELS = [1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
 
 # add intents for bot and command prefix for classic command support
@@ -150,7 +148,7 @@ async def on_message(m: Message):
         if "kdo je based schizo?" in m.content.lower():
             await m.channel.send("To jsem já!")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
-        if "linux" in m.content.lower() and not "gnu/linux" in m.content.lower():
+        if "linux" in m.content.lower() and "gnu/linux" not in m.content.lower():
             if random.randint(0, 64) == 4:
                 if bool(random.getrandbits(1)):
                     await m.reply(LINUX_COPYPASTA)
@@ -182,17 +180,17 @@ async def on_message(m: Message):
                 await m.reply(f'Ahoj, {kdo}. Já jsem táta.')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if m.content.lower() == "kdo":
-            await m.channel.send(f'kdo se ptal?')
+            await m.channel.send('kdo se ptal?')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "zhongli" in m.content.lower():
-            await m.reply(f'haha žongli :clown:')
+            await m.reply('haha žongli :clown:')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "aneurysm" in m.content.lower():
-            await m.reply(f'https://www.youtube.com/watch?v=kyg1uxOsAUY')
+            await m.reply('https://www.youtube.com/watch?v=kyg1uxOsAUY')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "schizo" in m.content.lower():
             if random.randint(0, 4) == 2: 
-                await m.reply(f'doslova já')
+                await m.reply('doslova já')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "?" in m.content.lower():
             if random.randint(0, 32) == 4:
@@ -200,11 +198,11 @@ async def on_message(m: Message):
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "proč " in m.content.lower() or "proc " in m.content.lower():
             if random.randint(0, 8) == 4:
-                await m.reply(f'skill issue')
+                await m.reply('skill issue')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "kiryu" in m.content.lower() or "kyriu" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(f'Kiryu-chaaaaan!')
+                await m.reply('Kiryu-chaaaaan!')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "jsi" in m.content.lower():
             if random.randint(0, 16) == 4:
@@ -213,35 +211,35 @@ async def on_message(m: Message):
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "negr" in m.content.lower():
             if random.randint(0, 6969):
-                await m.reply(f':+1:')
+                await m.reply(':+1:')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
-        if "žid" in m.content.lower() and not "židle" in m.content.lower():
+        if "žid" in m.content.lower() and "židle" not in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(f'taky nesnáším židy :+1:')
+                await m.reply('taky nesnáším židy :+1:')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "židle" in m.content.lower():
             if random.randint(0, 2) == 2:
-                await m.reply(f'židle jsou ok, krom monoblocu, mrdat monobloc')
+                await m.reply('židle jsou ok, krom monoblocu, mrdat monobloc')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "buzna" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(f':+1:')
+                await m.reply(':+1:')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "israel" in m.content.lower() or "izrael" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(f':pensive:')
+                await m.reply(':pensive:')
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 6969) == 1:
-            await m.reply(f'mňau')
+            await m.reply('mňau')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 500000) == 1:
-            await m.reply(f'pipík')
+            await m.reply('pipík')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 6969) == 1:
             if m.channel.id != SADPENIS_ID:
-                await m.reply(f'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat')
+                await m.reply('víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat')
             else:
-                await m.reply(f'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý, wishing the best for you :slight_smile: :+1:')
+                await m.reply('dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý, wishing the best for you :slight_smile: :+1:')
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "mama" in m.content.lower() or \
             "máma" in m.content.lower() or \
@@ -258,53 +256,53 @@ async def on_message(m: Message):
                 except Exception as exc:
                     print(f"Caught exception:\n {exc}")
         if "lagtrain" in m.content.lower():
-            await m.reply(f"https://www.youtube.com/watch?v=UnIhRpIT7nc")
+            await m.reply("https://www.youtube.com/watch?v=UnIhRpIT7nc")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "cum zone" in m.content.lower():
-            await m.reply(f"https://www.youtube.com/watch?v=j0lN0w5HVT8")
+            await m.reply("https://www.youtube.com/watch?v=j0lN0w5HVT8")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "crab rave" in m.content.lower():
-            await m.reply(f"https://youtu.be/LDU_Txk06tM?t=75")
+            await m.reply("https://youtu.be/LDU_Txk06tM?t=75")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "já jo" in m.content.lower():
             if random.randint(0, 16) == 1:   
-                await m.reply(f"já ne")
+                await m.reply("já ne")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "já ne" in m.content.lower():
             if random.randint(0, 16) == 1:   
-                await m.reply(f"já jo")
+                await m.reply("já jo")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "chci se zabít" in m.content.lower() or "suicidal" in m.content.lower():
-            await m.reply(f"omg don't kill yourself, ur too sexy, haha <:catcry:1158475025473622167>")
+            await m.reply("omg don't kill yourself, ur too sexy, haha <:catcry:1158475025473622167>")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "v píči" in m.content.lower():
-            await m.reply(f"stejně tak moc v píči jako já včera večer v tvojí mámě loool <:kekWR:1063089161587933204>")
+            await m.reply("stejně tak moc v píči jako já včera večer v tvojí mámě loool <:kekWR:1063089161587933204>")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "buisness" in m.content.lower() \
             or "bussines" in m.content.lower() \
             or "bussiness" in m.content.lower() \
             or "buissnes" in m.content.lower() \
             or "buisnes" in m.content.lower():
-            await m.reply(f"KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)")
+            await m.reply("KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "reminder" in m.content.lower():
             if random.randint(0, 4) == 1:
-                await m.reply(f"kind reminder: ur a bitch :)")
+                await m.reply("kind reminder: ur a bitch :)")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "youtu.be" in m.content.lower() or "youtube.com" in m.content.lower():
             if random.randint(0, 5) == 1:
                 await m.reply(RECENZE[random.randint(0,len(RECENZE)-1)])
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if m.content.__len__() >= 625:
-            await m.reply(f"i ain't reading all of that. im happy for you tho, or sorry that happened. depends on you")
+            await m.reply("i ain't reading all of that. im happy for you tho, or sorry that happened. depends on you")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "špatný bot" in m.content.lower() or "spatny bot" in m.content.lower():
-            await m.reply(f"i'm trying my best :pensive:")
+            await m.reply("i'm trying my best :pensive:")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "podle mě" in m.content.lower() or "myslím si" in m.content.lower():
             if bool(random.getrandbits(1)):
-                await m.reply(f"Souhlasím.")
+                await m.reply("Souhlasím.")
             else:
-                await m.reply(f"Rozhodně nesouhlasím.")
+                await m.reply("Rozhodně nesouhlasím.")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
 client.run(TOKEN)

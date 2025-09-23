@@ -3,8 +3,7 @@ import os
 from disnake import Message
 from disnake.ext.commands import Context
 from dotenv import load_dotenv
-from disnake.ext import tasks, commands
-import requests
+from disnake.ext import tasks
 from automaton import Automaton
 
 load_dotenv()
@@ -29,7 +28,7 @@ async def process_command(prefix, command: list):
     try:
         if cc[1]:
             pass
-    except Exception as exc:
+    except Exception:
         cc[1] = 932301697836003358
     
     channel = client.get_channel(CHANNELS[cc[1]])
@@ -72,7 +71,7 @@ async def on_ready():
 ## other DecimAutomation platform commands
 @client.command()
 async def ping(ctx: Context):
-    m = await ctx.send(f'Ping?')
+    m = await ctx.send('Ping?')
     ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
     await m.edit(content=f'Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.')
     pass
