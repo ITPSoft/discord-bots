@@ -50,15 +50,11 @@ HELP = decdi.HELP
 WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
 GMOD_CZ = decdi.GMOD_CZ
 WOWKA_CZ = decdi.WOWKA_CZ
-MOT_HLASKY = decdi.MOT_HLASKY
-LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
 
 
 # useful functions/methods
-async def batch_react(m, reactions: list):
-    for reaction in reactions:
-        await m.add_reaction(reaction)
-    pass
+async def batch_react(m: Message, reactions: list):
+    await asyncio.gather(*(m.add_reaction(reaction) for reaction in reactions))
 
 
 # on_member_join - happens when a new member joins guild
@@ -143,7 +139,7 @@ async def roll(ctx, arg_range=None):
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
 async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(decdi.TWITTERPERO)
+    twitterpero = client.get_channel(decdi.TWITTERPERO)# todo: vyzkoušet, co je to za channel, dotypovat si
     sentfrom = f"Sent from #{ctx.channel.name}"
 
     if anonym:
@@ -192,14 +188,12 @@ async def ping(ctx):
     m = await ctx.send("Ping?")
     ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
     await m.edit(content=f"Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.")
-    pass
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
 async def yesorno(ctx, *args):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
-    pass
 
 # TODO candidate for removal
 @client.slash_command(
@@ -254,7 +248,7 @@ async def gmod(ctx, time: str = Param(default="21:00", description="v kolik hodi
 async def today(ctx):
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=AT&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.datetime.today()}&validTo={dt.datetime.today()}"
+            f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=CZ&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.date.today()}&validTo={dt.date.today()}"
         ) as response:
             payload = await response.json()
             holidays: list[str] = payload.get("holidays", [])
