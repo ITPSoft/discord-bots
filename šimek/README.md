@@ -4,10 +4,9 @@
 ### Introduction
 the funny one
 
-### note
-use venv.
+### Notes
 
-currently running bare metal, no docker 
+See [the shared readme](../README.md).
 
 ### env
 DISCORD_TOKEN= ---

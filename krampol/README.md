@@ -4,8 +4,9 @@
 ### Introduction
 This bot will be used to automate DecimBot2's tasks in order to reduce overhead in the messy script I wrote for him.
 
-### Some technical stuff
-WIP
+### Notes
+
+See [the shared readme](../README.md).
 
 ### Running it
 

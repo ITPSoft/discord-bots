@@ -1,13 +1,12 @@
-# DecimBOT 2
-## A custom discord bot, that does everything I tell him to do
+# Grossmann
 
-### Introduction
-The OG DecimBOT was my school project in the junior year. But it was poorly written in
-node.js, so I decided to go back to it, after I migrated to Discord as my main comms
-platform. And now it's time to rewrite it in python and dockerise it.
+Spiritual successor of [DecimBOT](https://github.com/Skavenlord58/DecimBot2).
 
-### Some technical stuff
-WIP
+## Discord utilities bot
+
+### Notes
+
+See [the shared readme](../README.md).
 
 ### Discordeno is trash, dont use it
 
