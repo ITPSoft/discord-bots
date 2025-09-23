@@ -1,4 +1,4 @@
-HELP = '''
+HELP = r'''
     ***Bot commands:***
     _arguments in \{\} are optional, arguments with \[\] are required_
     $_bothelp_ or _commands_

@@ -51,7 +51,7 @@ MOT_HLASKY = decdi.MOT_HLASKY
 LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
 
 # useful functions/methods
-async def batch_react(m, reactions: List):
+async def batch_react(m, reactions: list):
     for reaction in reactions:
         await m.add_reaction(reaction)
     pass
@@ -237,7 +237,7 @@ async def today(ctx):
         async with session.get(f'https://openholidaysapi.org/PublicHolidays?countryIsoCode=AT&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.datetime.today()}&validTo={dt.datetime.today()}') as response: 
             
             payload = await response.json()
-            holidays: List[str] = payload.get("holidays", [])
+            holidays: list[str] = payload.get("holidays", [])
             await ctx.response.send_message(f'Today are following holiday: {", ".join(holidays)}')
     pass
 
