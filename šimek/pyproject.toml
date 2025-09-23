@@ -13,6 +13,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3.4,<9.0.0",
+    "pytest-asyncio>=0.25.0,<1.0.0",
+    "pytest-mock>=3.12.0,<4.0.0",
     "ruff>=0.13.0,<1.0.0",
 ]
 
@@ -21,3 +23,11 @@ line-length = 120
 
 [tool.ruff.lint]
 ignore = ["F403", "F405", "E722", "F841"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["-v", "--tb=short"]

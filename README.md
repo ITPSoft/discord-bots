@@ -44,9 +44,14 @@ Currently no bot runs in Docker, but on bare metal.
 
 ### Checks and tests
 
-Run formatting:
+Run linting:
 ```shell
 uv run ruff check --fix
+```
+
+Run formatting:
+```shell
+uv run ruff format
 ```
 
 Check the formatting

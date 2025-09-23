@@ -7,7 +7,7 @@ from disnake.ext import commands
 import requests
 from collections import defaultdict, Counter
 
-import decimdictionary as decdi 
+import decimdictionary as decdi
 import schizodict as schdic
 
 from dotenv import load_dotenv
@@ -16,9 +16,9 @@ import pickle
 
 # preload all useful stuff
 load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-TEXT_SYNTH_TOKEN = os.getenv('TEXT_SYNTH_TOKEN')
-PREFIX = os.getenv('BOT_PREFIX')
+TOKEN = os.getenv("DISCORD_TOKEN")
+TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
+PREFIX = os.getenv("BOT_PREFIX")
 
 MOT_HLASKY = decdi.MOT_HLASKY
 LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
@@ -26,13 +26,28 @@ CESKA_LINUX_COPYPASTA = schdic.CESKA_LINUX_COPYPASTA
 RECENZE = schdic.RECENZE
 REPLIES = ("Ano.", "Ne.", "Perhaps.")
 SADPENIS_ID = 786624092706046042
-ALLOW_CHANNELS = [1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
+ALLOW_CHANNELS = [
+    1000800481397973052,
+    324970596360257548,
+    932301697836003358,
+    959137743412269187,
+    996357109727891456,
+    1370041352846573630,
+    276720867344646144,
+    438037897023848448,
+    979875595896901682,
+    786625189038915625,
+    786643519430459423,
+    990724186550972477,
+    998556012086829126,
+]
 
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 client = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 MARKOV_FILE = "markov_twogram.pkl"
+
 
 def build_trigram_counts(messages):
     words = " ".join(messages).split()
@@ -46,9 +61,11 @@ def build_trigram_counts(messages):
     markov_counts = {k: Counter(v) for k, v in markov.items()}
     return markov_counts
 
+
 def save_trigram_counts(markov_counts, filename=MARKOV_FILE):
     with open(filename, "wb") as f:
         pickle.dump(markov_counts, f)
+
 
 def load_trigram_counts(filename=MARKOV_FILE):
     try:
@@ -56,6 +73,7 @@ def load_trigram_counts(filename=MARKOV_FILE):
             return pickle.load(f)
     except Exception:
         return {}
+
 
 def markov_chain(messages, max_words=20):
     # Build and save trigram counts
@@ -76,7 +94,7 @@ def markov_chain(messages, max_words=20):
             next_words, weights = zip(*markov_counts[start_key].items())
             next_word = random.choices(next_words, weights=weights)[0]
             sentence.append(next_word)
-            if next_word.endswith(('.', '!', '?' ':D', ':)', '😂', '🤣')):
+            if next_word.endswith((".", "!", "?:D", ":)", "😂", "🤣")):
                 break
             start_key = (start_key[1], next_word)
         else:
@@ -84,18 +102,21 @@ def markov_chain(messages, max_words=20):
 
     return " ".join(sentence)
 
+
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
+    print(f"{client.user} has connected to Discord!")
+
 
 @client.command()
 async def say(ctx, *args):
-    if str(ctx.message.author) == 'skavenlord58':
+    if str(ctx.message.author) == "skavenlord58":
         await ctx.message.delete()
-        await ctx.send(f'{" ".join(args)}')
+        await ctx.send(f"{' '.join(args)}")
     else:
         print(f'{ctx.message.author} tried to use "say" command.')
+
 
 @client.event
 async def on_message(m: Message):
@@ -118,17 +139,17 @@ async def on_message(m: Message):
         async for msg in m.channel.history(limit=50, before=m):
             if msg.content:
                 messages.append(msg.content)
-        response = f'{random.choice(REPLIES)} Protože '
+        response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages)
         await m.reply(response)
         client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
     elif m.channel.id not in ALLOW_CHANNELS:
         return
     elif m.content[0] == PREFIX:
-        # nutnost aby jely commandy    
+        # nutnost aby jely commandy
         await client.process_commands(m)
     elif str(m.author) != "BasedSchizo#7762":
-        if  m.content.lower().startswith("hodný bot"):
+        if m.content.lower().startswith("hodný bot"):
             await m.add_reaction("🙂")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "windows" in m.content.lower():
@@ -158,10 +179,10 @@ async def on_message(m: Message):
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "hilfe" in m.content.lower() or "pomoc" in m.content.lower() and "pomocí" not in m.content.lower():
             if random.randint(0, 3) == 1:
-                await m.reply(f'''
+                await m.reply(f"""
             „{MOT_HLASKY[random.randint(0, len(MOT_HLASKY) - 1)]}“
-                                                                                - Mistr Oogway, {random.randint(470,480)} př. n. l.
-            ''')
+                                                                                - Mistr Oogway, {random.randint(470, 480)} př. n. l.
+            """)
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "novinky.cz" in m.content.lower():
             if random.randint(0, 32) == 4:
@@ -173,86 +194,91 @@ async def on_message(m: Message):
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "free primos" in m.content.lower() or "príma džemy" in m.content.lower():
             await m.reply(
-                "Neklikejte na odkazy s názvem FREE PRIMOS. Obvykle toto bývá phishing scam. https://www.avast.com/cs-cz/c-phishing")
+                "Neklikejte na odkazy s názvem FREE PRIMOS. Obvykle toto bývá phishing scam. https://www.avast.com/cs-cz/c-phishing"
+            )
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "jsem" in m.content.lower():
             if random.randint(0, 36) == 4:
                 kdo = " ".join(m.content.split("jsem")[1].split(".")[0].split(",")[0].split(" ")[1:])
-                await m.reply(f'Ahoj, {kdo}. Já jsem táta.')
+                await m.reply(f"Ahoj, {kdo}. Já jsem táta.")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if m.content.lower() == "kdo":
-            await m.channel.send('kdo se ptal?')
+            await m.channel.send("kdo se ptal?")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "zhongli" in m.content.lower():
-            await m.reply('haha žongli :clown:')
+            await m.reply("haha žongli :clown:")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "aneurysm" in m.content.lower():
-            await m.reply('https://www.youtube.com/watch?v=kyg1uxOsAUY')
+            await m.reply("https://www.youtube.com/watch?v=kyg1uxOsAUY")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "schizo" in m.content.lower():
-            if random.randint(0, 4) == 2: 
-                await m.reply('doslova já')
+            if random.randint(0, 4) == 2:
+                await m.reply("doslova já")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "?" in m.content.lower():
             if random.randint(0, 32) == 4:
-                await m.reply(f'{random.choice(REPLIES)}')
+                await m.reply(f"{random.choice(REPLIES)}")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "proč " in m.content.lower() or "proc " in m.content.lower():
             if random.randint(0, 8) == 4:
-                await m.reply('skill issue')
+                await m.reply("skill issue")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "kiryu" in m.content.lower() or "kyriu" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply('Kiryu-chaaaaan!')
+                await m.reply("Kiryu-chaaaaan!")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "jsi" in m.content.lower():
             if random.randint(0, 16) == 4:
                 kdo = " ".join(m.content.split("jsi")[1].split(" ")[1:])
-                await m.reply(f'Tvoje máma je {kdo}.')
+                await m.reply(f"Tvoje máma je {kdo}.")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "negr" in m.content.lower():
             if random.randint(0, 6969):
-                await m.reply(':+1:')
+                await m.reply(":+1:")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "žid" in m.content.lower() and "židle" not in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply('taky nesnáším židy :+1:')
+                await m.reply("taky nesnáším židy :+1:")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "židle" in m.content.lower():
             if random.randint(0, 2) == 2:
-                await m.reply('židle jsou ok, krom monoblocu, mrdat monobloc')
+                await m.reply("židle jsou ok, krom monoblocu, mrdat monobloc")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "buzna" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(':+1:')
+                await m.reply(":+1:")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "israel" in m.content.lower() or "izrael" in m.content.lower():
             if random.randint(0, 4) == 4:
-                await m.reply(':pensive:')
+                await m.reply(":pensive:")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 6969) == 1:
-            await m.reply('mňau')
+            await m.reply("mňau")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 500000) == 1:
-            await m.reply('pipík')
+            await m.reply("pipík")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if random.randint(0, 6969) == 1:
             if m.channel.id != SADPENIS_ID:
-                await m.reply('víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat')
+                await m.reply("víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat")
             else:
-                await m.reply('dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý, wishing the best for you :slight_smile: :+1:')
+                await m.reply(
+                    "dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý, wishing the best for you :slight_smile: :+1:"
+                )
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
-        if "mama" in m.content.lower() or \
-            "máma" in m.content.lower() or \
-            "mami" in m.content.lower() or \
-            "mommy" in m.content.lower() or \
-            "mamka" in m.content.lower() or \
-            "mamko" in m.content.lower():
+        if (
+            "mama" in m.content.lower()
+            or "máma" in m.content.lower()
+            or "mami" in m.content.lower()
+            or "mommy" in m.content.lower()
+            or "mamka" in m.content.lower()
+            or "mamko" in m.content.lower()
+        ):
             if random.randint(0, 64) == 1:
                 try:
                     apiCall = requests.get("https://www.yomama-jokes.com/api/v1/jokes/random/")
                     if apiCall.status_code == 200:
-                        await m.reply(f'{apiCall.json()["joke"]}')
+                        await m.reply(f"{apiCall.json()['joke']}")
                         client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
                 except Exception as exc:
                     print(f"Caught exception:\n {exc}")
@@ -266,11 +292,11 @@ async def on_message(m: Message):
             await m.reply("https://youtu.be/LDU_Txk06tM?t=75")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "já jo" in m.content.lower():
-            if random.randint(0, 16) == 1:   
+            if random.randint(0, 16) == 1:
                 await m.reply("já ne")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "já ne" in m.content.lower():
-            if random.randint(0, 16) == 1:   
+            if random.randint(0, 16) == 1:
                 await m.reply("já jo")
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "chci se zabít" in m.content.lower() or "suicidal" in m.content.lower():
@@ -279,12 +305,16 @@ async def on_message(m: Message):
         if "v píči" in m.content.lower():
             await m.reply("stejně tak moc v píči jako já včera večer v tvojí mámě loool <:kekWR:1063089161587933204>")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
-        if "buisness" in m.content.lower() \
-            or "bussines" in m.content.lower() \
-            or "bussiness" in m.content.lower() \
-            or "buissnes" in m.content.lower() \
-            or "buisnes" in m.content.lower():
-            await m.reply("KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)")
+        if (
+            "buisness" in m.content.lower()
+            or "bussines" in m.content.lower()
+            or "bussiness" in m.content.lower()
+            or "buissnes" in m.content.lower()
+            or "buisnes" in m.content.lower()
+        ):
+            await m.reply(
+                "KÁMO lmao ukažte si na toho blbečka, co neumí napsat 'business' XDDDD :index_pointing_at_the_viewer: příště raději napiš 'byznys' dík :)"
+            )
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "reminder" in m.content.lower():
             if random.randint(0, 4) == 1:
@@ -292,7 +322,7 @@ async def on_message(m: Message):
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if "youtu.be" in m.content.lower() or "youtube.com" in m.content.lower():
             if random.randint(0, 5) == 1:
-                await m.reply(RECENZE[random.randint(0,len(RECENZE)-1)])
+                await m.reply(RECENZE[random.randint(0, len(RECENZE) - 1)])
                 client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
         if m.content.__len__() >= 625:
             await m.reply("i ain't reading all of that. im happy for you tho, or sorry that happened. depends on you")
@@ -306,4 +336,6 @@ async def on_message(m: Message):
             else:
                 await m.reply("Rozhodně nesouhlasím.")
             client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+
+
 client.run(TOKEN)
