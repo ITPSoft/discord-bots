@@ -1,3 +1,26 @@
+# Random notes
+
+## Dockerfile
+
+If you want a dockerfile, this can be used:
+```dockerfile
+FROM python:3.13-slim
+
+# https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock /src/
+
+RUN uv sync --frozen
+
+COPY . /src/
+WORKDIR /src
+
+CMD ["uv", "run", "main.py"]
+```
+
+and this github action can be used to build it:
+```yaml
 name: Build BasedSchizoBOT Docker image
 
 on:
@@ -29,3 +52,4 @@ jobs:
   
       - name: Publish image to ACR
         run: docker push ${{ secrets.ACR_ENDPOINT }}/basedschizo --all-tags
+```

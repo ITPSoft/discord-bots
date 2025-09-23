@@ -4,19 +4,20 @@ import json
 from datetime import datetime as dt
 
 TARGETS = {
-        "decimautomation" : "DecimAutomation#4633",
-        "decimbot2": 996439005405126787,
-        "basedschizo" : 1044650088494010478
-    }
+    "decimautomation": "DecimAutomation#4633",
+    "decimbot2": 996439005405126787,
+    "basedschizo": 1044650088494010478,
+}
 
 INTERVALS = {
-    "@minutely" : 60,
-    "@five" : 300,
-    "@hourly" : 3600,
-    "@daily" : 3600 * 24,
-    "@weekly" : 3600 * 24 * 7,
-    "@yearly" : 3600 * 24 * 365
+    "@minutely": 60,
+    "@five": 300,
+    "@hourly": 3600,
+    "@daily": 3600 * 24,
+    "@weekly": 3600 * 24 * 7,
+    "@yearly": 3600 * 24 * 365,
 }
+
 
 class Automaton:
     def __init__(self) -> None:
@@ -29,7 +30,7 @@ class Automaton:
                 if line[0] == "#":
                     pass
                 elif line[0] == "@":
-                    self.jobs.append(line.replace("\n","").split(" "))
+                    self.jobs.append(line.replace("\n", "").split(" "))
         print(f"Job list parsed. Number of jobs: {len(self.jobs)}\nList of jobs:\n{self.print_jobs()}")
 
     def work_job(self, job) -> str:
@@ -37,17 +38,11 @@ class Automaton:
         f = open("./jobslock.json", encoding="utf-8")
         lf = json.load(f)
         f.close()
-        lf.update(
-                {
-                    job[1]:
-                     {
-                        job[2] : dt.now().timestamp().__int__()
-                        }
-                })
+        lf.update({job[1]: {job[2]: dt.now().timestamp().__int__()}})
         f = open("./jobslock.json", encoding="utf-8", mode="w")
         json.dump(lf, f)
         f.close()
-        
+
         return f"{TARGETS[job[1]]};{job[2]}"
 
     # working on jobs loop
@@ -66,15 +61,13 @@ class Automaton:
         with open("./jobslock.json", encoding="utf-8") as f:
             lf = json.load(f)
             try:
-              if lf[target][name] and \
-                      dt.now().timestamp().__int__() - lf[target][name] > INTERVALS[interval]:
-                  return True
-              else:
-                  return False
+                if lf[target][name] and dt.now().timestamp().__int__() - lf[target][name] > INTERVALS[interval]:
+                    return True
+                else:
+                    return False
             except Exception:
                 print(f"Job {target}|{name} not present or ran for the first time! Running the job...")
                 return True
-
 
     # prints out jobs
     def print_jobs(self):
@@ -82,6 +75,7 @@ class Automaton:
         for job in self.jobs:
             joblist += f"Job {self.jobs.index(job)}: {job[0]} {job[1]} {job[2]}\n"
         return joblist
+
 
 if __name__ == "__main__":
     pass
