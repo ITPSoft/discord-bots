@@ -1,14 +1,13 @@
-import os
-import aiohttp
-import random
 import asyncio
 import datetime as dt
-import requests
+import os
+import random
+from collections.abc import Iterable
 
+import aiohttp
 import disnake
 from disnake import Message
-from disnake.ext import commands
-
+from disnake.ext.commands import Bot, Context, default_member_permissions, Param
 from dotenv import load_dotenv
 
 import decimdictionary as decdi
@@ -22,8 +21,8 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 PREFIX = os.getenv("BOT_PREFIX") #TODO remove
 
-# TODO is this even useful? 
-class UnfilteredBot(commands.Bot):
+# TODO is this even useful?
+class UnfilteredBot(Bot):
     """An overridden version of the Bot class that will listen to other bots."""
 
     async def process_commands(self, message):
@@ -35,7 +34,8 @@ class UnfilteredBot(commands.Bot):
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 intents.message_content = True
-client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents) #TODO remove prefix
+client = Bot(intents=intents)    # maybe use UnfilteredBot instead?
+connector = aiohttp.TCPConnector(ssl=False)
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -44,7 +44,7 @@ async def on_ready():
     print(f"{client.user} has connected to Discord!")
 
 
-# constants 
+# constants
 # TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = decdi.HELP
 WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
@@ -86,7 +86,7 @@ async def decimhelp(ctx):
     await m.delete()
 
 
-# debug command/trolling 
+# debug command/trolling
 # TODO remove, replaced with slash command
 @client.command()
 async def say(ctx, *args):
@@ -151,28 +151,26 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
         random_name = "Jan Jelen"
 
         try:
-            apiCall = requests.get("https://randomuser.me//api")
-            if apiCall.status_code == 200:
-                randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
-                randomizer_opt[0] = apiCall.json()["results"][0]["login"]["username"]
-                randomizer_opt[1] = apiCall.json()["results"][0]["email"].split("@")[0]
-                randomizer_opt[2] = apiCall.json()["results"][0]["login"]["password"] + str(
-                    apiCall.json()["results"][0]["dob"]["age"]
-                )
-                randomizer_opt[3] = (
-                    apiCall.json()["results"][0]["gender"] + "goblin" + str(apiCall.json()["results"][0]["dob"]["age"])
-                )
-                randomizer_opt[4] = "lil" + apiCall.json()["results"][0]["location"]["country"].lower() + "coomer69"
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get("https://randomuser.me//api") as api_call:
+                    if api_call.status == 200:
+                        result = (await api_call.json())["results"][0]
+                        randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
+                        randomizer_opt[0] = result["login"]["username"]
+                        randomizer_opt[1] = result["email"].split("@")[0]
+                        randomizer_opt[2] = result["login"]["password"] + str(result["dob"]["age"])
+                        randomizer_opt[3] = result["gender"] + "goblin" + str(result["dob"]["age"])
+                        randomizer_opt[4] = "lil" + result["location"]["country"].lower() + "coomer69"
 
-                random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
-                random_city = apiCall.json()["results"][0]["location"]["city"]
+                        random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
+                        random_city = result["location"]["city"]
         except:
             pass
 
         embed = disnake.Embed(
             title=f"{random_name} tweeted:", description=f"{content}", color=disnake.Colour.dark_purple()
         )
-        embed.set_thumbnail(url=apiCall.json()["results"][0]["picture"]["medium"])
+        embed.set_thumbnail(url=result["picture"]["medium"])
         sentfrom = f"Sent from {random_city} (#{ctx.channel.name})"
     else:
         embed = disnake.Embed(
@@ -189,7 +187,7 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
 
 
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
-@commands.default_member_permissions(administrator=True)
+@default_member_permissions(administrator=True)
 async def ping(ctx):
     m = await ctx.send("Ping?")
     ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
@@ -239,7 +237,7 @@ async def wowko(ctx, *args):
 @client.slash_command(
     name="gmod_ping", description="Pings Garry's Mod role and open planning menu", guild_ids=decdi.GIDS
 )
-async def gmod(ctx, time: str = commands.Param(default="21:00", description="v kolik hodin?"), *args):
+async def gmod(ctx, time: str = Param(default="21:00", description="v kolik hodin?"), *args):
     # send z templaty
     m = await ctx.response.send_message(GMOD_CZ.replace("{0}", f"{time}"))
     # přidání reakcí
@@ -263,7 +261,7 @@ async def today(ctx):
             await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
     pass
 
-# TODO is this even used? 
+# TODO is this even used?
 @client.command()
 async def fetchrole(ctx):
     roles = await ctx.guild.fetch_roles()
@@ -271,7 +269,7 @@ async def fetchrole(ctx):
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
-@commands.default_member_permissions(administrator=True)
+@default_member_permissions(administrator=True)
 async def command(ctx):
     embed = disnake.Embed(
         title="Role picker",
@@ -391,25 +389,32 @@ async def cat(ctx, *args):
         else:
             w = random.randint(64, 640)
             h = random.randint(64, 640)
-        apiCall = requests.get(f"https://placecats.com/{w}/{h}")
-        if apiCall.status_code == 200:
-            await ctx.send(f"https://placecats.com/{w}/{h}")
-        else:
-            await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
-        pass
+        async with aiohttp.ClientSession(connector=connector) as session:
+            async with session.get(f"https://placecats.com/{w}/{h}") as api_call:
+                if api_call.status == 200:
+                    # todo: send the generated image, don't hit it 2 times
+                    await ctx.send(api_call.content)
+                else:
+                    await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
     except Exception as exc:
         print(f"Encountered exception:\n {exc}")
         await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
 
 
+async def send_http_response(ctx: Context, url: str, resp_key: str, error_message: str) -> None:
+    async with aiohttp.ClientSession(connector=connector) as session:
+        async with session.get(url) as api_call:
+            if api_call.status == 200:
+                await ctx.send((await api_call.json())[resp_key])
+            else:
+                await ctx.send(error_message)
+
+
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=decdi.GIDS)
 async def fox(ctx):
     try:
-        apiCall = requests.get("https://randomfox.ca/floof/")
-        if apiCall.status_code == 200:
-            await ctx.send(apiCall.json()["image"])
-        else:
-            await ctx.send("Server connection error :( No fox image for you.")
+        await send_http_response(ctx, "https://randomfox.ca/floof/", "image",
+                                 "Server connection error :( No fox image for you.")
     except Exception as exc:
         print(f"Caught exception:\n {exc}")
     pass
@@ -420,16 +425,12 @@ async def waifu(ctx, *args):
     try:
         if args and args[0] in ["sfw", "nsfw"]:
             if args[1]:
-                apiCall = requests.get(f"https://api.waifu.pics/{args[0]}/{args[1]}")
+                url = f"https://api.waifu.pics/{args[0]}/{args[1]}"
             else:
-                apiCall = requests.get(f"https://api.waifu.pics/{args[0]}/neko")
+                url = f"https://api.waifu.pics/{args[0]}/neko"
         else:
-            apiCall = requests.get("https://api.waifu.pics/sfw/neko")
-
-        if apiCall.status_code == 200:
-            await ctx.send(apiCall.json()["url"])
-        else:
-            await ctx.send("Server connection error :( No waifu image for you.")
+            url = "https://api.waifu.pics/sfw/neko"
+        await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
     except Exception as exc:
         print(f"Caught exception:\n {exc}")
     pass
@@ -441,67 +442,44 @@ async def autostat(ctx):
     await m.reply("OK;")
 
 
-# sends an xkcd comics
+# sends an xkcd comic
 @client.slash_command(
     name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
 )
 async def xkcd(ctx, id: str = None):
     if id:
-        x = requests.get(f"https://xkcd.com/{id}/info.0.json")
-        if x.status_code == 200:
-            await ctx.send(x.json()["img"])
-        else:
-            await ctx.send("No such xkcd comics with this ID found.")
+        url = f'https://xkcd.com/{id}/info.0.json'
     else:
-        x = requests.get("https://xkcd.com/info.0.json")
-        await ctx.send(x.json()["img"])
+        url = 'https://xkcd.com/info.0.json'
+    await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
+
+
+def has_any(content: str, words: Iterable) -> bool:
+    return any(word in content for word in words)
+
+
+
+async def bot_validate(content: str, m: Message):
+    if content.startswith("hodný bot") or "good bot" in content:
+        await m.add_reaction("🙂")
+    if content.startswith("zlý bot") or has_any(content, ["bad bot", "naser si bote", "si naser bote"]):
+        await m.add_reaction("😢")
 
 
 # on message eventy
 # TODO this can be mostly cleaned up/removed as Grossmann is more focused on slash commands and "being useful" (keep some simple silly interactons?)
 @client.event
 async def on_message(m: Message):
+    content = m.content.lower()
     if not m.content:
         pass
-    elif m.content[0] == PREFIX:
-        # nutnost aby jely commandy
-        await UnfilteredBot.process_commands(client, m)
     elif str(m.author) != "DecimBOT 2.0#8467":
-        if "negr" in m.content.lower():
-            await m.add_reaction("🇳")
-            # await m.add_reaction("🇪")
-            # await m.add_reaction("🇬")
-            # await m.add_reaction("🇷")
-        if "based" in m.content:
-            await m.add_reaction("👌")
-        if m.content.lower().startswith("hodný bot") or "good bot" in m.content.lower():
-            await m.add_reaction("🙂")
-        if (
-            m.content.lower().startswith("zlý bot")
-            or "bad bot" in m.content.lower()
-            or "naser si bote" in m.content.lower()
-            or "si naser bote" in m.content.lower()
-        ):
-            await m.add_reaction("😢")
-        if "drip" in m.content.lower():
-            await m.add_reaction("🥶")
-            await m.add_reaction("💦")
-        if "windows" in m.content.lower():
-            if random.randint(0, 4) == 2:
-                await m.add_reaction("😔")
-        if "debian" in m.content.lower():
-            if random.randint(0, 4) == 2:
-                await m.add_reaction("💜")
+        await bot_validate(content, m)
         if "všechno nejlepší" in m.content.lower():
             await m.add_reaction("🥳")
             await m.add_reaction("🎉")
         if "co jsem to stvořil" in m.content.lower() and m.author == "SkavenLord58#0420":
             await m.reply("https://media.tenor.com/QRTVgLglL6AAAAAd/thanos-avengers.gif")
-        if "atpro" in m.content.lower():
-            await m.add_reaction("😥")
-            await m.reply("To mě mrzí.")
-        if "in a nutshell" in m.content.lower():
-            await m.add_reaction("🌰")
         if "decim je negr" in m.content.lower():
             await m.channel.send("nn, ty seš")
 
