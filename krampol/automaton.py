@@ -24,7 +24,7 @@ class Automaton:
         pass
 
     def parse_cronjobs(self, path: str = "./cronjobs") -> None:
-        with open(file=path, encoding="utf-8", mode="r") as file:
+        with open(file=path, encoding="utf-8") as file:
             for line in file.readlines():
                 if line[0] == "#":
                     pass
@@ -34,7 +34,7 @@ class Automaton:
 
     def work_job(self, job) -> str:
         print(f"Processing job: {job[1]}|{job[2]}...")
-        f = open("./jobslock.json", encoding="utf-8", mode="r")
+        f = open("./jobslock.json", encoding="utf-8")
         lf = json.load(f)
         f.close()
         lf.update(
@@ -63,7 +63,7 @@ class Automaton:
 
     # check if job was already done
     def check_job_done(self, name: str = None, target: str = None, interval: str = None) -> bool:
-        with open("./jobslock.json", encoding="utf-8", mode="r") as f:
+        with open("./jobslock.json", encoding="utf-8") as f:
             lf = json.load(f)
             try:
               if lf[target][name] and \
