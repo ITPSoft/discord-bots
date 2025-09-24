@@ -8,10 +8,8 @@ Linux skutečně existuje a tito lidé ho používají, ale je to jen část sys
 
 RECENZE = (
     "recenze: strašnej banger",
-    "recenze: cringe ass hovno",
     "recenze: meh",
     "recenze: miss me with that gay shit",
-    "recenze: raději bych se kouknul na celou první sérii Ordinace",
     "recenze: peak internetové tvorby, fr fr on god",
     "recenze: masterpiece",
     "recenze: istg jestli to tady někdo repostne, tak ho okamžitě banuju",
@@ -25,8 +23,6 @@ RECENZE = (
     "recenze: wow, just wow, jsem beze slov",
     "recenze: bratrovský moment",
     "recenze: 5/7, solid video",
-    "recenze: dal bych tomu LMAO AWARD, kdyby existovala...",
-    "recenze: uhhh, tohle video? PRESS F TO PAY RESPECTS.",
     "recenze: miluju, pustil jsem si už pošesté"
 )
 
@@ -119,8 +115,11 @@ MOT_HLASKY = [
     "Každý je génius, ale pokud budete posuzovat rybu podle její schopnosti vylézt na strom, bude celý svůj život žít s vědomím, že je neschopná.",
     "I děvka byla jednou panna.",
     "Občas se musíš rozejít se svou partnerkou se slovy 'Sorry kotě, ale máš na mě moc malý pasivní příjem.'",
+    "Nikdy neříkej nikdy, protože limity, stejně jako strachy, jsou často jen iluze.",
+    "Nejsem produkt svých okolností. Jsem produkt svých rozhodnutí.",
+    "Nejsem tady, abych byl průměrný. Jsem tady, abych byl výjimečný.",
+    "Nejsem tady, abych se přizpůsobil světu. Jsem tady, abych svět změnil.",
     "Když je ti smutno, když je ti zle... Možná je na čase opustit Adastru.",
-    "Péro a koule.",
     "Když nevíš, jak na to, tak pomůže lajna párna.",
     "Kdo nesmaží s náma, smaží proti nám."]
 
