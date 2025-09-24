@@ -20,9 +20,9 @@ import decimdictionary as decdi
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
-PREFIX = os.getenv("BOT_PREFIX")
+PREFIX = os.getenv("BOT_PREFIX") #TODO remove
 
-
+# TODO is this even useful? 
 class UnfilteredBot(commands.Bot):
     """An overridden version of the Bot class that will listen to other bots."""
 
@@ -35,7 +35,7 @@ class UnfilteredBot(commands.Bot):
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 intents.message_content = True
-client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents)
+client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents) #TODO remove prefix
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -44,7 +44,8 @@ async def on_ready():
     print(f"{client.user} has connected to Discord!")
 
 
-# constants
+# constants 
+# TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = decdi.HELP
 WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
 GMOD_CZ = decdi.GMOD_CZ
@@ -75,6 +76,7 @@ Please, go to the <#1314388851304955904> channel and select your roles. Don't fo
 
 ## Commands here ->
 # Show all available commands
+# TODO remove, replaced with slash commad (also Šimek functionality)
 @client.command()
 async def decimhelp(ctx):
     m = await ctx.send(HELP)
@@ -84,7 +86,8 @@ async def decimhelp(ctx):
     await m.delete()
 
 
-# debug command/trolling
+# debug command/trolling 
+# TODO remove, replaced with slash command
 @client.command()
 async def say(ctx, *args):
     if str(ctx.message.author) == "SkavenLord58#0420":
@@ -96,6 +99,8 @@ async def say(ctx, *args):
 
 
 # poll creation, takes up to five arguments
+# TODO check as slash command, probably make as embed?
+# TODO add anonymity voting option (better in embed)
 @client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=decdi.GIDS)
 async def poll(
     ctx, question: str, option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None
@@ -115,6 +120,7 @@ async def poll(
 
 
 # rolls a dice
+# TODO add range as slash command argument, default to 6 (why 100?)
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=decdi.GIDS)
 async def roll(ctx, arg_range=None):
     range = None
@@ -134,6 +140,7 @@ async def roll(ctx, arg_range=None):
 
 
 # "twitter" functionality
+# works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
 async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
     twitterpero = client.get_channel(decdi.TWITTERPERO)
@@ -196,7 +203,7 @@ async def yesorno(ctx, *args):
     await ctx.response.send_message(f"{random.choice(answers)}")
     pass
 
-
+# TODO candidate for removal
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
@@ -210,7 +217,7 @@ async def warcraft(ctx, *args):
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
     pass
 
-
+# TODO candidate for removal
 @client.command()
 async def wowko(ctx, *args):
     # automoderation
@@ -228,7 +235,7 @@ async def wowko(ctx, *args):
     await batch_react(m, ["✅", "❎", "🤔", "☦️", "🇹", "🇭", "🇩", "🇴"])
     pass
 
-
+# TODO candidate for removal
 @client.slash_command(
     name="gmod_ping", description="Pings Garry's Mod role and open planning menu", guild_ids=decdi.GIDS
 )
@@ -240,7 +247,9 @@ async def gmod(ctx, time: str = commands.Param(default="21:00", description="v k
     # await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
     pass
 
+# TODO all that gaming_ping could be merged into one command, with more universal template/approach as you want to ping game - time - voice - vote yes/no and done
 
+# TODO check if its even working, candidate for removal
 @client.slash_command(
     name="today", description="Fetches today's holidays from the National API Day.", guild_ids=decdi.GIDS
 )
@@ -254,13 +263,13 @@ async def today(ctx):
             await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
     pass
 
-
+# TODO is this even used? 
 @client.command()
 async def fetchrole(ctx):
     roles = await ctx.guild.fetch_roles()
     await ctx.send(roles)
 
-
+# TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
 @commands.default_member_permissions(administrator=True)
 async def command(ctx):
@@ -326,7 +335,7 @@ async def command(ctx):
         ],
     )
 
-
+# TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
     role_list = {
@@ -425,7 +434,7 @@ async def waifu(ctx, *args):
         print(f"Caught exception:\n {exc}")
     pass
 
-
+# TODO ?????
 @client.command()
 async def autostat(ctx):
     m = ctx.message
@@ -449,6 +458,7 @@ async def xkcd(ctx, id: str = None):
 
 
 # on message eventy
+# TODO this can be mostly cleaned up/removed as Grossmann is more focused on slash commands and "being useful" (keep some simple silly interactons?)
 @client.event
 async def on_message(m: Message):
     if not m.content:
