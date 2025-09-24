@@ -1,0 +1,20 @@
+[Unit]
+Description=simek Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/opt/kkbots/simek
+Environment="PATH=/opt/kkbots/simek/simek/bin"
+ExecStart=/opt/kkbots/simek/simek/bin/python main.py
+Restart=on-failure
+
+# Protect the system
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
