@@ -7,7 +7,7 @@ from collections.abc import Iterable
 import aiohttp
 import disnake
 from disnake import Message
-from disnake.ext.commands import Bot, Context, default_member_permissions, Param
+from disnake.ext.commands import Bot, Context, default_member_permissions, Param, InteractionBot
 from dotenv import load_dotenv
 
 import decimdictionary as decdi
@@ -34,13 +34,18 @@ class UnfilteredBot(Bot):
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 intents.message_content = True
-client = Bot(intents=intents)    # maybe use UnfilteredBot instead?
-connector = aiohttp.TCPConnector(ssl=False)
+client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
+
+# Global HTTP session - will be initialized when bot starts
+http_session = None
 
 
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
+    global http_session
+    # Initialize the global HTTP session with SSL disabled
+    http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     print(f"{client.user} has connected to Discord!")
 
 
@@ -54,6 +59,7 @@ WOWKA_CZ = decdi.WOWKA_CZ
 
 # useful functions/methods
 async def batch_react(m: Message, reactions: list):
+    # todo: revert this, I want to have all of them in order, gather doesn't guarantee order or actual api calls
     await asyncio.gather(*(m.add_reaction(reaction) for reaction in reactions))
 
 
@@ -72,8 +78,7 @@ Please, go to the <#1314388851304955904> channel and select your roles. Don't fo
 
 ## Commands here ->
 # Show all available commands
-# TODO remove, replaced with slash commad (also Šimek functionality)
-@client.command()
+@client.slash_command()
 async def decimhelp(ctx):
     m = await ctx.send(HELP)
     await asyncio.sleep(10)
@@ -83,8 +88,7 @@ async def decimhelp(ctx):
 
 
 # debug command/trolling
-# TODO remove, replaced with slash command
-@client.command()
+@client.slash_command()
 async def say(ctx, *args):
     if str(ctx.message.author) == "SkavenLord58#0420":
         await ctx.message.delete()
@@ -139,7 +143,7 @@ async def roll(ctx, arg_range=None):
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
 async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(decdi.TWITTERPERO)# todo: vyzkoušet, co je to za channel, dotypovat si
+    twitterpero = client.get_channel(decdi.TWITTERPERO)  # todo: vyzkoušet, co je to za channel, dotypovat si
     sentfrom = f"Sent from #{ctx.channel.name}"
 
     if anonym:
@@ -147,19 +151,18 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
         random_name = "Jan Jelen"
 
         try:
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get("https://randomuser.me//api") as api_call:
-                    if api_call.status == 200:
-                        result = (await api_call.json())["results"][0]
-                        randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
-                        randomizer_opt[0] = result["login"]["username"]
-                        randomizer_opt[1] = result["email"].split("@")[0]
-                        randomizer_opt[2] = result["login"]["password"] + str(result["dob"]["age"])
-                        randomizer_opt[3] = result["gender"] + "goblin" + str(result["dob"]["age"])
-                        randomizer_opt[4] = "lil" + result["location"]["country"].lower() + "coomer69"
+            async with http_session.get("https://randomuser.me//api") as api_call:
+                if api_call.status == 200:
+                    result = (await api_call.json())["results"][0]
+                    randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
+                    randomizer_opt[0] = result["login"]["username"]
+                    randomizer_opt[1] = result["email"].split("@")[0]
+                    randomizer_opt[2] = result["login"]["password"] + str(result["dob"]["age"])
+                    randomizer_opt[3] = result["gender"] + "goblin" + str(result["dob"]["age"])
+                    randomizer_opt[4] = "lil" + result["location"]["country"].lower() + "coomer69"
 
-                        random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
-                        random_city = result["location"]["city"]
+                    random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
+                    random_city = result["location"]["city"]
         except:
             pass
 
@@ -210,7 +213,7 @@ async def warcraft(ctx, *args):
     pass
 
 # TODO candidate for removal
-@client.command()
+@client.slash_command()
 async def wowko(ctx, *args):
     # automoderation
     await ctx.message.delete()
@@ -246,17 +249,16 @@ async def gmod(ctx, time: str = Param(default="21:00", description="v kolik hodi
     name="today", description="Fetches today's holidays from the National API Day.", guild_ids=decdi.GIDS
 )
 async def today(ctx):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=CZ&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.date.today()}&validTo={dt.date.today()}"
-        ) as response:
-            payload = await response.json()
-            holidays: list[str] = payload.get("holidays", [])
-            await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
+    async with http_session.get(
+        f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=CZ&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.date.today()}&validTo={dt.date.today()}"
+    ) as response:
+        payload = await response.json()
+        holidays: list[str] = payload.get("holidays", [])
+        await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
     pass
 
 # TODO is this even used?
-@client.command()
+@client.slash_command()
 async def fetchrole(ctx):
     roles = await ctx.guild.fetch_roles()
     await ctx.send(roles)
@@ -383,32 +385,31 @@ async def cat(ctx, *args):
         else:
             w = random.randint(64, 640)
             h = random.randint(64, 640)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.get(f"https://placecats.com/{w}/{h}") as api_call:
-                if api_call.status == 200:
-                    # todo: send the generated image, don't hit it 2 times
-                    await ctx.send(api_call.content)
-                else:
-                    await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
+        async with http_session.get(f"https://placecats.com/{w}/{h}") as api_call:
+            if api_call.status == 200:
+                # todo: send the generated image, don't hit it 2 times
+                await ctx.send(api_call.content)
+            else:
+                await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
     except Exception as exc:
         print(f"Encountered exception:\n {exc}")
         await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
 
 
 async def send_http_response(ctx: Context, url: str, resp_key: str, error_message: str) -> None:
-    async with aiohttp.ClientSession(connector=connector) as session:
-        async with session.get(url) as api_call:
-            if api_call.status == 200:
-                await ctx.send((await api_call.json())[resp_key])
-            else:
-                await ctx.send(error_message)
+    async with http_session.get(url) as api_call:
+        if api_call.status == 200:
+            await ctx.send((await api_call.json())[resp_key])
+        else:
+            await ctx.send(error_message)
 
 
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=decdi.GIDS)
 async def fox(ctx):
     try:
-        await send_http_response(ctx, "https://randomfox.ca/floof/", "image",
-                                 "Server connection error :( No fox image for you.")
+        await send_http_response(
+            ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
+        )
     except Exception as exc:
         print(f"Caught exception:\n {exc}")
     pass
@@ -429,8 +430,9 @@ async def waifu(ctx, *args):
         print(f"Caught exception:\n {exc}")
     pass
 
+
 # TODO ?????
-@client.command()
+@client.slash_command()
 async def autostat(ctx):
     m = ctx.message
     await m.reply("OK;")
@@ -442,15 +444,14 @@ async def autostat(ctx):
 )
 async def xkcd(ctx, id: str = None):
     if id:
-        url = f'https://xkcd.com/{id}/info.0.json'
+        url = f"https://xkcd.com/{id}/info.0.json"
     else:
-        url = 'https://xkcd.com/info.0.json'
+        url = "https://xkcd.com/info.0.json"
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
 
 
 def has_any(content: str, words: Iterable) -> bool:
     return any(word in content for word in words)
-
 
 
 async def bot_validate(content: str, m: Message):
@@ -483,4 +484,24 @@ async def on_message(m: Message):
 # setup_nethack_commands(client, decdi.GIDS)
 
 
-client.run(TOKEN)
+async def cleanup():
+    """Clean up resources when bot shuts down"""
+    global http_session
+    if http_session and not http_session.closed:
+        await http_session.close()
+
+
+# Register cleanup to run when bot shuts down
+@client.event
+async def on_disconnect():
+    await cleanup()
+
+
+if __name__ == "__main__":
+    try:
+        client.run(TOKEN)
+    finally:
+        # Ensure cleanup runs even if there's an exception
+        import asyncio
+
+        asyncio.run(cleanup())

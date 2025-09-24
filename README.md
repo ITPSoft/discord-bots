@@ -38,11 +38,12 @@ We use [uv](https://docs.astral.sh/uv/) for package and Python version managemen
     uv lock
     ```
 
+See the 
 ## Deployment
 
 Currently no bot runs in Docker, but on bare metal.
 
-### Checks and tests
+### Checks
 
 Run linting:
 ```shell
@@ -64,7 +65,29 @@ Run tests:
 uv run pytest
 ```
 
-## Development
+Or run all linting and formatting at once
+```
+format-and-lint.ps1
+```
+
+### Tests
+
+inside the given folder, run
+```shell
+uv run pytest
+```
+
+or individual file
+```bash
+# Main bot functionality
+uv run pytest test_main.py -v
+
+# NetHack module tests
+uv run pytest test_nethack.py -v
+
+# Integration scenarios
+uv run pytest test_integration.py -v
+```
 
 ### Adding packages
 
