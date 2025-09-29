@@ -407,7 +407,3 @@ async def test_tweet_creation_workflow():
     mock_ctx.response.send_message.assert_called_with("Tweet posted! 👍", ephemeral=True)
     mock_ctx.followup.send.assert_called_with(embed=embed_data)
     assert mock_tweet_message.add_reaction.call_count == len(tweet_reactions)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

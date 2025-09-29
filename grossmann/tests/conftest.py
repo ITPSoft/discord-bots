@@ -1,6 +1,5 @@
 """Pytest configuration for Discord bot testing."""
 
-import pytest
 import os
 
 # Mock environment variables for testing

@@ -1,7 +1,6 @@
 """Integration tests for Grossmann bot scenarios and business logic."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
 
 # Import modules to test
 import decimdictionary as decdi
@@ -236,7 +235,3 @@ async def test_template_usage_integration():
     assert "_yesorno_" in help_text
     assert "_warcraft_" in help_text
     assert "_gmod_" in help_text
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

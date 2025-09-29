@@ -7,6 +7,8 @@
 - Never replicate the "business logic" inside the code, the `conftest.py` must contain only mocking, 
 fixtures and other test-related code, including dpytest and other code related to simulating the Discord API.
 - The testing code must exercise actual bot commands, using the bot commands, not copy-pasting the logic to tests.
+- No `if __name__ == "__main__":` is used in tests, pytest handles this automatically.
+- Never run tests using unittest, use pytest instead.
 
 ## Coding 
 - Always follow the best engineering practices, especially KISS and DRY. Skip overly verbose comments, UIs, etc. When importing a package, don't `try` if it's installed but import directly.

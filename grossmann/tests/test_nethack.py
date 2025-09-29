@@ -324,7 +324,3 @@ async def test_send_output_to_channel_text():
     await nethack_module.send_output_to_channel(mock_inter, "Test message")
 
     mock_inter.followup.send.assert_called_with("Test message")
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
