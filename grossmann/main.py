@@ -59,8 +59,9 @@ WOWKA_CZ = decdi.WOWKA_CZ
 
 # useful functions/methods
 async def batch_react(m: Message, reactions: list):
-    # todo: revert this, I want to have all of them in order, gather doesn't guarantee order or actual api calls
-    await asyncio.gather(*(m.add_reaction(reaction) for reaction in reactions))
+    # asyncio.gather would not guarantee order, so we need to add them one by one
+    for reaction in reactions:
+        await m.add_reaction(reaction)
 
 
 # on_member_join - happens when a new member joins guild
