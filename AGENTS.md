@@ -15,3 +15,4 @@ fixtures and other test-related code, including dpytest and other code related t
 - Avoid overly defensive checks. Rely on type hints and use these. 
 - Always cover new logic with tests.
 - Always follow the current logic and structure of the code as in the rest of the repository, including style of testing and handling mocks and fixtures.
+- Never import inside a function unless there is really good reason for it
