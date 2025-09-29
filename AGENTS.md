@@ -3,6 +3,7 @@
 
 ## Testing instructions
 - See the [README](README.md) for instructions on running tests.
+- Do not add `@pytest.mark.asyncio`, it's not needed and it's handled automatically.
 
 ## Coding 
 - Always follow the best engineering practices, especially KISS and DRY. Skip overly verbose comments, UIs, etc. When importing a package, don't `try` if it's installed but import directly.

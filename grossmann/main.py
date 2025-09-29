@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 import aiohttp
 import disnake
-from disnake import Message
+from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import Bot, Context, default_member_permissions, Param, InteractionBot
 from dotenv import load_dotenv
 
@@ -104,7 +104,7 @@ async def say(ctx, *args):
 # TODO add anonymity voting option (better in embed)
 @client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=decdi.GIDS)
 async def poll(
-    ctx, question: str, option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None
+    ctx: ApplicationCommandInteraction, question: str, option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
@@ -123,7 +123,7 @@ async def poll(
 # rolls a dice
 # TODO add range as slash command argument, default to 6 (why 100?)
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=decdi.GIDS)
-async def roll(ctx, arg_range=None):
+async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     range = None
     try:
         range = int(arg_range)
@@ -143,7 +143,7 @@ async def roll(ctx, arg_range=None):
 # "twitter" functionality
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
-async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
+async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
     twitterpero = client.get_channel(decdi.TWITTERPERO)  # todo: vyzkoušet, co je to za channel, dotypovat si
     sentfrom = f"Sent from #{ctx.channel.name}"
 
@@ -188,14 +188,14 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
 
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
 @default_member_permissions(administrator=True)
-async def ping(ctx):
+async def ping(ctx: ApplicationCommandInteraction):
     m = await ctx.send("Ping?")
     ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
     await m.edit(content=f"Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.")
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
-async def yesorno(ctx, *args):
+async def yesorno(ctx: ApplicationCommandInteraction, *args):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
@@ -203,7 +203,7 @@ async def yesorno(ctx, *args):
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
-async def warcraft(ctx, *args):
+async def warcraft(ctx: ApplicationCommandInteraction, *args):
     # send z templaty
     if args:
         m = await ctx.send(WARCRAFTY_CZ.replace("{0}", f" v cca {args[0]}"))
@@ -215,7 +215,7 @@ async def warcraft(ctx, *args):
 
 # TODO candidate for removal
 @client.slash_command()
-async def wowko(ctx, *args):
+async def wowko(ctx: ApplicationCommandInteraction, *args):
     # automoderation
     await ctx.message.delete()
     # send z templaty
