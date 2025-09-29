@@ -80,15 +80,24 @@ uv run pytest
 or individual file
 ```bash
 # Main bot functionality
-uv run pytest test_main.py -v
+uv run pytest tests/test_main.py -v
 
 # NetHack module tests
-uv run pytest test_nethack.py -v
+uv run pytest tests/test_nethack.py -v
 
 # Integration scenarios
-uv run pytest test_integration.py -v
+uv run pytest tests/test_integration.py -v
 ```
 
 ### Adding packages
 
 See the [documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies).
+
+## Troubleshooting
+
+Check the Guild IDs when getting errors like
+```
+SyncWarning: Failed to overwrite commands in <Guild id=276720867344646144> due to 403 Forbidden (error code: 50001): Missing Access
+```
+
+that can be caused by using `guild_ids` of servers where the bot is not a member.

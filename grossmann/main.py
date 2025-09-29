@@ -1,13 +1,14 @@
 import asyncio
 import datetime as dt
+import io
 import os
 import random
 from collections.abc import Iterable
 
 import aiohttp
 import disnake
-from disnake import Message, ApplicationCommandInteraction
-from disnake.ext.commands import Bot, Context, default_member_permissions, Param, InteractionBot
+from disnake import Message, ApplicationCommandInteraction, Embed
+from disnake.ext.commands import Bot, default_member_permissions, Param, InteractionBot
 from dotenv import load_dotenv
 
 import decimdictionary as decdi
@@ -37,7 +38,7 @@ intents.message_content = True
 client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
 
 # Global HTTP session - will be initialized when bot starts
-http_session = None
+http_session: aiohttp.ClientSession | None = None
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -79,24 +80,17 @@ Please, go to the <#1314388851304955904> channel and select your roles. Don't fo
 
 ## Commands here ->
 # Show all available commands
-@client.slash_command()
-async def decimhelp(ctx):
-    m = await ctx.send(HELP)
-    await asyncio.sleep(10)
-    # automoderation
-    await ctx.message.delete()
-    await m.delete()
+@client.slash_command(description="Show all available commands", guild_ids=decdi.GIDS)
+async def decimhelp(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(HELP, ephemeral=True, delete_after=60)
 
 
 # debug command/trolling
-@client.slash_command()
-async def say(ctx, *args):
-    if str(ctx.message.author) == "SkavenLord58#0420":
-        await ctx.message.delete()
-        await ctx.send(f"{' '.join(args)}")
-    else:
-        print(f'{ctx.message.author} tried to use "say" command.')
-        # await ctx.message.delete()
+@client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
+@default_member_permissions(administrator=True)
+async def say(ctx: ApplicationCommandInteraction, message: str):
+    await ctx.response.send_message("Message sent!")
+    await ctx.channel.send(message)
 
 
 # poll creation, takes up to five arguments
@@ -112,7 +106,6 @@ async def poll(
         return
     poll_mess = f"Anketa: {question}\n"
     m = await ctx.response.send_message("Creating poll...", ephemeral=False)
-    m = await ctx.original_message()
     emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     for i, option in enumerate(options):
         poll_mess += f"{emoji_list[i]} = {option}\n"
@@ -133,7 +126,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     if arg_range == "joint":
         await ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
     elif not range:
-        await ctx.response.send_message(f"{random.randint(0, 100)} (Defaulted to 100d.)")
+        await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 60d.)")
     elif type(range) is int and range > 0:
         await ctx.response.send_message(f"{random.randint(0, int(range))} (Used d{range}.)")
     else:
@@ -144,7 +137,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(decdi.TWITTERPERO)  # todo: vyzkoušet, co je to za channel, dotypovat si
+    twitterpero = client.get_channel(decdi.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
 
     if anonym:
@@ -189,9 +182,7 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    m = await ctx.send("Ping?")
-    ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
-    await m.edit(content=f"Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.")
+    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
@@ -203,45 +194,51 @@ async def yesorno(ctx: ApplicationCommandInteraction, *args):
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
-async def warcraft(ctx: ApplicationCommandInteraction, *args):
+async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     # send z templaty
-    if args:
-        m = await ctx.send(WARCRAFTY_CZ.replace("{0}", f" v cca {args[0]}"))
+    if time:
+        message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}")
     else:
-        m = await ctx.send(WARCRAFTY_CZ.replace("{0}", ""))
+        message_content = WARCRAFTY_CZ.replace("{0}", "")
+    
+    await ctx.response.send_message(message_content)
+    m = await ctx.original_message()
     # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    pass
 
 # TODO candidate for removal
-@client.slash_command()
-async def wowko(ctx: ApplicationCommandInteraction, *args):
-    # automoderation
-    await ctx.message.delete()
+@client.slash_command(description="Pings WoW role and open planning menu", guild_ids=decdi.GIDS)
+async def wowko(ctx: ApplicationCommandInteraction, time1: str = None, time2: str = None, time3: str = None):
     # send z templaty
-    if args:
-        m = await ctx.send(
-            WOWKA_CZ.replace("{0}", f" v cca {args[0]}")
-            .replace("{1}", f" v cca {args[1]}")
-            .replace("{2}", f" v cca {args[2]}")
-        )
+    message_content = WOWKA_CZ
+    if time1:
+        message_content = message_content.replace("{0}", f" v cca {time1}")
+        if time2:
+            message_content = message_content.replace("{1}", f" v cca {time2}")
+            if time3:
+                message_content = message_content.replace("{2}", f" v cca {time3}")
+            else:
+                message_content = message_content.replace("{2}", "")
+        else:
+            message_content = message_content.replace("{1}", "").replace("{2}", "")
     else:
-        m = await ctx.send(WOWKA_CZ.replace("{0}", ""))
+        message_content = message_content.replace("{0}", "").replace("{1}", "").replace("{2}", "")
+    
+    await ctx.response.send_message(message_content)
+    m = await ctx.original_message()
     # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "☦️", "🇹", "🇭", "🇩", "🇴"])
-    pass
 
 # TODO candidate for removal
 @client.slash_command(
     name="gmod_ping", description="Pings Garry's Mod role and open planning menu", guild_ids=decdi.GIDS
 )
-async def gmod(ctx, time: str = Param(default="21:00", description="v kolik hodin?"), *args):
+async def gmod(ctx: ApplicationCommandInteraction, time: str = Param(default="21:00", description="v kolik hodin?")):
     # send z templaty
-    m = await ctx.response.send_message(GMOD_CZ.replace("{0}", f"{time}"))
+    await ctx.response.send_message(GMOD_CZ.replace("{0}", f"{time}"))
+    m = await ctx.original_message()
     # přidání reakcí
-    await ctx.batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    # await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    pass
+    await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
 
 # TODO all that gaming_ping could be merged into one command, with more universal template/approach as you want to ping game - time - voice - vote yes/no and done
 
@@ -259,10 +256,12 @@ async def today(ctx):
     pass
 
 # TODO is this even used?
-@client.slash_command()
-async def fetchrole(ctx):
+@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)
+@default_member_permissions(administrator=True)
+async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
-    await ctx.send(roles)
+    role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
+    await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
@@ -378,72 +377,71 @@ async def listener(ctx: disnake.MessageInteraction):
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=decdi.GIDS)
-async def cat(ctx, *args):
+async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int = None):
+    if width and height:
+        w = width
+        h = height
+    else:
+        w = random.randint(64, 640)
+        h = random.randint(64, 640)
+
+    await send_http_response(
+        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
+    )
+
+async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
     try:
-        if args.__len__() >= 2:
-            w = args[0]
-            h = args[1]
-        else:
-            w = random.randint(64, 640)
-            h = random.randint(64, 640)
-        async with http_session.get(f"https://placecats.com/{w}/{h}") as api_call:
+        async with http_session.get(url) as api_call:
             if api_call.status == 200:
-                # todo: send the generated image, don't hit it 2 times
-                await ctx.send(api_call.content)
+                match api_call.content_type:
+                    case "image/gif" | "image/jpeg" | "image/png":
+                        result = await api_call.content.read()
+                        bytes_io = io.BytesIO()
+                        bytes_io.write(result)
+                        bytes_io.seek(0)
+                        await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png")))
+                    case "application/json":
+                        result = (await api_call.json())[resp_key]
+                        await respond(ctx, content=result)
             else:
-                await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
+                await respond(ctx, content=error_message)
     except Exception as exc:
         print(f"Encountered exception:\n {exc}")
-        await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
+        await respond(ctx, content="Oh nyo?!?! Something went ^w^ wwong!!")
 
 
-async def send_http_response(ctx: Context, url: str, resp_key: str, error_message: str) -> None:
-    async with http_session.get(url) as api_call:
-        if api_call.status == 200:
-            await ctx.send((await api_call.json())[resp_key])
-        else:
-            await ctx.send(error_message)
+async def respond(ctx: ApplicationCommandInteraction, **results):
+    if ctx.response.is_done():
+        print("using followup instead of response")
+        await ctx.followup.send(**results)
+    else:
+        await ctx.response.send_message(**results)
 
 
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=decdi.GIDS)
-async def fox(ctx):
-    try:
-        await send_http_response(
-            ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
-        )
-    except Exception as exc:
-        print(f"Caught exception:\n {exc}")
-    pass
+async def fox(ctx: ApplicationCommandInteraction):
+    await send_http_response(
+        ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
+    )
 
 
 @client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=decdi.GIDS)
-async def waifu(ctx, *args):
-    try:
-        if args and args[0] in ["sfw", "nsfw"]:
-            if args[1]:
-                url = f"https://api.waifu.pics/{args[0]}/{args[1]}"
-            else:
-                url = f"https://api.waifu.pics/{args[0]}/neko"
-        else:
-            url = "https://api.waifu.pics/sfw/neko"
-        await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
-    except Exception as exc:
-        print(f"Caught exception:\n {exc}")
-    pass
+async def waifu(ctx: ApplicationCommandInteraction, content_type: str = Param(choices=["sfw", "nsfw"], default="sfw"), category: str = Param(default="neko")):
+    url = f"https://api.waifu.pics/{content_type}/{category}"
+    await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
 
 
 # TODO ?????
-@client.slash_command()
-async def autostat(ctx):
-    m = ctx.message
-    await m.reply("OK;")
+@client.slash_command(description="Auto status command", guild_ids=decdi.GIDS)
+async def autostat(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message("OK;")
 
 
 # sends an xkcd comic
 @client.slash_command(
     name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
 )
-async def xkcd(ctx, id: str = None):
+async def xkcd(ctx: ApplicationCommandInteraction, id: str = None):
     if id:
         url = f"https://xkcd.com/{id}/info.0.json"
     else:
