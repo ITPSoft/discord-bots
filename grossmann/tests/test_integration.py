@@ -1,6 +1,6 @@
 """Integration tests for Grossmann bot scenarios and business logic."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 # Import modules to test
 import decimdictionary as decdi
@@ -8,162 +8,149 @@ import decimdictionary as decdi
 
 async def test_warcraft_ping_command_integration():
     """Test warcraft ping command with actual business logic from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    # Mock the bot to avoid instantiation issues
+    with patch("main.client"):
+        # Import after patching to avoid bot instantiation
         import main
         
-        # Test the actual warcraft command logic by simulating it
-        # This is testing the REAL logic from main.py warcraft function
+        # Create mock interaction context
         mock_ctx = AsyncMock()
-        mock_message = AsyncMock()
-        mock_ctx.send.return_value = mock_message
+        mock_ctx.response.send_message = AsyncMock()
+        mock_original_message = AsyncMock()
+        mock_ctx.original_message = AsyncMock(return_value=mock_original_message)
         
-        # Simulate the warcraft command logic
-        time_arg = "20:00"
-        if time_arg:
-            expected_content = decdi.WARCRAFTY_CZ.replace("{0}", f" v cca {time_arg}")
-        else:
-            expected_content = decdi.WARCRAFTY_CZ.replace("{0}", "")
+        # Execute the actual warcraft command function with time parameter
+        await main.warcraft(mock_ctx, "20:00")
         
-        message = await mock_ctx.send(expected_content)
+        # Verify the message was sent with correct content
+        mock_ctx.response.send_message.assert_called_once()
+        sent_content = mock_ctx.response.send_message.call_args[0][0]
         
-        # Simulate batch_react call
+        # Verify content matches the template with time
+        expected_content = decdi.WARCRAFTY_CZ.replace("{0}", " v cca 20:00")
+        assert sent_content == expected_content
+        
+        # Verify original_message was called to get message for reactions
+        mock_ctx.original_message.assert_called_once()
+        
+        # Verify batch_react was called with expected reactions
         expected_reactions = ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
+        assert mock_original_message.add_reaction.call_count == len(expected_reactions)
         for reaction in expected_reactions:
-            await message.add_reaction(reaction)
-        
-        # Verify the expected behavior matches what main.warcraft does
-        mock_ctx.send.assert_called_once_with(expected_content)
-        assert mock_message.add_reaction.call_count == len(expected_reactions)
-        
-        # Verify all expected reactions were added
-        for reaction in expected_reactions:
-            mock_message.add_reaction.assert_any_call(reaction)
+            mock_original_message.add_reaction.assert_any_call(reaction)
 
 
 async def test_gmod_ping_command_integration():
     """Test gmod ping command with actual business logic from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
-        # Test the actual gmod command logic by simulating it
+        # Create mock interaction context
         mock_ctx = AsyncMock()
-        mock_message = AsyncMock()
-        mock_ctx.response.send_message.return_value = mock_message
+        mock_ctx.response.send_message = AsyncMock()
+        mock_original_message = AsyncMock()
+        mock_ctx.original_message = AsyncMock(return_value=mock_original_message)
         
-        # Simulate the gmod command logic (from main.py line 240)
-        time_arg = "19:30"
-        expected_content = decdi.GMOD_CZ.replace("{0}", time_arg)
+        # Execute the actual gmod command function with time parameter
+        await main.gmod(mock_ctx, "19:30")
         
-        # Simulate the command execution
-        await mock_ctx.response.send_message(expected_content)
+        # Verify the message was sent with correct content
+        mock_ctx.response.send_message.assert_called_once()
+        sent_content = mock_ctx.response.send_message.call_args[0][0]
         
-        # Simulate batch_react call
+        # Verify content matches the template with time
+        expected_content = decdi.GMOD_CZ.replace("{0}", "19:30")
+        assert sent_content == expected_content
+        
+        # Verify original_message was called to get message for reactions
+        mock_ctx.original_message.assert_called_once()
+        
+        # Verify batch_react was called with expected reactions
         expected_reactions = ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
+        assert mock_original_message.add_reaction.call_count == len(expected_reactions)
         for reaction in expected_reactions:
-            await mock_message.add_reaction(reaction)
-        
-        # Verify the expected behavior matches what main.gmod does
-        mock_ctx.response.send_message.assert_called_once_with(expected_content)
-        assert mock_message.add_reaction.call_count == len(expected_reactions)
+            mock_original_message.add_reaction.assert_any_call(reaction)
 
 
 async def test_poll_command_integration():
     """Test poll command with actual business logic from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
-        # Test the actual poll command logic by simulating it
+        # Create mock interaction context
         mock_ctx = AsyncMock()
-        mock_original_message = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
-        mock_ctx.original_message.return_value = mock_original_message
+        mock_message = AsyncMock()  # The message returned by send_message
+        mock_ctx.response.send_message = AsyncMock(return_value=mock_message)
         
-        # Simulate the poll command logic (from main.py lines 109-120)
-        question = "What game?"
-        options = ["Warcraft", "GMod", "Valorant"]
+        # Execute the actual poll command function
+        await main.poll(mock_ctx, "What game?", "Warcraft", "GMod", "Valorant", None, None)
         
-        # Filter options like the real command
-        filtered_options = [opt for opt in options if opt]
-        
-        if len(filtered_options) >= 2:
-            # Send initial message
-            await mock_ctx.response.send_message("Creating poll...", ephemeral=False)
-            
-            # Get original message
-            original_message = await mock_ctx.original_message()
-            
-            # Build poll content
-            poll_content = f"Anketa: {question}\n"
-            emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
-            
-            for i, option in enumerate(filtered_options):
-                poll_content += f"{emoji_list[i]} = {option}\n"
-                await original_message.add_reaction(emoji_list[i])
-            
-            await original_message.edit(content=poll_content)
-        
-        # Verify the expected behavior matches what main.poll does
+        # Verify initial message was sent
         mock_ctx.response.send_message.assert_called_once_with("Creating poll...", ephemeral=False)
-        mock_ctx.original_message.assert_called_once()
-        assert mock_original_message.add_reaction.call_count == len(filtered_options)
-        mock_original_message.edit.assert_called_once()
         
-        # Verify final content
-        edit_args = mock_original_message.edit.call_args
-        final_content = edit_args.kwargs['content']
-        assert "Anketa: What game?" in final_content
-        assert "1️⃣ = Warcraft" in final_content
-        assert "2️⃣ = GMod" in final_content
-        assert "3️⃣ = Valorant" in final_content
+        # Verify poll reactions were added (3 options = 3 reactions)
+        expected_reactions = ["1️⃣", "2️⃣", "3️⃣"]
+        assert mock_message.add_reaction.call_count == len(expected_reactions)
+        for reaction in expected_reactions:
+            mock_message.add_reaction.assert_any_call(reaction)
+        
+        # Verify the message was edited with poll content
+        mock_message.edit.assert_called_once()
+        edit_call_args = mock_message.edit.call_args
+        poll_content = edit_call_args.kwargs['content']
+        assert "Anketa: What game?" in poll_content
+        assert "1️⃣ = Warcraft" in poll_content
+        assert "2️⃣ = GMod" in poll_content
+        assert "3️⃣ = Valorant" in poll_content
 
 
 async def test_poll_command_insufficient_options():
     """Test poll command with insufficient options."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
-        # Test the actual poll command logic with insufficient options
+        # Create mock interaction context
         mock_ctx = AsyncMock()
         mock_ctx.response.send_message = AsyncMock()
         
-        # Simulate the poll command with only one option
-        options = ["Option1", None, None, None, None]
-        filtered_options = [opt for opt in options if opt]
-        
-        # Simulate the validation logic from main.py
-        if len(filtered_options) < 2:
-            await mock_ctx.response.send_message("You must provide at least two options.", ephemeral=True)
+        # Execute the actual poll command function with insufficient options
+        await main.poll(mock_ctx, "Test?", "OnlyOption", "", None, None, None)
         
         # Verify error message was sent
         mock_ctx.response.send_message.assert_called_once_with(
             "You must provide at least two options.", ephemeral=True
         )
+        
+        # Verify that no further processing occurred (no original_message call)
+        assert not hasattr(mock_ctx, 'original_message') or not mock_ctx.original_message.called
 
 
 async def test_yesorno_command_integration():
     """Test yesorno command with actual business logic from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
         with patch('random.choice') as mock_choice:
             mock_choice.return_value = "Yes."
             
+            # Create mock interaction context
             mock_ctx = AsyncMock()
             mock_ctx.response.send_message = AsyncMock()
             
-            # Simulate the yesorno command logic (from main.py line 200)
-            answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
-            result = mock_choice(answers)
-            await mock_ctx.response.send_message(f"{result}")
+            # Execute the actual yesorno command function
+            await main.yesorno(mock_ctx)
             
-            # Verify response was sent
+            # Verify response was sent with the mocked choice
             mock_ctx.response.send_message.assert_called_once_with("Yes.")
-            mock_choice.assert_called_once_with(answers)
+            
+            # Verify random.choice was called with the correct answers
+            expected_answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
+            mock_choice.assert_called_once_with(expected_answers)
 
 
 async def test_bot_validation_integration():
     """Test bot validation logic with actual main.py function."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
         # Test good bot validation
@@ -184,7 +171,7 @@ async def test_bot_validation_integration():
 
 async def test_batch_react_integration():
     """Test batch_react function from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
         mock_message = AsyncMock()
@@ -200,7 +187,7 @@ async def test_batch_react_integration():
 
 async def test_has_any_utility_integration():
     """Test has_any utility function from main.py."""
-    with patch("disnake.ext.commands.InteractionBot"):
+    with patch("main.client"):
         import main
         
         # Test positive case
@@ -216,7 +203,7 @@ async def test_has_any_utility_integration():
         assert main.has_any(content, []) is False
 
 
-async def test_template_usage_integration():
+def test_template_usage_integration():
     """Test that commands use templates correctly with actual data."""
     # Test warcraft template with actual template from decimdictionary
     expected = "<@&871817685439234108> - Warcrafty 3 dnes v cca 20:00?"
