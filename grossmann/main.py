@@ -1,9 +1,8 @@
-import asyncio
-import datetime as dt
 import io
 import os
 import random
 from collections.abc import Iterable
+from enum import Enum
 
 import aiohttp
 import disnake
@@ -15,6 +14,130 @@ import decimdictionary as decdi
 
 # TODO: logging
 # TODO: make all stuff loadable modules
+
+# todo: ekonpolipero mit na nakliknutelnou roli, ale v ekonpolipera to hodí anketu a musí to třeba 3 lidi approvnout
+# todo: role na selfservice p
+
+# todo: figure out how to make it a subclass
+class DiscordSelfServiceRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+    CLEN = "Člen"
+    OSTRAVAK = "Ostravák"
+    PRAZAK = "Pražák"
+    BRNAK = "brnak"
+    MAGIC_THE_GATHERING = "magicTheGathering"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordSelfServiceRoles.CLEN:
+                return 804431648959627294
+            case DiscordSelfServiceRoles.OSTRAVAK:
+                return 988431391807131690
+            case DiscordSelfServiceRoles.PRAZAK:
+                return 998636130511630386
+            case DiscordSelfServiceRoles.BRNAK:
+                return 1105227159712309391
+            case DiscordSelfServiceRoles.MAGIC_THE_GATHERING:
+                return 1327396658605981797
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
+
+class DiscordGamingRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+    WARCRAFT = "warcraft"
+    GMOD = "gmod"
+    VALORANT = "valorant"
+    KYOUDAI = "kyoudai"
+    LOLKO = "lolko"
+    DOTA2 = "dota2"
+    CSGO = "csgo"
+    SEA_OF_THIEVES = "sea of thieves"
+    DUHOVA_SESTKA = "duhová šestka"
+    MINECRAFT = "minecraft"
+    DARK_AND_DARKER = "dark and darker"
+    GOLFISTI = "golfisti"
+    WOWKO = "WoWko"
+    CIVKY = "civky"
+    ROCKANDSTONE = "rockandstone"
+    HOTS = "hots"
+    GTAONLINE = "gtaonline"
+    WARFRAME = "warframe"
+    HELLDIVERS = "helldivers"
+    VOIDBOYS = "voidboys"
+    THEFINALS = "thefinals"
+    BEYOND_ALL_REASON = "BeyondAllReason"
+    VALHEIM = "Valheim"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordGamingRoles.WARCRAFT:
+                return 871817685439234108
+            case DiscordGamingRoles.GMOD:
+                return 951457356221394975
+            case DiscordGamingRoles.VALORANT:
+                return 991026818054225931
+            case DiscordGamingRoles.KYOUDAI:
+                return 1031510557163008010
+            case DiscordGamingRoles.LOLKO:
+                return 994302892561399889
+            case DiscordGamingRoles.DOTA2:
+                return 994303445735587991
+            case DiscordGamingRoles.CSGO:
+                return 994303566082740224
+            case DiscordGamingRoles.SEA_OF_THIEVES:
+                return 994303863643451442
+            case DiscordGamingRoles.DUHOVA_SESTKA:
+                return 1011212649704460378
+            case DiscordGamingRoles.MINECRAFT:
+                return 1049052005341069382
+            case DiscordGamingRoles.DARK_AND_DARKER:
+                return 1054111346733617222
+            case DiscordGamingRoles.GOLFISTI:
+                return 1076931268555587645
+            case DiscordGamingRoles.WOWKO:
+                return 1120426868697473024
+            case DiscordGamingRoles.CIVKY:
+                return 1070800908729995386
+            case DiscordGamingRoles.ROCKANDSTONE:
+                return 1107334623983312897
+            case DiscordGamingRoles.HOTS:
+                return 1140376580800118835
+            case DiscordGamingRoles.GTAONLINE:
+                return 1189322955063316551
+            case DiscordGamingRoles.WARFRAME:
+                return 1200135734590451834
+            case DiscordGamingRoles.HELLDIVERS:
+                return 1228002980754751621
+            case DiscordGamingRoles.VOIDBOYS:
+                return 1281326981878906931
+            case DiscordGamingRoles.THEFINALS:
+                return 1242187454837035228
+            case DiscordGamingRoles.BEYOND_ALL_REASON:
+                return 1358445521227874424
+            case DiscordGamingRoles.VALHEIM:
+                return 1356164640152883241
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
 
 # preload all useful stuff
 load_dotenv()
@@ -203,11 +326,11 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
 
 # TODO candidate for removal
 @client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
-async def game_call(ctx: ApplicationCommandInteraction, role: str, game: str, time: str = "20:10"):
+async def game_call(ctx: ApplicationCommandInteraction, role: DiscordSelfServiceRoles, game: str, time: str = "20:10"):
     # send z templaty
     message_content = decdi.GAME_EN
-    message_content = message_content.replace("{0}", f" in {role}")
-    message_content = message_content.replace("{1}", f" at {game}")
+    message_content = message_content.replace("{0}", role)
+    message_content = message_content.replace("{1}", game)
     message_content = message_content.replace("{2}", f" at {time}")
 
     await ctx.response.send_message(message_content)
@@ -293,39 +416,8 @@ async def command(ctx):
 # TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
-    role_list = {
-        "Člen": 804431648959627294,
-        "warcraft": 871817685439234108,
-        "gmod": 951457356221394975,
-        "valorant": 991026818054225931,
-        "kyoudai": 1031510557163008010,
-        "lolko": 994302892561399889,
-        "dota2": 994303445735587991,
-        "csgo": 994303566082740224,
-        "sea of thieves": 994303863643451442,
-        "duhová šestka": 1011212649704460378,
-        "minecraft": 1049052005341069382,
-        "dark and darker": 1054111346733617222,
-        "Ostravák": 988431391807131690,
-        "Pražák": 998636130511630386,
-        "carfag": 1057281159509319800,
-        "golfisti": 1076931268555587645,
-        "brnak": 1105227159712309391,
-        "WoWko": 1120426868697473024,
-        "civky": 1070800908729995386,
-        "rockandstone": 1107334623983312897,
-        "hots": 1140376580800118835,
-        "gtaonline": 1189322955063316551,
-        "warframe": 1200135734590451834,
-        "helldivers": 1228002980754751621,
-        "voidboys": 1281326981878906931,
-        "thefinals": 1242187454837035228,
-        "magicTheGathering": 1327396658605981797,
-        "BeyondAllReason": 1358445521227874424,
-        "Valheim": 1356164640152883241,
-    }
-    if ctx.component.custom_id in role_list.keys():
-        role_id = role_list[ctx.component.custom_id]
+    role_id = DiscordSelfServiceRoles.get_role_id_by_name(ctx.component.custom_id)
+    if role_id is not None:
         role = ctx.guild.get_role(role_id)
         if role in ctx.author.roles:
             await ctx.author.remove_roles(role)
