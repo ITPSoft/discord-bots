@@ -365,17 +365,18 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
 async def game_ping(
     ctx: ApplicationCommandInteraction,
     # role: DiscordGamingRoles,
-    role: DiscordGamingTestingRoles,
-    game: str,
-    time: str = "20:10",
+    game: DiscordGamingTestingRoles,
+    time: str,
+    note: str = "",
 ):
     # send z templaty
     message_content = decdi.GAME_EN
     # role_id = str(DiscordGamingRoles(role).role_id)
-    role_id = str(DiscordGamingTestingRoles(role).role_id)
-    message_content = message_content.replace("{0}", role_id)
-    message_content = message_content.replace("{1}", game)
+    role = DiscordGamingTestingRoles(game)
+    message_content = message_content.replace("{0}", str(role.role_id))
+    message_content = message_content.replace("{1}", str(role.value))
     message_content = message_content.replace("{2}", f" at {time}")
+    message_content = message_content.replace("{3}", note)
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
