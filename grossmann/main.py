@@ -16,7 +16,9 @@ import decimdictionary as decdi
 # TODO: make all stuff loadable modules
 
 # todo: ekonpolipero mit na nakliknutelnou roli, ale v ekonpolipera to hodí anketu a musí to třeba 3 lidi approvnout
-# todo: role na selfservice p
+# todo: role na selfservice přidávat commandem
+#   a pak přidat command na dump uložených rolí do zdrojáku
+#   nějak to parametrizovat per server
 
 # todo: figure out how to make it a subclass
 class DiscordSelfServiceRoles(str, Enum):
@@ -333,7 +335,6 @@ async def yesorno(ctx: ApplicationCommandInteraction, *args):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
-# TODO candidate for removal
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
@@ -347,13 +348,17 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
 
 
-# TODO candidate for removal
 @client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
-# async def game_call(ctx: ApplicationCommandInteraction, role: DiscordGamingRoles, game: str, time: str = "20:10"):
-async def game_call(ctx: ApplicationCommandInteraction, role: DiscordGamingTestingRoles, game: str, time: str = "20:10"):
+async def game_ping(
+    ctx: ApplicationCommandInteraction,
+    # role: DiscordGamingRoles,
+    role: DiscordGamingTestingRoles,
+    game: str, time: str = "20:10"):
     # send z templaty
     message_content = decdi.GAME_EN
-    message_content = message_content.replace("{0}", str(DiscordGamingTestingRoles(role).role_id))
+    # role_id = str(DiscordGamingRoles(role).role_id)
+    role_id = str(DiscordGamingTestingRoles(role).role_id)
+    message_content = message_content.replace("{0}", role_id)
     message_content = message_content.replace("{1}", game)
     message_content = message_content.replace("{2}", f" at {time}")
 
