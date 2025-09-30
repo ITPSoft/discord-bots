@@ -173,7 +173,6 @@ class DiscordGamingTestingRoles(str, Enum):
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
-PREFIX = os.getenv("BOT_PREFIX")  # TODO remove
 
 
 # TODO is this even useful?
@@ -186,7 +185,7 @@ class UnfilteredBot(Bot):
         await self.invoke(ctx)
 
 
-# add intents for bot and command prefix for classic command support
+# needed setup to be able to read message contents
 intents = disnake.Intents.all()
 intents.message_content = True
 client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
