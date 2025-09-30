@@ -3,7 +3,6 @@
 import random
 from unittest.mock import AsyncMock, patch, Mock
 
-import pytest
 
 import decimdictionary as decdi
 import main
