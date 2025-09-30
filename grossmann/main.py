@@ -138,6 +138,29 @@ class DiscordGamingRoles(str, Enum):
         except ValueError:
             return None
 
+class DiscordGamingTestingRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+    WARCRAFT = "warcraft"
+    VALORANT = "valorant"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordGamingTestingRoles.WARCRAFT:
+                return 1422634691969945830
+            case DiscordGamingTestingRoles.VALORANT:
+                return 1422634814095228928
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
 
 # preload all useful stuff
 load_dotenv()
@@ -326,17 +349,18 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
 
 # TODO candidate for removal
 @client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
-async def game_call(ctx: ApplicationCommandInteraction, role: DiscordSelfServiceRoles, game: str, time: str = "20:10"):
+# async def game_call(ctx: ApplicationCommandInteraction, role: DiscordGamingRoles, game: str, time: str = "20:10"):
+async def game_call(ctx: ApplicationCommandInteraction, role: DiscordGamingTestingRoles, game: str, time: str = "20:10"):
     # send z templaty
     message_content = decdi.GAME_EN
-    message_content = message_content.replace("{0}", role)
+    message_content = message_content.replace("{0}", str(DiscordGamingTestingRoles(role).role_id))
     message_content = message_content.replace("{1}", game)
     message_content = message_content.replace("{2}", f" at {time}")
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
     # přidání reakcí
-    await batch_react(m, ["✅", "❎", "🤔", "☦️", "🇹", "🇭", "🇩", "🇴"])
+    await batch_react(m, ["✅", "❎", "🤔", "☦️"])
 
 
 # TODO is this even used?

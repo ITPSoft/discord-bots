@@ -38,7 +38,7 @@ Chceme hrát:
 """
 
 GAME_EN = """
-<@{0}> Shall we play {1} today{2}?.
+<@&{0}> Shall we play {1} today{2}?.
 
 Will you join?
 :white_check_mark: Yes
