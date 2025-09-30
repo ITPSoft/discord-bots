@@ -1,14 +1,13 @@
+import io
 import os
-import aiohttp
 import random
-import asyncio
-import datetime as dt
-import requests
+from collections.abc import Iterable
+from enum import Enum
 
+import aiohttp
 import disnake
-from disnake import Message
-from disnake.ext import commands
-
+from disnake import Message, ApplicationCommandInteraction, Embed
+from disnake.ext.commands import Bot, default_member_permissions, Param, InteractionBot
 from dotenv import load_dotenv
 
 import decimdictionary as decdi
@@ -16,14 +15,168 @@ import decimdictionary as decdi
 # TODO: logging
 # TODO: make all stuff loadable modules
 
+# todo: ekonpolipero mit na nakliknutelnou roli, ale v ekonpolipera to hodí anketu a musí to třeba 3 lidi approvnout
+# todo: role na selfservice přidávat commandem
+#   a pak přidat command na dump uložených rolí do zdrojáku
+#   nějak to parametrizovat per server
+
+
+# todo: figure out how to make it a subclass
+class DiscordSelfServiceRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+
+    CLEN = "Člen"
+    OSTRAVAK = "Ostravák"
+    PRAZAK = "Pražák"
+    BRNAK = "brnak"
+    MAGIC_THE_GATHERING = "magicTheGathering"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordSelfServiceRoles.CLEN:
+                return 804431648959627294
+            case DiscordSelfServiceRoles.OSTRAVAK:
+                return 988431391807131690
+            case DiscordSelfServiceRoles.PRAZAK:
+                return 998636130511630386
+            case DiscordSelfServiceRoles.BRNAK:
+                return 1105227159712309391
+            case DiscordSelfServiceRoles.MAGIC_THE_GATHERING:
+                return 1327396658605981797
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
+
+class DiscordGamingRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+
+    WARCRAFT = "warcraft"
+    GMOD = "gmod"
+    VALORANT = "valorant"
+    KYOUDAI = "kyoudai"
+    LOLKO = "lolko"
+    DOTA2 = "dota2"
+    CSGO = "csgo"
+    SEA_OF_THIEVES = "sea of thieves"
+    DUHOVA_SESTKA = "duhová šestka"
+    MINECRAFT = "minecraft"
+    DARK_AND_DARKER = "dark and darker"
+    GOLFISTI = "golfisti"
+    WOWKO = "WoWko"
+    CIVKY = "civky"
+    ROCKANDSTONE = "rockandstone"
+    HOTS = "hots"
+    GTAONLINE = "gtaonline"
+    WARFRAME = "warframe"
+    HELLDIVERS = "helldivers"
+    VOIDBOYS = "voidboys"
+    THEFINALS = "thefinals"
+    BEYOND_ALL_REASON = "BeyondAllReason"
+    VALHEIM = "Valheim"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordGamingRoles.WARCRAFT:
+                return 871817685439234108
+            case DiscordGamingRoles.GMOD:
+                return 951457356221394975
+            case DiscordGamingRoles.VALORANT:
+                return 991026818054225931
+            case DiscordGamingRoles.KYOUDAI:
+                return 1031510557163008010
+            case DiscordGamingRoles.LOLKO:
+                return 994302892561399889
+            case DiscordGamingRoles.DOTA2:
+                return 994303445735587991
+            case DiscordGamingRoles.CSGO:
+                return 994303566082740224
+            case DiscordGamingRoles.SEA_OF_THIEVES:
+                return 994303863643451442
+            case DiscordGamingRoles.DUHOVA_SESTKA:
+                return 1011212649704460378
+            case DiscordGamingRoles.MINECRAFT:
+                return 1049052005341069382
+            case DiscordGamingRoles.DARK_AND_DARKER:
+                return 1054111346733617222
+            case DiscordGamingRoles.GOLFISTI:
+                return 1076931268555587645
+            case DiscordGamingRoles.WOWKO:
+                return 1120426868697473024
+            case DiscordGamingRoles.CIVKY:
+                return 1070800908729995386
+            case DiscordGamingRoles.ROCKANDSTONE:
+                return 1107334623983312897
+            case DiscordGamingRoles.HOTS:
+                return 1140376580800118835
+            case DiscordGamingRoles.GTAONLINE:
+                return 1189322955063316551
+            case DiscordGamingRoles.WARFRAME:
+                return 1200135734590451834
+            case DiscordGamingRoles.HELLDIVERS:
+                return 1228002980754751621
+            case DiscordGamingRoles.VOIDBOYS:
+                return 1281326981878906931
+            case DiscordGamingRoles.THEFINALS:
+                return 1242187454837035228
+            case DiscordGamingRoles.BEYOND_ALL_REASON:
+                return 1358445521227874424
+            case DiscordGamingRoles.VALHEIM:
+                return 1356164640152883241
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
+
+class DiscordGamingTestingRoles(str, Enum):
+    """Seznam rolí, co si lidi sami můžou naklikat"""
+
+    WARCRAFT = "warcraft"
+    VALORANT = "valorant"
+
+    @property
+    def role_id(self) -> int:
+        """Get the Discord role ID for this role"""
+        match self:
+            case DiscordGamingTestingRoles.WARCRAFT:
+                return 1422634691969945830
+            case DiscordGamingTestingRoles.VALORANT:
+                return 1422634814095228928
+
+    @classmethod
+    def get_role_id_by_name(cls, role_name: str) -> int | None:
+        """Get role ID by role name"""
+        try:
+            role = cls(role_name)
+            return role.role_id
+        except ValueError:
+            return None
+
+
 # preload all useful stuff
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
-PREFIX = os.getenv("BOT_PREFIX") #TODO remove
 
-# TODO is this even useful? 
-class UnfilteredBot(commands.Bot):
+
+# TODO is this even useful?
+class UnfilteredBot(Bot):
     """An overridden version of the Bot class that will listen to other bots."""
 
     async def process_commands(self, message):
@@ -32,33 +185,35 @@ class UnfilteredBot(commands.Bot):
         await self.invoke(ctx)
 
 
-# add intents for bot and command prefix for classic command support
+# needed setup to be able to read message contents
 intents = disnake.Intents.all()
 intents.message_content = True
-client = disnake.ext.commands.Bot(command_prefix=PREFIX, intents=intents) #TODO remove prefix
+client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
+
+# Global HTTP session - will be initialized when bot starts
+http_session: aiohttp.ClientSession | None = None
 
 
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
+    global http_session
+    # Initialize the global HTTP session with SSL disabled
+    http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     print(f"{client.user} has connected to Discord!")
 
 
-# constants 
+# constants
 # TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = decdi.HELP
 WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
-GMOD_CZ = decdi.GMOD_CZ
-WOWKA_CZ = decdi.WOWKA_CZ
-MOT_HLASKY = decdi.MOT_HLASKY
-LINUX_COPYPASTA = decdi.LINUX_COPYPASTA
 
 
 # useful functions/methods
-async def batch_react(m, reactions: list):
+async def batch_react(m: Message, reactions: list):
+    # asyncio.gather would not guarantee order, so we need to add them one by one
     for reaction in reactions:
         await m.add_reaction(reaction)
-    pass
 
 
 # on_member_join - happens when a new member joins guild
@@ -76,26 +231,17 @@ Please, go to the <#1314388851304955904> channel and select your roles. Don't fo
 
 ## Commands here ->
 # Show all available commands
-# TODO remove, replaced with slash commad (also Šimek functionality)
-@client.command()
-async def decimhelp(ctx):
-    m = await ctx.send(HELP)
-    await asyncio.sleep(10)
-    # automoderation
-    await ctx.message.delete()
-    await m.delete()
+@client.slash_command(description="Show all available commands", guild_ids=decdi.GIDS)
+async def decimhelp(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(HELP, ephemeral=True, delete_after=60)
 
 
-# debug command/trolling 
-# TODO remove, replaced with slash command
-@client.command()
-async def say(ctx, *args):
-    if str(ctx.message.author) == "SkavenLord58#0420":
-        await ctx.message.delete()
-        await ctx.send(f"{' '.join(args)}")
-    else:
-        print(f'{ctx.message.author} tried to use "say" command.')
-        # await ctx.message.delete()
+# debug command/trolling
+@client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
+@default_member_permissions(administrator=True)
+async def say(ctx: ApplicationCommandInteraction, message: str):
+    await ctx.response.send_message("Message sent!")
+    await ctx.channel.send(message)
 
 
 # poll creation, takes up to five arguments
@@ -103,7 +249,13 @@ async def say(ctx, *args):
 # TODO add anonymity voting option (better in embed)
 @client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=decdi.GIDS)
 async def poll(
-    ctx, question: str, option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None
+    ctx: ApplicationCommandInteraction,
+    question: str,
+    option1: str,
+    option2: str,
+    option3: str = None,
+    option4: str = None,
+    option5: str = None,
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
@@ -111,7 +263,6 @@ async def poll(
         return
     poll_mess = f"Anketa: {question}\n"
     m = await ctx.response.send_message("Creating poll...", ephemeral=False)
-    m = await ctx.original_message()
     emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     for i, option in enumerate(options):
         poll_mess += f"{emoji_list[i]} = {option}\n"
@@ -120,9 +271,8 @@ async def poll(
 
 
 # rolls a dice
-# TODO add range as slash command argument, default to 6 (why 100?)
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=decdi.GIDS)
-async def roll(ctx, arg_range=None):
+async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     range = None
     try:
         range = int(arg_range)
@@ -132,7 +282,7 @@ async def roll(ctx, arg_range=None):
     if arg_range == "joint":
         await ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
     elif not range:
-        await ctx.response.send_message(f"{random.randint(0, 100)} (Defaulted to 100d.)")
+        await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 6d.)")
     elif type(range) is int and range > 0:
         await ctx.response.send_message(f"{random.randint(0, int(range))} (Used d{range}.)")
     else:
@@ -142,37 +292,36 @@ async def roll(ctx, arg_range=None):
 # "twitter" functionality
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
-async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
+async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
     twitterpero = client.get_channel(decdi.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
 
     if anonym:
         random_city = "Void"
         random_name = "Jan Jelen"
+        result = None
 
         try:
-            apiCall = requests.get("https://randomuser.me//api")
-            if apiCall.status_code == 200:
-                randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
-                randomizer_opt[0] = apiCall.json()["results"][0]["login"]["username"]
-                randomizer_opt[1] = apiCall.json()["results"][0]["email"].split("@")[0]
-                randomizer_opt[2] = apiCall.json()["results"][0]["login"]["password"] + str(
-                    apiCall.json()["results"][0]["dob"]["age"]
-                )
-                randomizer_opt[3] = (
-                    apiCall.json()["results"][0]["gender"] + "goblin" + str(apiCall.json()["results"][0]["dob"]["age"])
-                )
-                randomizer_opt[4] = "lil" + apiCall.json()["results"][0]["location"]["country"].lower() + "coomer69"
+            async with http_session.get("https://randomuser.me//api") as api_call:
+                if api_call.status == 200:
+                    result = (await api_call.json())["results"][0]
+                    randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
+                    randomizer_opt[0] = result["login"]["username"]
+                    randomizer_opt[1] = result["email"].split("@")[0]
+                    randomizer_opt[2] = result["login"]["password"] + str(result["dob"]["age"])
+                    randomizer_opt[3] = result["gender"] + "goblin" + str(result["dob"]["age"])
+                    randomizer_opt[4] = "lil" + result["location"]["country"].lower() + "coomer69"
 
-                random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
-                random_city = apiCall.json()["results"][0]["location"]["city"]
+                    random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
+                    random_city = result["location"]["city"]
         except:
             pass
 
         embed = disnake.Embed(
             title=f"{random_name} tweeted:", description=f"{content}", color=disnake.Colour.dark_purple()
         )
-        embed.set_thumbnail(url=apiCall.json()["results"][0]["picture"]["medium"])
+        if result is not None:
+            embed.set_thumbnail(url=result["picture"]["medium"])
         sentfrom = f"Sent from {random_city} (#{ctx.channel.name})"
     else:
         embed = disnake.Embed(
@@ -189,89 +338,65 @@ async def tweet(ctx, content: str, media: str = "null", anonym: bool = False):
 
 
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
-@commands.default_member_permissions(administrator=True)
-async def ping(ctx):
-    m = await ctx.send("Ping?")
-    ping = int(str(m.created_at - ctx.message.created_at).split(".")[1]) / 1000
-    await m.edit(content=f"Pong! Latency is {ping}ms. API Latency is {round(client.latency * 1000)}ms.")
-    pass
+@default_member_permissions(administrator=True)
+async def ping(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
-async def yesorno(ctx, *args):
+async def yesorno(ctx: ApplicationCommandInteraction):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
-    pass
 
-# TODO candidate for removal
+
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
-async def warcraft(ctx, *args):
+async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     # send z templaty
-    if args:
-        m = await ctx.send(WARCRAFTY_CZ.replace("{0}", f" v cca {args[0]}"))
-    else:
-        m = await ctx.send(WARCRAFTY_CZ.replace("{0}", ""))
+    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}" if time else "")
+
+    await ctx.response.send_message(message_content)
+    m = await ctx.original_message()
     # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    pass
 
-# TODO candidate for removal
-@client.command()
-async def wowko(ctx, *args):
-    # automoderation
-    await ctx.message.delete()
+
+@client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
+async def game_ping(
+    ctx: ApplicationCommandInteraction,
+    # role: DiscordGamingRoles,
+    game: DiscordGamingTestingRoles,
+    time: str,
+    note: str = "",
+):
     # send z templaty
-    if args:
-        m = await ctx.send(
-            WOWKA_CZ.replace("{0}", f" v cca {args[0]}")
-            .replace("{1}", f" v cca {args[1]}")
-            .replace("{2}", f" v cca {args[2]}")
-        )
-    else:
-        m = await ctx.send(WOWKA_CZ.replace("{0}", ""))
+    message_content = decdi.GAME_EN
+    # role_id = str(DiscordGamingRoles(role).role_id)
+    role = DiscordGamingTestingRoles(game)
+    message_content = message_content.replace("{0}", str(role.role_id))
+    message_content = message_content.replace("{1}", str(role.value))
+    message_content = message_content.replace("{2}", f" at {time}")
+    message_content = message_content.replace("{3}", note)
+
+    await ctx.response.send_message(message_content)
+    m = await ctx.original_message()
     # přidání reakcí
-    await batch_react(m, ["✅", "❎", "🤔", "☦️", "🇹", "🇭", "🇩", "🇴"])
-    pass
+    await batch_react(m, ["✅", "❎", "🤔", "☦️"])
 
-# TODO candidate for removal
-@client.slash_command(
-    name="gmod_ping", description="Pings Garry's Mod role and open planning menu", guild_ids=decdi.GIDS
-)
-async def gmod(ctx, time: str = commands.Param(default="21:00", description="v kolik hodin?"), *args):
-    # send z templaty
-    m = await ctx.response.send_message(GMOD_CZ.replace("{0}", f"{time}"))
-    # přidání reakcí
-    await ctx.batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    # await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-    pass
 
-# TODO all that gaming_ping could be merged into one command, with more universal template/approach as you want to ping game - time - voice - vote yes/no and done
-
-# TODO check if its even working, candidate for removal
-@client.slash_command(
-    name="today", description="Fetches today's holidays from the National API Day.", guild_ids=decdi.GIDS
-)
-async def today(ctx):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=AT&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.datetime.today()}&validTo={dt.datetime.today()}"
-        ) as response:
-            payload = await response.json()
-            holidays: list[str] = payload.get("holidays", [])
-            await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
-    pass
-
-# TODO is this even used? 
-@client.command()
-async def fetchrole(ctx):
+# TODO is this even used?
+@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)
+@default_member_permissions(administrator=True)
+async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
-    await ctx.send(roles)
+    role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
+    await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
+
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
-@commands.default_member_permissions(administrator=True)
+@default_member_permissions(administrator=True)
 async def command(ctx):
     embed = disnake.Embed(
         title="Role picker",
@@ -335,42 +460,12 @@ async def command(ctx):
         ],
     )
 
+
 # TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
-    role_list = {
-        "Člen": 804431648959627294,
-        "warcraft": 871817685439234108,
-        "gmod": 951457356221394975,
-        "valorant": 991026818054225931,
-        "kyoudai": 1031510557163008010,
-        "lolko": 994302892561399889,
-        "dota2": 994303445735587991,
-        "csgo": 994303566082740224,
-        "sea of thieves": 994303863643451442,
-        "duhová šestka": 1011212649704460378,
-        "minecraft": 1049052005341069382,
-        "dark and darker": 1054111346733617222,
-        "Ostravák": 988431391807131690,
-        "Pražák": 998636130511630386,
-        "carfag": 1057281159509319800,
-        "golfisti": 1076931268555587645,
-        "brnak": 1105227159712309391,
-        "WoWko": 1120426868697473024,
-        "civky": 1070800908729995386,
-        "rockandstone": 1107334623983312897,
-        "hots": 1140376580800118835,
-        "gtaonline": 1189322955063316551,
-        "warframe": 1200135734590451834,
-        "helldivers": 1228002980754751621,
-        "voidboys": 1281326981878906931,
-        "thefinals": 1242187454837035228,
-        "magicTheGathering": 1327396658605981797,
-        "BeyondAllReason": 1358445521227874424,
-        "Valheim": 1356164640152883241,
-    }
-    if ctx.component.custom_id in role_list.keys():
-        role_id = role_list[ctx.component.custom_id]
+    role_id = DiscordSelfServiceRoles.get_role_id_by_name(ctx.component.custom_id)
+    if role_id is not None:
         role = ctx.guild.get_role(role_id)
         if role in ctx.author.roles:
             await ctx.author.remove_roles(role)
@@ -383,127 +478,98 @@ async def listener(ctx: disnake.MessageInteraction):
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=decdi.GIDS)
-async def cat(ctx, *args):
+async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int = None):
+    if width and height:
+        w = width
+        h = height
+    else:
+        w = random.randint(64, 640)
+        h = random.randint(64, 640)
+
+    await send_http_response(
+        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
+    )
+
+
+async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
     try:
-        if args.__len__() >= 2:
-            w = args[0]
-            h = args[1]
-        else:
-            w = random.randint(64, 640)
-            h = random.randint(64, 640)
-        apiCall = requests.get(f"https://placecats.com/{w}/{h}")
-        if apiCall.status_code == 200:
-            await ctx.send(f"https://placecats.com/{w}/{h}")
-        else:
-            await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
-        pass
+        async with http_session.get(url) as api_call:
+            if api_call.status == 200:
+                match api_call.content_type:
+                    case "image/gif" | "image/jpeg" | "image/png":
+                        result = await api_call.content.read()
+                        bytes_io = io.BytesIO()
+                        bytes_io.write(result)
+                        bytes_io.seek(0)
+                        await respond(
+                            ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png"))
+                        )
+                    case "application/json":
+                        result = (await api_call.json())[resp_key]
+                        await respond(ctx, content=result)
+            else:
+                await respond(ctx, content=error_message)
     except Exception as exc:
         print(f"Encountered exception:\n {exc}")
-        await ctx.send("Oh nyo?!?! Something went ^w^ wwong?!!")
+        await respond(ctx, content="Oh nyo?!?! Something went ^w^ wwong!!")
+
+
+async def respond(ctx: ApplicationCommandInteraction, **results):
+    if ctx.response.is_done():
+        print("using followup instead of response")
+        await ctx.followup.send(**results)
+    else:
+        await ctx.response.send_message(**results)
 
 
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=decdi.GIDS)
-async def fox(ctx):
-    try:
-        apiCall = requests.get("https://randomfox.ca/floof/")
-        if apiCall.status_code == 200:
-            await ctx.send(apiCall.json()["image"])
-        else:
-            await ctx.send("Server connection error :( No fox image for you.")
-    except Exception as exc:
-        print(f"Caught exception:\n {exc}")
-    pass
+async def fox(ctx: ApplicationCommandInteraction):
+    await send_http_response(
+        ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
+    )
 
 
 @client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=decdi.GIDS)
-async def waifu(ctx, *args):
-    try:
-        if args and args[0] in ["sfw", "nsfw"]:
-            if args[1]:
-                apiCall = requests.get(f"https://api.waifu.pics/{args[0]}/{args[1]}")
-            else:
-                apiCall = requests.get(f"https://api.waifu.pics/{args[0]}/neko")
-        else:
-            apiCall = requests.get("https://api.waifu.pics/sfw/neko")
-
-        if apiCall.status_code == 200:
-            await ctx.send(apiCall.json()["url"])
-        else:
-            await ctx.send("Server connection error :( No waifu image for you.")
-    except Exception as exc:
-        print(f"Caught exception:\n {exc}")
-    pass
-
-# TODO ?????
-@client.command()
-async def autostat(ctx):
-    m = ctx.message
-    await m.reply("OK;")
+async def waifu(
+    ctx: ApplicationCommandInteraction,
+    content_type: str = Param(choices=["sfw", "nsfw"], default="sfw"),
+    category: str = Param(default="neko"),
+):
+    url = f"https://api.waifu.pics/{content_type}/{category}"
+    await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
 
 
-# sends an xkcd comics
+# sends an xkcd comic
 @client.slash_command(
     name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
 )
-async def xkcd(ctx, id: str = None):
+async def xkcd(ctx: ApplicationCommandInteraction, id: str = None):
     if id:
-        x = requests.get(f"https://xkcd.com/{id}/info.0.json")
-        if x.status_code == 200:
-            await ctx.send(x.json()["img"])
-        else:
-            await ctx.send("No such xkcd comics with this ID found.")
+        url = f"https://xkcd.com/{id}/info.0.json"
     else:
-        x = requests.get("https://xkcd.com/info.0.json")
-        await ctx.send(x.json()["img"])
+        url = "https://xkcd.com/info.0.json"
+    await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
+
+
+def has_any(content: str, words: Iterable) -> bool:
+    return any(word in content for word in words)
+
+
+async def bot_validate(content: str, m: Message):
+    if content.startswith("hodný bot") or "good bot" in content:
+        await m.add_reaction("🙂")
+    if content.startswith("zlý bot") or has_any(content, ["bad bot", "naser si bote", "si naser bote"]):
+        await m.add_reaction("😢")
 
 
 # on message eventy
-# TODO this can be mostly cleaned up/removed as Grossmann is more focused on slash commands and "being useful" (keep some simple silly interactons?)
 @client.event
 async def on_message(m: Message):
+    content = m.content.lower()
     if not m.content:
         pass
-    elif m.content[0] == PREFIX:
-        # nutnost aby jely commandy
-        await UnfilteredBot.process_commands(client, m)
-    elif str(m.author) != "DecimBOT 2.0#8467":
-        if "negr" in m.content.lower():
-            await m.add_reaction("🇳")
-            # await m.add_reaction("🇪")
-            # await m.add_reaction("🇬")
-            # await m.add_reaction("🇷")
-        if "based" in m.content:
-            await m.add_reaction("👌")
-        if m.content.lower().startswith("hodný bot") or "good bot" in m.content.lower():
-            await m.add_reaction("🙂")
-        if (
-            m.content.lower().startswith("zlý bot")
-            or "bad bot" in m.content.lower()
-            or "naser si bote" in m.content.lower()
-            or "si naser bote" in m.content.lower()
-        ):
-            await m.add_reaction("😢")
-        if "drip" in m.content.lower():
-            await m.add_reaction("🥶")
-            await m.add_reaction("💦")
-        if "windows" in m.content.lower():
-            if random.randint(0, 4) == 2:
-                await m.add_reaction("😔")
-        if "debian" in m.content.lower():
-            if random.randint(0, 4) == 2:
-                await m.add_reaction("💜")
-        if "všechno nejlepší" in m.content.lower():
-            await m.add_reaction("🥳")
-            await m.add_reaction("🎉")
-        if "co jsem to stvořil" in m.content.lower() and m.author == "SkavenLord58#0420":
-            await m.reply("https://media.tenor.com/QRTVgLglL6AAAAAd/thanos-avengers.gif")
-        if "atpro" in m.content.lower():
-            await m.add_reaction("😥")
-            await m.reply("To mě mrzí.")
-        if "in a nutshell" in m.content.lower():
-            await m.add_reaction("🌰")
-        if "decim je negr" in m.content.lower():
-            await m.channel.send("nn, ty seš")
+    elif str(m.author) != "DecimBOT 2.0#8467":  # todo: načíst si aám sebe
+        await bot_validate(content, m)
 
 
 # Load and register NetHack commands
@@ -511,4 +577,24 @@ async def on_message(m: Message):
 # setup_nethack_commands(client, decdi.GIDS)
 
 
-client.run(TOKEN)
+async def cleanup():
+    """Clean up resources when bot shuts down"""
+    global http_session
+    if http_session and not http_session.closed:
+        await http_session.close()
+
+
+# Register cleanup to run when bot shuts down
+@client.event
+async def on_disconnect():
+    await cleanup()
+
+
+if __name__ == "__main__":
+    try:
+        client.run(TOKEN)
+    finally:
+        # Ensure cleanup runs even if there's an exception
+        import asyncio
+
+        asyncio.run(cleanup())
