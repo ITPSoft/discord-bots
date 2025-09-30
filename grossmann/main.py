@@ -54,8 +54,6 @@ async def on_ready():
 # TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = decdi.HELP
 WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
-GMOD_CZ = decdi.GMOD_CZ
-WOWKA_CZ = decdi.WOWKA_CZ
 
 
 # useful functions/methods
@@ -114,7 +112,6 @@ async def poll(
 
 
 # rolls a dice
-# TODO add range as slash command argument, default to 6 (why 100?)
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=decdi.GIDS)
 async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     range = None
@@ -126,7 +123,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     if arg_range == "joint":
         await ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
     elif not range:
-        await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 60d.)")
+        await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 6d.)")
     elif type(range) is int and range > 0:
         await ctx.response.send_message(f"{random.randint(0, int(range))} (Used d{range}.)")
     else:
@@ -203,54 +200,21 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
 
+
 # TODO candidate for removal
-@client.slash_command(description="Pings WoW role and open planning menu", guild_ids=decdi.GIDS)
-async def wowko(ctx: ApplicationCommandInteraction, time1: str = None, time2: str = None, time3: str = None):
+@client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
+async def game_call(ctx: ApplicationCommandInteraction, role: str, game: str, time: str = "20:10"):
     # send z templaty
-    message_content = WOWKA_CZ
-    if time1:
-        message_content = message_content.replace("{0}", f" v cca {time1}")
-        if time2:
-            message_content = message_content.replace("{1}", f" v cca {time2}")
-            if time3:
-                message_content = message_content.replace("{2}", f" v cca {time3}")
-            else:
-                message_content = message_content.replace("{2}", "")
-        else:
-            message_content = message_content.replace("{1}", "").replace("{2}", "")
-    else:
-        message_content = message_content.replace("{0}", "").replace("{1}", "").replace("{2}", "")
-    
+    message_content = decdi.GAME_EN
+    message_content = message_content.replace("{0}", f" in {role}")
+    message_content = message_content.replace("{1}", f" at {game}")
+    message_content = message_content.replace("{2}", f" at {time}")
+
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
     # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "☦️", "🇹", "🇭", "🇩", "🇴"])
 
-# TODO candidate for removal
-@client.slash_command(
-    name="gmod_ping", description="Pings Garry's Mod role and open planning menu", guild_ids=decdi.GIDS
-)
-async def gmod(ctx: ApplicationCommandInteraction, time: str = Param(default="21:00", description="v kolik hodin?")):
-    # send z templaty
-    await ctx.response.send_message(GMOD_CZ.replace("{0}", f"{time}"))
-    m = await ctx.original_message()
-    # přidání reakcí
-    await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
-
-# TODO all that gaming_ping could be merged into one command, with more universal template/approach as you want to ping game - time - voice - vote yes/no and done
-
-# TODO check if its even working, candidate for removal
-@client.slash_command(
-    name="today", description="Fetches today's holidays from the National API Day.", guild_ids=decdi.GIDS
-)
-async def today(ctx):
-    async with http_session.get(
-        f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=CZ&subdivisionCode=CZ&languageIsoCode=CZ&validFrom={dt.date.today()}&validTo={dt.date.today()}"
-    ) as response:
-        payload = await response.json()
-        holidays: list[str] = payload.get("holidays", [])
-        await ctx.response.send_message(f"Today are following holiday: {', '.join(holidays)}")
-    pass
 
 # TODO is this even used?
 @client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)

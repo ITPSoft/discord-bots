@@ -37,40 +37,14 @@ Chceme hrát:
 :question: - Něco jiného? Napište jako reply.
 """
 
-WOWKA_CZ = """
-<@&1120426868697473024> Další raid je naplánován na {0}, od {1}.
-Půjde se:
-{3}
+GAME_EN = """
+<@{0}> Shall we play {1} today{2}?.
 
-Ready buďte alespoň 15 minut před začátkem.
-
-Dorazíte?
-:white_check_mark: Ano
-:negative_squared_cross_mark: Ne
-:thinking: Možná
-:orthodox_cross: Ano, ale pozdě.
-
-Role?
-:regional_indicator_t: Tank
-:regional_indicator_h: Healer
-:regional_indicator_d: Dps
-:regional_indicator_o: Můžu víc rolí
-"""
-
-GMOD_CZ = """
-<@&951457356221394975> - Garry's Mod dnes v cca {0}?
-    React with attendance:
-    :white_check_mark: Ano
-    :negative_squared_cross_mark: Ne
-    :thinking: Možná
-
-    Chceme hrát:
-    :one: - TTT (OG Among Us)
-    :two: - PropHunt/Hide&Seek (schováváte se na mapě jako props a hlídači vás hledají)
-    :three: - Stranded (RPG mapa, něco jako Rust)
-    :four: - DropZone (arena s různýma spellama něco jako Warloci ve W3)
-    :five: - Flood
-    :question: - Něco jiného? Napište jako reply.
+Will you join?
+:white_check_mark: Yes
+:negative_squared_cross_mark: No
+:thinking: Maybe
+:orthodox_cross: Yes, but later.
 
 """
 
