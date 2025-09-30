@@ -216,18 +216,6 @@ def test_has_any_function():
         assert main.has_any(content, []) is False
 
 
-@pytest.mark.skip(reason="HTTP session mocking is complex and not critical for integration tests")
-async def test_send_http_response_success():
-    """Test successful HTTP response handling."""
-    pass
-
-
-@pytest.mark.skip(reason="HTTP session mocking is complex and not critical for integration tests")
-async def test_send_http_response_error():
-    """Test HTTP response error handling."""
-    pass
-
-
 def test_warcraft_template():
     """Test Warcraft template message formatting."""
     expected_content = "<@&871817685439234108> - Warcrafty 3 dnes v cca 20:00?"
