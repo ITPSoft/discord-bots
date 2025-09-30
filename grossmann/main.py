@@ -513,12 +513,6 @@ async def waifu(ctx: ApplicationCommandInteraction, content_type: str = Param(ch
     await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
 
 
-# TODO ?????
-@client.slash_command(description="Auto status command", guild_ids=decdi.GIDS)
-async def autostat(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message("OK;")
-
-
 # sends an xkcd comic
 @client.slash_command(
     name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
@@ -543,21 +537,13 @@ async def bot_validate(content: str, m: Message):
 
 
 # on message eventy
-# TODO this can be mostly cleaned up/removed as Grossmann is more focused on slash commands and "being useful" (keep some simple silly interactons?)
 @client.event
 async def on_message(m: Message):
     content = m.content.lower()
     if not m.content:
         pass
-    elif str(m.author) != "DecimBOT 2.0#8467":
+    elif str(m.author) != "DecimBOT 2.0#8467":# todo: načíst si aám sebe
         await bot_validate(content, m)
-        if "všechno nejlepší" in m.content.lower():
-            await m.add_reaction("🥳")
-            await m.add_reaction("🎉")
-        if "co jsem to stvořil" in m.content.lower() and m.author == "SkavenLord58#0420":
-            await m.reply("https://media.tenor.com/QRTVgLglL6AAAAAd/thanos-avengers.gif")
-        if "decim je negr" in m.content.lower():
-            await m.channel.send("nn, ty seš")
 
 
 # Load and register NetHack commands
