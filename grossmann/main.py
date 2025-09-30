@@ -20,9 +20,11 @@ import decimdictionary as decdi
 #   a pak přidat command na dump uložených rolí do zdrojáku
 #   nějak to parametrizovat per server
 
+
 # todo: figure out how to make it a subclass
 class DiscordSelfServiceRoles(str, Enum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
+
     CLEN = "Člen"
     OSTRAVAK = "Ostravák"
     PRAZAK = "Pražák"
@@ -56,6 +58,7 @@ class DiscordSelfServiceRoles(str, Enum):
 
 class DiscordGamingRoles(str, Enum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
+
     WARCRAFT = "warcraft"
     GMOD = "gmod"
     VALORANT = "valorant"
@@ -140,8 +143,10 @@ class DiscordGamingRoles(str, Enum):
         except ValueError:
             return None
 
+
 class DiscordGamingTestingRoles(str, Enum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
+
     WARCRAFT = "warcraft"
     VALORANT = "valorant"
 
@@ -168,7 +173,8 @@ class DiscordGamingTestingRoles(str, Enum):
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
-PREFIX = os.getenv("BOT_PREFIX") #TODO remove
+PREFIX = os.getenv("BOT_PREFIX")  # TODO remove
+
 
 # TODO is this even useful?
 class UnfilteredBot(Bot):
@@ -244,7 +250,13 @@ async def say(ctx: ApplicationCommandInteraction, message: str):
 # TODO add anonymity voting option (better in embed)
 @client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=decdi.GIDS)
 async def poll(
-    ctx: ApplicationCommandInteraction, question: str, option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None
+    ctx: ApplicationCommandInteraction,
+    question: str,
+    option1: str,
+    option2: str,
+    option3: str = None,
+    option4: str = None,
+    option5: str = None,
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
@@ -335,13 +347,14 @@ async def yesorno(ctx: ApplicationCommandInteraction, *args):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
+
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
 async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     # send z templaty
     message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}" if time else "")
-    
+
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
     # přidání reakcí
@@ -353,7 +366,9 @@ async def game_ping(
     ctx: ApplicationCommandInteraction,
     # role: DiscordGamingRoles,
     role: DiscordGamingTestingRoles,
-    game: str, time: str = "20:10"):
+    game: str,
+    time: str = "20:10",
+):
     # send z templaty
     message_content = decdi.GAME_EN
     # role_id = str(DiscordGamingRoles(role).role_id)
@@ -375,6 +390,7 @@ async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
     role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
     await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
+
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
@@ -442,6 +458,7 @@ async def command(ctx):
         ],
     )
 
+
 # TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
@@ -471,6 +488,7 @@ async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int
         ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
     )
 
+
 async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
     try:
         async with http_session.get(url) as api_call:
@@ -481,7 +499,9 @@ async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_
                         bytes_io = io.BytesIO()
                         bytes_io.write(result)
                         bytes_io.seek(0)
-                        await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png")))
+                        await respond(
+                            ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png"))
+                        )
                     case "application/json":
                         result = (await api_call.json())[resp_key]
                         await respond(ctx, content=result)
@@ -508,7 +528,11 @@ async def fox(ctx: ApplicationCommandInteraction):
 
 
 @client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=decdi.GIDS)
-async def waifu(ctx: ApplicationCommandInteraction, content_type: str = Param(choices=["sfw", "nsfw"], default="sfw"), category: str = Param(default="neko")):
+async def waifu(
+    ctx: ApplicationCommandInteraction,
+    content_type: str = Param(choices=["sfw", "nsfw"], default="sfw"),
+    category: str = Param(default="neko"),
+):
     url = f"https://api.waifu.pics/{content_type}/{category}"
     await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
 
@@ -542,7 +566,7 @@ async def on_message(m: Message):
     content = m.content.lower()
     if not m.content:
         pass
-    elif str(m.author) != "DecimBOT 2.0#8467":# todo: načíst si aám sebe
+    elif str(m.author) != "DecimBOT 2.0#8467":  # todo: načíst si aám sebe
         await bot_validate(content, m)
 
 

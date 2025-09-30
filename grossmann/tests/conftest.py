@@ -11,6 +11,7 @@ os.environ.setdefault("DISCORD_TOKEN", "test_token")
 os.environ.setdefault("TEXT_SYNTH_TOKEN", "test_token")
 os.environ.setdefault("BOT_PREFIX", "/")
 
+
 @pytest.fixture
 def mock_ctx():
     """Create a mock ApplicationCommandInteraction context."""
@@ -47,6 +48,7 @@ def patched_main():
     """Patch main.client to avoid bot instantiation issues."""
     with patch("main.client"):
         import main
+
         yield main
 
 
@@ -74,20 +76,14 @@ def sample_poll_data():
     return {
         "question": "What game?",
         "options": ["Warcraft", "GMod", "Valorant"],
-        "expected_reactions": ["1️⃣", "2️⃣", "3️⃣"]
+        "expected_reactions": ["1️⃣", "2️⃣", "3️⃣"],
     }
 
 
 @pytest.fixture
 def bot_validation_cases():
     """Test cases for bot validation."""
-    return [
-        ("good bot", "🙂"),
-        ("hodný bot", "🙂"), 
-        ("bad bot", "😢"),
-        ("zlý bot", "😢"),
-        ("naser si bote", "😢")
-    ]
+    return [("good bot", "🙂"), ("hodný bot", "🙂"), ("bad bot", "😢"), ("zlý bot", "😢"), ("naser si bote", "😢")]
 
 
 def assert_reactions_added(mock_message, expected_reactions):
