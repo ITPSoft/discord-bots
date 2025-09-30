@@ -299,6 +299,7 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
     if anonym:
         random_city = "Void"
         random_name = "Jan Jelen"
+        result = None
 
         try:
             async with http_session.get("https://randomuser.me//api") as api_call:
@@ -319,7 +320,8 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
         embed = disnake.Embed(
             title=f"{random_name} tweeted:", description=f"{content}", color=disnake.Colour.dark_purple()
         )
-        embed.set_thumbnail(url=result["picture"]["medium"])
+        if result is not None:
+            embed.set_thumbnail(url=result["picture"]["medium"])
         sentfrom = f"Sent from {random_city} (#{ctx.channel.name})"
     else:
         embed = disnake.Embed(
@@ -342,7 +344,7 @@ async def ping(ctx: ApplicationCommandInteraction):
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
-async def yesorno(ctx: ApplicationCommandInteraction, *args):
+async def yesorno(ctx: ApplicationCommandInteraction):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
