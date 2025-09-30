@@ -196,10 +196,7 @@ async def yesorno(ctx: ApplicationCommandInteraction, *args):
 )
 async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     # send z templaty
-    if time:
-        message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}")
-    else:
-        message_content = WARCRAFTY_CZ.replace("{0}", "")
+    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}" if time else "")
     
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()

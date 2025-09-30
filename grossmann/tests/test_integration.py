@@ -1,7 +1,7 @@
 """Integration tests for Grossmann bot scenarios and business logic."""
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 # Import modules to test
 import decimdictionary as decdi
@@ -30,133 +30,90 @@ async def test_warcraft_ping_command_integration(patched_main, mock_ctx_with_mes
     assert_reactions_added(mock_message, gaming_reactions)
 
 
-async def test_gmod_ping_command_integration():
+async def test_gmod_ping_command_integration(patched_main, mock_ctx_with_message, gaming_reactions):
     """Test gmod ping command with actual business logic from main.py."""
-    with patch("main.client"):
-        import main
-        
-        # Create mock interaction context
-        mock_ctx = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
-        mock_original_message = AsyncMock()
-        mock_ctx.original_message = AsyncMock(return_value=mock_original_message)
-        
-        # Execute the actual gmod command function with time parameter
-        await main.gmod(mock_ctx, "19:30")
-        
-        # Verify the message was sent with correct content
-        mock_ctx.response.send_message.assert_called_once()
-        sent_content = mock_ctx.response.send_message.call_args[0][0]
-        
-        # Verify content matches the template with time
-        expected_content = decdi.GMOD_CZ.replace("{0}", "19:30")
-        assert sent_content == expected_content
-        
-        # Verify original_message was called to get message for reactions
-        mock_ctx.original_message.assert_called_once()
-        
-        # Verify batch_react was called with expected reactions
-        expected_reactions = ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
-        assert mock_original_message.add_reaction.call_count == len(expected_reactions)
-        for reaction in expected_reactions:
-            mock_original_message.add_reaction.assert_any_call(reaction)
+    mock_ctx, mock_message = mock_ctx_with_message
+    
+    # Execute the actual gmod command function with time parameter
+    await patched_main.gmod(mock_ctx, "19:30")
+    
+    # Verify the message was sent with correct content
+    mock_ctx.response.send_message.assert_called_once()
+    sent_content = mock_ctx.response.send_message.call_args[0][0]
+    
+    # Verify content matches the template with time
+    expected_content = decdi.GMOD_CZ.replace("{0}", "19:30")
+    assert sent_content == expected_content
+    
+    # Verify original_message was called to get message for reactions
+    mock_ctx.original_message.assert_called_once()
+    
+    # Verify batch_react was called with expected reactions
+    assert_reactions_added(mock_message, gaming_reactions)
 
 
-async def test_poll_command_integration():
+async def test_poll_command_integration(patched_main, mock_ctx_with_response_message, sample_poll_data):
     """Test poll command with actual business logic from main.py."""
-    with patch("main.client"):
-        import main
-        
-        # Create mock interaction context
-        mock_ctx = AsyncMock()
-        mock_message = AsyncMock()  # The message returned by send_message
-        mock_ctx.response.send_message = AsyncMock(return_value=mock_message)
-        
-        # Execute the actual poll command function
-        await main.poll(mock_ctx, "What game?", "Warcraft", "GMod", "Valorant", None, None)
-        
-        # Verify initial message was sent
-        mock_ctx.response.send_message.assert_called_once_with("Creating poll...", ephemeral=False)
-        
-        # Verify poll reactions were added (3 options = 3 reactions)
-        expected_reactions = ["1️⃣", "2️⃣", "3️⃣"]
-        assert mock_message.add_reaction.call_count == len(expected_reactions)
-        for reaction in expected_reactions:
-            mock_message.add_reaction.assert_any_call(reaction)
-        
-        # Verify the message was edited with poll content
-        mock_message.edit.assert_called_once()
-        edit_call_args = mock_message.edit.call_args
-        poll_content = edit_call_args.kwargs['content']
-        assert "Anketa: What game?" in poll_content
-        assert "1️⃣ = Warcraft" in poll_content
-        assert "2️⃣ = GMod" in poll_content
-        assert "3️⃣ = Valorant" in poll_content
+    mock_ctx, mock_message = mock_ctx_with_response_message
+    
+    # Execute the actual poll command function
+    question = sample_poll_data["question"]
+    options = sample_poll_data["options"]
+    await patched_main.poll(mock_ctx, question, options[0], options[1], options[2], None, None)
+    
+    # Verify initial message was sent
+    mock_ctx.response.send_message.assert_called_once_with("Creating poll...", ephemeral=False)
+    
+    # Verify poll reactions were added
+    expected_reactions = sample_poll_data["expected_reactions"]
+    assert_reactions_added(mock_message, expected_reactions)
+    
+    # Verify the message was edited with poll content
+    mock_message.edit.assert_called_once()
+    edit_call_args = mock_message.edit.call_args
+    poll_content = edit_call_args.kwargs['content']
+    assert f"Anketa: {question}" in poll_content
+    for i, option in enumerate(options):
+        assert f"{expected_reactions[i]} = {option}" in poll_content
 
 
-async def test_poll_command_insufficient_options():
+async def test_poll_command_insufficient_options(patched_main, mock_ctx):
     """Test poll command with insufficient options."""
-    with patch("main.client"):
-        import main
-        
-        # Create mock interaction context
-        mock_ctx = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
-        
-        # Execute the actual poll command function with insufficient options
-        await main.poll(mock_ctx, "Test?", "OnlyOption", "", None, None, None)
-        
-        # Verify error message was sent
-        mock_ctx.response.send_message.assert_called_once_with(
-            "You must provide at least two options.", ephemeral=True
-        )
-        
-        # Verify that no further processing occurred (no original_message call)
-        assert not hasattr(mock_ctx, 'original_message') or not mock_ctx.original_message.called
+    # Execute the actual poll command function with insufficient options
+    await patched_main.poll(mock_ctx, "Test?", "OnlyOption", "", None, None, None)
+    
+    # Verify error message was sent
+    mock_ctx.response.send_message.assert_called_once_with(
+        "You must provide at least two options.", ephemeral=True
+    )
 
 
-async def test_yesorno_command_integration():
+async def test_yesorno_command_integration(patched_main, mock_ctx, yesorno_answers):
     """Test yesorno command with actual business logic from main.py."""
-    with patch("main.client"):
-        import main
+    with patch('random.choice') as mock_choice:
+        mock_choice.return_value = "Yes."
         
-        with patch('random.choice') as mock_choice:
-            mock_choice.return_value = "Yes."
-            
-            # Create mock interaction context
-            mock_ctx = AsyncMock()
-            mock_ctx.response.send_message = AsyncMock()
-            
-            # Execute the actual yesorno command function
-            await main.yesorno(mock_ctx)
-            
-            # Verify response was sent with the mocked choice
-            mock_ctx.response.send_message.assert_called_once_with("Yes.")
-            
-            # Verify random.choice was called with the correct answers
-            expected_answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
-            mock_choice.assert_called_once_with(expected_answers)
+        # Execute the actual yesorno command function
+        await patched_main.yesorno(mock_ctx)
+        
+        # Verify response was sent with the mocked choice
+        mock_ctx.response.send_message.assert_called_once_with("Yes.")
+        
+        # Verify random.choice was called with the correct answers
+        mock_choice.assert_called_once_with(yesorno_answers)
 
 
-async def test_bot_validation_integration():
+@pytest.mark.parametrize("content,expected_reaction", [
+    ("good bot", "🙂"),
+    ("hodný bot", "🙂"), 
+    ("bad bot", "😢"),
+    ("zlý bot", "😢"),
+    ("naser si bote", "😢")
+])
+async def test_bot_validation_integration(patched_main, mock_message, content, expected_reaction):
     """Test bot validation logic with actual main.py function."""
-    with patch("main.client"):
-        import main
-        
-        # Test good bot validation
-        mock_message = AsyncMock()
-        content = "good bot"
-        
-        await main.bot_validate(content, mock_message)
-        mock_message.add_reaction.assert_called_with("🙂")
-        
-        # Reset mock
-        mock_message.reset_mock()
-        
-        # Test bad bot validation
-        content = "bad bot"
-        await main.bot_validate(content, mock_message)
-        mock_message.add_reaction.assert_called_with("😢")
+    await patched_main.bot_validate(content, mock_message)
+    mock_message.add_reaction.assert_called_with(expected_reaction)
 
 
 async def test_batch_react_integration(patched_main, mock_message):
@@ -169,22 +126,16 @@ async def test_batch_react_integration(patched_main, mock_message):
     assert_reactions_added(mock_message, reactions)
 
 
-async def test_has_any_utility_integration():
+@pytest.mark.parametrize("content,words,expected", [
+    ("this contains bad bot text", ["bad bot", "good bot"], True),
+    ("this is normal text", ["bad bot", "good bot"], False),
+    ("any text", [], False),
+    ("good bot here", ["good bot"], True),
+    ("no match here", ["xyz", "abc"], False)
+])
+def test_has_any_utility_integration(patched_main, content, words, expected):
     """Test has_any utility function from main.py."""
-    with patch("main.client"):
-        import main
-        
-        # Test positive case
-        content = "this contains bad bot text"
-        words = ["bad bot", "good bot"]
-        assert main.has_any(content, words) is True
-        
-        # Test negative case
-        content = "this is normal text"
-        assert main.has_any(content, words) is False
-        
-        # Test empty words
-        assert main.has_any(content, []) is False
+    assert patched_main.has_any(content, words) is expected
 
 
 @pytest.mark.parametrize("template,replacement,expected_content", [
