@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import datetime as dt
@@ -7,7 +6,7 @@ from disnake import Message
 import requests
 from collections import defaultdict, Counter
 
-import schizodict as schdic
+import schizodict as simekdict
 
 from dotenv import load_dotenv
 import pickle
@@ -19,9 +18,9 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 TEXT_SYNTH_TOKEN = os.getenv('TEXT_SYNTH_TOKEN')
 REPLIES = ("Ano.", "Ne.","Ano.", "Ne.", "Perhaps.", "Ano.", "Ne.", "Perhaps." ,"Možná.", "Pravděpodobně.", "bruh", "nemám tušení") #repeat ano/ne/perhaps to give it more common occurence
 
-MOT_HLASKY = schdic.MOT_HLASKY
-LINUX_COPYPASTA = schdic.LINUX_COPYPASTA
-RECENZE = schdic.RECENZE
+MOT_HLASKY = simekdict.MOT_HLASKY
+LINUX_COPYPASTA = simekdict.LINUX_COPYPASTA
+RECENZE = simekdict.RECENZE
 ALLOW_CHANNELS = [1420168841501216873, 1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
 MARKOV_FILE = "markov_twogram.pkl"
 
@@ -29,7 +28,6 @@ MARKOV_FILE = "markov_twogram.pkl"
 intents = disnake.Intents.all()
 client = disnake.Client(intents=intents)
 
-# Trigram Markov chain functions
 
 def build_trigram_counts(messages):
     words = " ".join(messages).split()
@@ -43,9 +41,11 @@ def build_trigram_counts(messages):
     markov_counts = {k: Counter(v) for k, v in markov.items()}
     return markov_counts
 
+
 def save_trigram_counts(markov_counts, filename=MARKOV_FILE):
     with open(filename, "wb") as f:
         pickle.dump(markov_counts, f)
+
 
 def load_trigram_counts(filename=MARKOV_FILE):
     try:
@@ -54,7 +54,8 @@ def load_trigram_counts(filename=MARKOV_FILE):
     except Exception:
         return {}
 
-def markov_chain(messages, max_words=30):
+
+def markov_chain(messages, max_words=20):
     # Build and save trigram counts
     markov_counts = build_trigram_counts(messages)
     save_trigram_counts(markov_counts)
@@ -73,7 +74,7 @@ def markov_chain(messages, max_words=30):
             next_words, weights = zip(*markov_counts[start_key].items())
             next_word = random.choices(next_words, weights=weights)[0]
             sentence.append(next_word)
-            if next_word.endswith(('.', '!', '?' ':', '😂', '🤣')):
+            if next_word.endswith((".", "!", "?:D", ":)", "😂", "🤣")):
                 break
             start_key = (start_key[1], next_word)
         else:
@@ -106,7 +107,16 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
+    print(f"{client.user} has connected to Discord!")
+
+
+@client.command()
+async def say(ctx, *args):
+    if str(ctx.message.author) == "skavenlord58":
+        await ctx.message.delete()
+        await ctx.send(f"{' '.join(args)}")
+    else:
+        print(f'{ctx.message.author} tried to use "say" command.')
 
 
 @client.event
@@ -129,11 +139,11 @@ async def on_message(m: Message):
         async for msg in m.channel.history(limit=50, before=m):
             if msg.content:
                 messages.append(msg.content)
-        response = f'{random.choice(REPLIES)} Protože '
+        response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages)
         await m.reply(response)
-
-    if m.channel.id not in ALLOW_CHANNELS:
+        client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+    elif m.channel.id not in ALLOW_CHANNELS:
         return
 
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed 

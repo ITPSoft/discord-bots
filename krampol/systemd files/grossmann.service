@@ -1,0 +1,20 @@
+[Unit]
+Description=grossmann Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/opt/kkbots/grossmann
+Environment="PATH=/opt/kkbots/grossmann/grossmann/bin"
+ExecStart=/opt/kkbots/grossmann/grossmann/bin/python main.py
+Restart=on-failure
+
+# Protect the system
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
