@@ -1,7 +1,9 @@
 name: Run-selfhosted
+
 on:
-  release:
-    types: [created]
+  push:
+    branches: [ main ]
+
 jobs:
   build:
     runs-on: greatlibrary-docker
