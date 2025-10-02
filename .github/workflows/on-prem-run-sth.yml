@@ -5,9 +5,10 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v1
-    - name: build packages
-      run: docker run -d ubuntu --name my-test
+    - name: deploy on-prem
+      #run: docker run -d ubuntu --name my-test
+      run: echo "It works!"
