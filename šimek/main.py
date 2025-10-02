@@ -22,7 +22,7 @@ REPLIES = ("Ano.", "Ne.","Ano.", "Ne.", "Perhaps.", "Ano.", "Ne.", "Perhaps." ,"
 MOT_HLASKY = schdic.MOT_HLASKY
 LINUX_COPYPASTA = schdic.LINUX_COPYPASTA
 RECENZE = schdic.RECENZE
-ALLOW_CHANNELS = [1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
+ALLOW_CHANNELS = [1420168841501216873, 1000800481397973052, 324970596360257548, 932301697836003358,959137743412269187,996357109727891456,1370041352846573630,276720867344646144,438037897023848448,979875595896901682,786625189038915625,786643519430459423,990724186550972477,998556012086829126] 
 MARKOV_FILE = "markov_twogram.pkl"
 
 # add intents for bot and command prefix for classic command support
@@ -87,8 +87,7 @@ def markov_chain(messages, max_words=30):
 # https://stackoverflow.com/a/78046484
 class Substring(str):
     def __eq__(self, other):
-        return other.__contains__(self)
-
+            return self.__contains__(other)
 # evil hack end
 
 async def do_response(reply: str, m: Message, chance=10, reaction=False):
@@ -114,13 +113,13 @@ async def on_ready():
 async def on_message(m: Message):
     if not m.content:
         return
-    if str(m.author) == "BasedSchizo#7762":
+    if str(m.author) == "šimek#3885":
         return
     if not hasattr(client, "last_reaction_time"):
         client.last_reaction_time = {}    
     now = dt.datetime.now()
     last_time = client.last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 60:
+    if last_time and (now - last_time).total_seconds() < 10:
         return            
     
     # TODO change discord user id after new name
@@ -136,7 +135,7 @@ async def on_message(m: Message):
 
     if m.channel.id not in ALLOW_CHANNELS:
         return
-    
+
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed 
     match Substring(m.content.lower()):
         case "hodný bot":
@@ -205,14 +204,25 @@ async def on_message(m: Message):
             await do_response(RECENZE[random.randint(0,len(RECENZE)-1)],m,chance=1)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:",m,chance=1)
+        case "twitter" | "twiter":
+            await do_response("preferuji #twitter-péro",m,chance=1)
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f'{random.choice(["souhlasím","nesouhlasím",""])}')      
         case _:
+            if random.randint(1, 5000) == 1:
+                messages = []
+                async for msg in m.channel.history(limit=50, before=m):
+                    if msg.content:
+                        messages.append(msg.content)
+                response += markov_chain(messages)
+                await m.reply(response)
+
             await do_response(f'{random.choice(
                 ["Mňau",
                  "víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat",
                  "dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:",
                  "https://www.youtube.com/watch?v=kyg1uxOsAUY",
-                 ])}', m, chance=500000)                      
+                 ])}', m, chance=500000)     
+            await do_response(f'{random.choice([":kekWR:",":kekW:",":heart:",":5head:",":adampat:",":catworry:",":maregg:",":pepela:",":pog:",":333:"])}', m,reaction=True, chance=1000)                 
     client.last_reaction_time[m.channel.id] = dt.datetime.now() 
 client.run(TOKEN)
