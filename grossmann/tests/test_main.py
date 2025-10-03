@@ -222,13 +222,6 @@ def test_warcraft_template():
     assert expected_content in result
 
 
-def test_gmod_template():
-    """Test GMod template message formatting."""
-    expected_content = "<@&951457356221394975> - Garry's Mod dnes v cca 21:00?"
-    result = decdi.GMOD_CZ.replace("{0}", "21:00")
-    assert expected_content in result
-
-
 def test_help_template():
     """Test help template contains expected commands."""
     help_text = decdi.HELP

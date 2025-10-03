@@ -3,11 +3,11 @@
 import pytest
 import disnake
 from disnake.ext import commands
-import discord.ext.test as dpytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from PIL import Image
 import nethack_module
 
+guild = 12345
 
 @pytest.fixture
 async def bot():
@@ -15,19 +15,16 @@ async def bot():
     intents = disnake.Intents.all()
     intents.message_content = True
 
-    bot = commands.Bot(intents=intents, test_guilds=[dpytest.get_config().guilds])
+    bot = commands.Bot(intents=intents)
 
     # Setup NetHack commands
-    nethack_module.setup_nethack_commands(bot, [dpytest.get_config().guilds[0]])
+    nethack_module.setup_nethack_commands(bot, [])
 
-    dpytest.configure(bot)
     yield bot
-    await dpytest.empty_queue()
 
 
 async def test_nethack_start_command_admin(bot):
     """Test NetHack start command with admin permissions."""
-    guild = dpytest.get_config().client.guilds[0]
     channel = guild.text_channels[0]
 
     # Mock admin role
@@ -308,6 +305,7 @@ async def test_send_output_to_channel_image():
 
     test_image = Image.new("RGB", (100, 100))
 
+    await nethack_module.send_output_to_channel(mock_inter, test_image)
     await nethack_module.send_output_to_channel(mock_inter, test_image)
 
     mock_inter.followup.send.assert_called_once()

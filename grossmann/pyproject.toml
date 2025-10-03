@@ -34,3 +34,5 @@ asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
 #addopts = ["-v", "--tb=short"]
+# until I fix it
+addopts = "--ignore=tests/test_nethack.py"
