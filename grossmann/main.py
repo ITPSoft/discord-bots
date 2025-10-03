@@ -571,6 +571,41 @@ async def on_message(m: Message):
     elif str(m.author) != "DecimBOT 2.0#8467":  # todo: načíst si aám sebe
         await bot_validate(content, m)
 
+# on reaction add event - hall of fame functionality
+@client.event
+async def on_reaction_add(reaction, user):
+    hall_of_fame_channel = client.get_channel(1276805111506796605) # antispiral halloffame channel 
+    message = reaction.message
+    # Ensure the message is on server (not a DM)
+    if not message.guild:
+        return
+    if message.channel == hall_of_fame_channel:  # ignore hall of fame channel itself
+        return
+    if hall_of_fame_channel:
+        # Avoid duplicate forwarding by checking if already sent
+        # TODO check if this can be done faster (store ids in dictionary with message id as key?)
+        async for msg in hall_of_fame_channel.history(limit=50):
+            if msg.id == message.id:
+                return
+
+    # Custom emojis (IDs must match actual server emojis) 
+    # TODO check that the match is correctly done
+    hall_of_fame_emojis = [
+        "⭐", "👍", "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", 
+        "<:kekw:940326430028488794>",
+        "<:kekW:940324801585741844>",
+        "<:kekWR:1063089161587933204>",
+        "<:pepela:940324919739314216>",
+        "<:pog:940324188172976170>",
+        "<:kekface:1097817686148386856>"
+    ]
+
+    # anything that is interesting enough to cause more than 10 reactions with specific emoji should be interesting enough for hall of fame
+    for r in message.reactions:
+        if str(r.emoji) in hall_of_fame_emojis and r.count > 10:
+            await message.forward(hall_of_fame_channel)  # forward that specific messeage
+            break
+
 
 # Load and register NetHack commands
 # from nethack_module import setup_nethack_commands
