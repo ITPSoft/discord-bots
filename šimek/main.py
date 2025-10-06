@@ -149,12 +149,6 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
             await m.reply(reply)
 
 
-# on_ready event - happens when bot connects to Discord API
-@client.event
-async def on_ready():
-    print(f"{client.user} has connected to Discord!")
-
-
 @client.event
 async def on_message(m: Message):
     if not m.content:
@@ -280,14 +274,14 @@ async def on_message(m: Message):
 
             await do_response(
                 f"{
-                random.choice(
-                    [
-                        'Mňau',
-                        'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                        'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                        'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                    ]
-                )
+                    random.choice(
+                        [
+                            'Mňau',
+                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                        ]
+                    )
                 }",
                 m,
                 chance=500000,
