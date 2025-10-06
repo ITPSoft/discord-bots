@@ -4,12 +4,23 @@ import os
 import pytest
 from unittest.mock import AsyncMock, patch
 
-# import discord.ext.test as dpytest
-
 # Mock environment variables for testing
 os.environ.setdefault("DISCORD_TOKEN", "test_token")
 os.environ.setdefault("TEXT_SYNTH_TOKEN", "test_token")
-os.environ.setdefault("BOT_PREFIX", "/")
+
+# Test guild and channel IDs
+TEST_GUILD_ID = 12345
+TEST_CHANNEL_ID = 67890
+TEST_ADMIN_ROLE_ID = 11111
+TEST_ALLOWED_CHANNEL_ID = 22222
+
+# Test role IDs (using actual IDs from the bot for consistency in tests)
+TEST_CLEN_ROLE_ID = 804431648959627294
+TEST_WARCRAFT_ROLE_ID = 871817685439234108
+TEST_GMOD_ROLE_ID = 951457356221394975
+
+# Test channel IDs for specific features
+TEST_ROLE_SELECTION_CHANNEL_ID = 1314388851304955904
 
 
 @pytest.fixture
@@ -84,6 +95,42 @@ def sample_poll_data():
 def bot_validation_cases():
     """Test cases for bot validation."""
     return [("good bot", "🙂"), ("hodný bot", "🙂"), ("bad bot", "😢"), ("zlý bot", "😢"), ("naser si bote", "😢")]
+
+
+@pytest.fixture
+def mock_interaction():
+    """Create a mock interaction for NetHack commands."""
+    interaction = AsyncMock()
+    interaction.channel_id = TEST_ALLOWED_CHANNEL_ID
+    interaction.response = AsyncMock()
+    interaction.response.defer = AsyncMock()
+    interaction.response.send_message = AsyncMock()
+    interaction.followup = AsyncMock()
+    interaction.followup.send = AsyncMock()
+    interaction.author = AsyncMock()
+    interaction.author.roles = []
+    return interaction
+
+
+@pytest.fixture
+def mock_admin_interaction(mock_interaction):
+    """Create a mock interaction with admin role."""
+    admin_role = AsyncMock()
+    admin_role.id = TEST_ADMIN_ROLE_ID
+    mock_interaction.author.roles = [admin_role]
+    return mock_interaction
+
+
+@pytest.fixture
+def mock_wrong_channel_interaction():
+    """Create a mock interaction in wrong channel."""
+    interaction = AsyncMock()
+    interaction.channel_id = TEST_CHANNEL_ID  # Different from allowed channel
+    interaction.response = AsyncMock()
+    interaction.response.send_message = AsyncMock()
+    interaction.author = AsyncMock()
+    interaction.author.roles = []
+    return interaction
 
 
 def assert_reactions_added(mock_message, expected_reactions):

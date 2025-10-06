@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import patch
 
 # Import modules to test
-import decimdictionary as decdi
-from conftest import assert_reactions_added
+import grossmanndict as decdi
+from conftest import assert_reactions_added, TEST_WARCRAFT_ROLE_ID
 
 
 async def test_warcraft_ping_command_integration(patched_main, mock_ctx_with_message, gaming_reactions):
@@ -117,8 +117,8 @@ def test_has_any_utility_integration(patched_main, content, words, expected):
 @pytest.mark.parametrize(
     "template,replacement,expected_content",
     [
-        (decdi.WARCRAFTY_CZ, " v cca 20:00", "<@&871817685439234108> - Warcrafty 3 dnes v cca 20:00?"),
-        (decdi.WARCRAFTY_CZ, "", "<@&871817685439234108> - Warcrafty 3 dnes?"),
+        (decdi.WARCRAFTY_CZ, " v cca 20:00", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"),
+        (decdi.WARCRAFTY_CZ, "", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes?"),
     ],
 )
 def test_template_replacement_integration(template, replacement, expected_content):

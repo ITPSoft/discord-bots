@@ -1,13 +1,15 @@
 """Tests for NetHack module functionality."""
 
+import sys
+
 import pytest
 import disnake
 from disnake.ext import commands
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from PIL import Image
 import nethack_module
+from conftest import TEST_ADMIN_ROLE_ID, TEST_ALLOWED_CHANNEL_ID
 
-guild = 12345
 
 @pytest.fixture
 async def bot():
@@ -23,27 +25,52 @@ async def bot():
     yield bot
 
 
-async def test_nethack_start_command_admin(bot):
+async def test_nethack_start_command_admin(bot, mock_admin_interaction):
     """Test NetHack start command with admin permissions."""
-    channel = guild.text_channels[0]
+    # Mock the allowed channel and admin role IDs
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
+        with patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID):
+            with patch("nethack_module.start_nethack") as mock_start:
+                mock_start.return_value = "NetHack started successfully"
 
-    # Mock admin role
-    admin_role = MagicMock()
-    admin_role.id = nethack_module.ADMIN_ROLE_ID
+                # Execute the command
+                nethack_cmd = bot.get_slash_command("nethack")
+                start_cmd = None
+                for cmd in nethack_cmd.children.values():
+                    if cmd.name == "start":
+                        start_cmd = cmd
+                        break
 
-    member = guild.members[0]
-    member.roles = [admin_role]
+                assert start_cmd is not None
 
-    # Mock the allowed channel
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", channel.id):
-        with patch("nethack_module.start_nethack") as mock_start:
-            mock_start.return_value = "NetHack started successfully"
+                await start_cmd(mock_admin_interaction)
 
-            interaction = dpytest.get_application_command_context(
-                "nethack start", guild=guild, channel=channel, user=member
-            )
+                mock_admin_interaction.response.defer.assert_called_once()
+                mock_start.assert_called_once()
 
-            # Execute the command
+
+async def test_nethack_start_command_wrong_channel(bot, mock_wrong_channel_interaction):
+    """Test NetHack start command in wrong channel."""
+    # Set a different allowed channel ID
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
+        nethack_cmd = bot.get_slash_command("nethack")
+        start_cmd = None
+        for cmd in nethack_cmd.children.values():
+            if cmd.name == "start":
+                start_cmd = cmd
+                break
+
+        await start_cmd(mock_wrong_channel_interaction)
+
+        mock_wrong_channel_interaction.response.send_message.assert_called_with(
+            "This command can only be used in the designated NetHack channel.", ephemeral=True
+        )
+
+
+async def test_nethack_start_command_no_admin(bot, mock_interaction):
+    """Test NetHack start command without admin permissions."""
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
+        with patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID):
             nethack_cmd = bot.get_slash_command("nethack")
             start_cmd = None
             for cmd in nethack_cmd.children.values():
@@ -51,89 +78,18 @@ async def test_nethack_start_command_admin(bot):
                     start_cmd = cmd
                     break
 
-            assert start_cmd is not None
+            await start_cmd(mock_interaction)
 
-            with patch.object(interaction, "response") as mock_response:
-                mock_response.defer = AsyncMock()
-                with patch.object(interaction, "followup") as mock_followup:
-                    mock_followup.send = AsyncMock()
-
-                    await start_cmd(interaction)
-
-                    mock_response.defer.assert_called_once()
-                    mock_start.assert_called_once()
-
-
-async def test_nethack_start_command_wrong_channel(bot):
-    """Test NetHack start command in wrong channel."""
-    guild = dpytest.get_config().client.guilds[0]
-    channel = guild.text_channels[0]
-
-    # Set a different allowed channel ID
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", 999999):
-        interaction = dpytest.get_application_command_context(
-            "nethack start", guild=guild, channel=channel, user=guild.members[0]
-        )
-
-        nethack_cmd = bot.get_slash_command("nethack")
-        start_cmd = None
-        for cmd in nethack_cmd.children.values():
-            if cmd.name == "start":
-                start_cmd = cmd
-                break
-
-        with patch.object(interaction, "response") as mock_response:
-            mock_response.send_message = AsyncMock()
-
-            await start_cmd(interaction)
-
-            mock_response.send_message.assert_called_with(
-                "This command can only be used in the designated NetHack channel.", ephemeral=True
-            )
-
-
-async def test_nethack_start_command_no_admin(bot):
-    """Test NetHack start command without admin permissions."""
-    guild = dpytest.get_config().client.guilds[0]
-    channel = guild.text_channels[0]
-    member = guild.members[0]
-    member.roles = []  # No admin role
-
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", channel.id):
-        interaction = dpytest.get_application_command_context(
-            "nethack start", guild=guild, channel=channel, user=member
-        )
-
-        nethack_cmd = bot.get_slash_command("nethack")
-        start_cmd = None
-        for cmd in nethack_cmd.children.values():
-            if cmd.name == "start":
-                start_cmd = cmd
-                break
-
-        with patch.object(interaction, "response") as mock_response:
-            mock_response.send_message = AsyncMock()
-
-            await start_cmd(interaction)
-
-            mock_response.send_message.assert_called_with(
+            mock_interaction.response.send_message.assert_called_with(
                 "You do not have permission to start NetHack.", ephemeral=True
             )
 
 
-async def test_nethack_key_command(bot):
+async def test_nethack_key_command(bot, mock_interaction):
     """Test NetHack key command."""
-    guild = dpytest.get_config().client.guilds[0]
-    channel = guild.text_channels[0]
-    member = guild.members[0]
-
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", channel.id):
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
         with patch("nethack_module.send_key") as mock_send_key:
             mock_send_key.return_value = Image.new("RGB", (100, 100))
-
-            interaction = dpytest.get_application_command_context(
-                "nethack key", guild=guild, channel=channel, user=member
-            )
 
             nethack_cmd = bot.get_slash_command("nethack")
             key_cmd = None
@@ -142,29 +98,16 @@ async def test_nethack_key_command(bot):
                     key_cmd = cmd
                     break
 
-            with patch.object(interaction, "response") as mock_response:
-                mock_response.defer = AsyncMock()
-                with patch.object(interaction, "followup") as mock_followup:
-                    mock_followup.send = AsyncMock()
+            await key_cmd(mock_interaction, "h", "none")
 
-                    await key_cmd(interaction, "h", "none")
-
-                    mock_response.defer.assert_called_once()
-                    mock_send_key.assert_called_with("h", "none")
+            mock_interaction.response.defer.assert_called_once()
+            mock_send_key.assert_called_with("h", "none")
 
 
-async def test_nethack_status_command(bot):
+async def test_nethack_status_command(bot, mock_interaction):
     """Test NetHack status command."""
-    guild = dpytest.get_config().client.guilds[0]
-    channel = guild.text_channels[0]
-    member = guild.members[0]
-
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", channel.id):
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
         with patch("nethack_module.nethack_proc", None):
-            interaction = dpytest.get_application_command_context(
-                "nethack status", guild=guild, channel=channel, user=member
-            )
-
             nethack_cmd = bot.get_slash_command("nethack")
             status_cmd = None
             for cmd in nethack_cmd.children.values():
@@ -172,43 +115,41 @@ async def test_nethack_status_command(bot):
                     status_cmd = cmd
                     break
 
-            with patch.object(interaction, "response") as mock_response:
-                mock_response.defer = AsyncMock()
-                with patch.object(interaction, "followup") as mock_followup:
-                    mock_followup.send = AsyncMock()
+            await status_cmd(mock_interaction)
 
-                    await status_cmd(interaction)
-
-                    mock_response.defer.assert_called_once()
-                    mock_followup.send.assert_called_with("NetHack is not running.")
+            mock_interaction.response.defer.assert_called_once()
+            mock_interaction.followup.send.assert_called_with("NetHack is not running.")
 
 
 def test_is_admin():
     """Test admin role checking."""
-    # Mock interaction with admin role
-    mock_inter = MagicMock()
-    admin_role = MagicMock()
-    admin_role.id = nethack_module.ADMIN_ROLE_ID
-    mock_inter.author.roles = [admin_role]
+    with patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID):
+        # Mock interaction with admin role
+        mock_inter = MagicMock()
+        admin_role = MagicMock()
+        admin_role.id = TEST_ADMIN_ROLE_ID
+        mock_inter.author.roles = [admin_role]
 
-    assert nethack_module.is_admin(mock_inter) is True
+        assert nethack_module.is_admin(mock_inter) is True
 
-    # Mock interaction without admin role
-    mock_inter.author.roles = []
-    assert nethack_module.is_admin(mock_inter) is False
+        # Mock interaction without admin role
+        mock_inter.author.roles = []
+        assert nethack_module.is_admin(mock_inter) is False
 
 
 def test_is_correct_channel():
     """Test channel checking."""
-    mock_inter = MagicMock()
-    mock_inter.channel_id = nethack_module.ALLOWED_CHANNEL_ID
+    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
+        mock_inter = MagicMock()
+        mock_inter.channel_id = TEST_ALLOWED_CHANNEL_ID
 
-    assert nethack_module.is_correct_channel(mock_inter) is True
+        assert nethack_module.is_correct_channel(mock_inter) is True
 
-    mock_inter.channel_id = 999999
-    assert nethack_module.is_correct_channel(mock_inter) is False
+        mock_inter.channel_id = 999999
+        assert nethack_module.is_correct_channel(mock_inter) is False
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
 async def test_start_nethack():
     """Test NetHack start function."""
     with patch("pexpect.spawn") as mock_spawn:
@@ -226,6 +167,7 @@ async def test_start_nethack():
                 mock_spawn.assert_called_once()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
 async def test_stop_nethack():
     """Test NetHack stop function."""
     mock_process = MagicMock()
@@ -239,6 +181,7 @@ async def test_stop_nethack():
         mock_process.terminate.assert_called_once()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
 async def test_send_key():
     """Test key sending functionality."""
     mock_process = MagicMock()
@@ -275,6 +218,7 @@ async def test_send_key_with_modifier():
             mock_process.send.assert_called_with("\x1bh")
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
 def test_render_pyte_to_image():
     """Test pyte screen to image rendering."""
     # Mock screen object
@@ -298,27 +242,22 @@ def test_render_pyte_to_image():
         assert isinstance(result, Image.Image)
 
 
-async def test_send_output_to_channel_image():
+@pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
+async def test_send_output_to_channel_image(mock_interaction):
     """Test sending image output to channel."""
-    mock_inter = MagicMock()
-    mock_inter.followup.send = AsyncMock()
-
     test_image = Image.new("RGB", (100, 100))
 
-    await nethack_module.send_output_to_channel(mock_inter, test_image)
-    await nethack_module.send_output_to_channel(mock_inter, test_image)
+    await nethack_module.send_output_to_channel(mock_interaction, test_image)
+    await nethack_module.send_output_to_channel(mock_interaction, test_image)
 
-    mock_inter.followup.send.assert_called_once()
+    mock_interaction.followup.send.assert_called_once()
     # Check that a file was sent
-    args, kwargs = mock_inter.followup.send.call_args
+    args, kwargs = mock_interaction.followup.send.call_args
     assert "file" in kwargs
 
 
-async def test_send_output_to_channel_text():
+async def test_send_output_to_channel_text(mock_interaction):
     """Test sending text output to channel."""
-    mock_inter = MagicMock()
-    mock_inter.followup.send = AsyncMock()
+    await nethack_module.send_output_to_channel(mock_interaction, "Test message")
 
-    await nethack_module.send_output_to_channel(mock_inter, "Test message")
-
-    mock_inter.followup.send.assert_called_with("Test message")
+    mock_interaction.followup.send.assert_called_with("Test message")
