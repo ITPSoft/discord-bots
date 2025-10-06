@@ -1,13 +1,6 @@
 """Basic smoke tests for Šimek Discord bot."""
 
-from unittest.mock import MagicMock, patch
-
-# Mock the dictionary modules
-mock_decimdictionary = MagicMock()
-mock_schizodict = MagicMock()
-with patch.dict("sys.modules", {"decimdictionary": mock_decimdictionary, "schizodict": mock_schizodict}):
-    with patch("disnake.ext.commands.Bot"):
-        import main
+import main
 
 
 def test_build_trigram_counts():

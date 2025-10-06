@@ -29,10 +29,16 @@ line-length = 120
 [tool.ruff.lint]
 ignore = ["F403", "F405", "E722", "F841"]
 
+[tool.mypy]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "disnake.*"
+follow_imports = "skip"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
-#addopts = ["-v", "--tb=short"]
-# until I fix it
-addopts = "--ignore=tests/test_nethack.py"
+addopts = ["-v", "--tb=short", "--ruff"]
+#addopts = ["-v", "--tb=short", "--ruff", "--mypy"]

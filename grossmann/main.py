@@ -10,7 +10,7 @@ from disnake import Message, ApplicationCommandInteraction, Embed
 from disnake.ext.commands import Bot, default_member_permissions, Param, InteractionBot
 from dotenv import load_dotenv
 
-import decimdictionary as decdi
+import grossmanndict as decdi
 
 # TODO: logging
 # TODO: make all stuff loadable modules

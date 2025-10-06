@@ -3,14 +3,16 @@ import random
 import datetime as dt
 import disnake
 from disnake import Message
-import requests
 from collections import defaultdict, Counter
 
-import schizodict as simekdict
+import aiohttp
+import simekdict
 
 from dotenv import load_dotenv
 import pickle
 
+# Global HTTP session - will be initialized when bot starts
+http_session: aiohttp.ClientSession | None = None
 
 # preload all useful stuff
 load_dotenv()
@@ -55,6 +57,15 @@ MARKOV_FILE = "markov_twogram.pkl"
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 client = disnake.Client(intents=intents)
+
+
+# on_ready event - happens when bot connects to Discord API
+@client.event
+async def on_ready():
+    global http_session
+    # Initialize the global HTTP session with SSL disabled
+    http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    print(f"{client.user} has connected to Discord!")
 
 
 def build_trigram_counts(messages):
@@ -138,21 +149,6 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
             await m.reply(reply)
 
 
-# on_ready event - happens when bot connects to Discord API
-@client.event
-async def on_ready():
-    print(f"{client.user} has connected to Discord!")
-
-
-@client.command()
-async def say(ctx, *args):
-    if str(ctx.message.author) == "skavenlord58":
-        await ctx.message.delete()
-        await ctx.send(f"{' '.join(args)}")
-    else:
-        print(f'{ctx.message.author} tried to use "say" command.')
-
-
 @client.event
 async def on_message(m: Message):
     if not m.content:
@@ -167,6 +163,7 @@ async def on_message(m: Message):
         return
 
     # TODO change discord user id after new name
+    response = ""
     if "@grok" in m.content.lower() or "@schizo" in m.content.lower():
         # Fetch previous 50 messages (excluding the current one)
         messages = []
@@ -233,9 +230,9 @@ async def on_message(m: Message):
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
         case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
-            apiCall = requests.get("https://www.yomama-jokes.com/api/v1/jokes/random/")
-            if apiCall.status_code == 200:
-                await do_response(f"{apiCall.json()['joke']}", m, chance=4)
+            async with http_session.get("https://www.yomama-jokes.com/api/v1/jokes/random/") as api_call:
+                if api_call.status == 200:
+                    await do_response(f"{(await api_call.json())['joke']}", m, chance=4)
         case "lagtrain":
             await do_response("https://www.youtube.com/watch?v=UnIhRpIT7nc", m, chance=1)
         case "cum zone":
@@ -298,4 +295,24 @@ async def on_message(m: Message):
     client.last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
-client.run(TOKEN)
+async def cleanup():
+    """Clean up resources when bot shuts down"""
+    global http_session
+    if http_session and not http_session.closed:
+        await http_session.close()
+
+
+# Register cleanup to run when bot shuts down
+@client.event
+async def on_disconnect():
+    await cleanup()
+
+
+if __name__ == "__main__":
+    try:
+        client.run(TOKEN)
+    finally:
+        # Ensure cleanup runs even if there's an exception
+        import asyncio
+
+        asyncio.run(cleanup())

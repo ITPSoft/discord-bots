@@ -4,8 +4,9 @@ import random
 from unittest.mock import AsyncMock, patch, Mock
 
 
-import decimdictionary as decdi
+import grossmanndict as decdi
 import main
+from conftest import TEST_WARCRAFT_ROLE_ID, TEST_CLEN_ROLE_ID, TEST_GMOD_ROLE_ID, TEST_ROLE_SELECTION_CHANNEL_ID
 
 
 async def test_batch_react_function():
@@ -217,7 +218,7 @@ def test_has_any_function():
 
 def test_warcraft_template():
     """Test Warcraft template message formatting."""
-    expected_content = "<@&871817685439234108> - Warcrafty 3 dnes v cca 20:00?"
+    expected_content = f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"
     result = decdi.WARCRAFTY_CZ.replace("{0}", " v cca 20:00")
     assert expected_content in result
 
@@ -251,16 +252,16 @@ async def test_role_button_logic():
 
     # Mock role objects
     mock_role = Mock()
-    mock_role.id = 871817685439234108
+    mock_role.id = TEST_WARCRAFT_ROLE_ID
     mock_ctx.guild.get_role.return_value = mock_role
     mock_ctx.author.roles = []
     mock_ctx.author.add_roles = AsyncMock()
     mock_ctx.author.remove_roles = AsyncMock()
 
     role_list = {
-        "Člen": 804431648959627294,
-        "warcraft": 871817685439234108,
-        "gmod": 951457356221394975,
+        "Člen": TEST_CLEN_ROLE_ID,
+        "warcraft": TEST_WARCRAFT_ROLE_ID,
+        "gmod": TEST_GMOD_ROLE_ID,
     }
 
     # Simulate button interaction logic
@@ -295,9 +296,9 @@ async def test_member_join_logic():
     if welcome_channel:
         welcome_message = f"""
 Vítej, {mock_member.mention}!
-Prosím, přesuň se do <#1314388851304955904> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
+Prosím, přesuň se do <#{TEST_ROLE_SELECTION_CHANNEL_ID}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
 ---
-Please, go to the <#1314388851304955904> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
+Please, go to the <#{TEST_ROLE_SELECTION_CHANNEL_ID}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
                         """
         await welcome_channel.send(welcome_message)
 
