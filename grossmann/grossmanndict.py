@@ -1,25 +1,25 @@
 HELP = r"""
     ***Bot commands:***
     _arguments in \{\} are optional, arguments with \[\] are required_
-    $_bothelp_ or _commands_
+    /_bothelp_ or _commands_
         Shows help.
-    $_ping_
+    /_ping_
         Shows bot's ping and API latency.
-    $_roll_ \{number\}
+    /_roll_ \{number\}
         Rolls a random number between 1 and \{number\}. Defaults number to 100,
         if not specified.
-    $_yesorno_
+    /_yesorno_
         Answers a question with yes or no.
-    $_warcraft_ \{time\}
+    /_warcraft_ \{time\}
         Creates a warcraft play session announcement from template.
-    $_gmod_ \{time\}
+    /_gmod_ \{time\}
         Creates a gmod play session announcement from template.
-    $_poll_ [name_of_poll] [option_1] [option2] \{option3\} \{option4\} \{option5\}
+    /_poll_ [name_of_poll] [option_1] [option2] \{option3\} \{option4\} \{option5\}
         Use underscores as spaces. Bot will automatically edit them for you.
-    $_today_
+    /_today_
         Tells you which international day it is today.
     """
-
+# todo: zkusit help generovat
 WARCRAFTY_CZ = """
 <@&871817685439234108> - Warcrafty 3 dnes{0}?
 React with attendance:
@@ -50,8 +50,8 @@ Will you join?
 """
 
 GIDS = [
-    # 276720867344646144,  # kouzelníci
-    1420168840511492149,  # test server
+    276720867344646144,  # kouzelníci
+    # 1420168840511492149,  # test server
 ]
 TWITTERPERO = 1042052161338626128
 WELCOMEPERO = 1104877855466344569

@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import random
 from collections.abc import Iterable
@@ -6,11 +7,15 @@ from enum import Enum
 
 import aiohttp
 import disnake
-from disnake import Message, ApplicationCommandInteraction, Embed
-from disnake.ext.commands import Bot, default_member_permissions, Param, InteractionBot
+from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
+from disnake.ui import Button
+from disnake.ext.commands import Bot, Param, InteractionBot, has_any_role
 from dotenv import load_dotenv
 
 import grossmanndict as decdi
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+
 
 # TODO: logging
 # TODO: make all stuff loadable modules
@@ -19,10 +24,11 @@ import grossmanndict as decdi
 # todo: role na selfservice přidávat commandem
 #   a pak přidat command na dump uložených rolí do zdrojáku
 #   nějak to parametrizovat per server
+# aby člověk commandem mohl přidat herní nebo městskou roli
 
 
 # todo: figure out how to make it a subclass
-class DiscordSelfServiceRoles(str, Enum):
+class SelfServiceRoles(str, Enum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 
     CLEN = "Člen"
@@ -30,21 +36,24 @@ class DiscordSelfServiceRoles(str, Enum):
     PRAZAK = "Pražák"
     BRNAK = "brnak"
     MAGIC_THE_GATHERING = "magicTheGathering"
+    CARFAG = "carfag"
 
     @property
     def role_id(self) -> int:
         """Get the Discord role ID for this role"""
         match self:
-            case DiscordSelfServiceRoles.CLEN:
+            case SelfServiceRoles.CLEN:
                 return 804431648959627294
-            case DiscordSelfServiceRoles.OSTRAVAK:
+            case SelfServiceRoles.OSTRAVAK:
                 return 988431391807131690
-            case DiscordSelfServiceRoles.PRAZAK:
+            case SelfServiceRoles.PRAZAK:
                 return 998636130511630386
-            case DiscordSelfServiceRoles.BRNAK:
+            case SelfServiceRoles.BRNAK:
                 return 1105227159712309391
-            case DiscordSelfServiceRoles.MAGIC_THE_GATHERING:
+            case SelfServiceRoles.MAGIC_THE_GATHERING:
                 return 1327396658605981797
+            case SelfServiceRoles.CARFAG:
+                return 1057281159509319800
 
     @classmethod
     def get_role_id_by_name(cls, role_name: str) -> int | None:
@@ -56,9 +65,10 @@ class DiscordSelfServiceRoles(str, Enum):
             return None
 
 
-class DiscordGamingRoles(str, Enum):
+class GamingRoles(str, Enum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 
+    # název role
     WARCRAFT = "warcraft"
     GMOD = "gmod"
     VALORANT = "valorant"
@@ -67,72 +77,74 @@ class DiscordGamingRoles(str, Enum):
     DOTA2 = "dota2"
     CSGO = "csgo"
     SEA_OF_THIEVES = "sea of thieves"
-    DUHOVA_SESTKA = "duhová šestka"
-    MINECRAFT = "minecraft"
-    DARK_AND_DARKER = "dark and darker"
+    MINECRAFT = "Minecraft"
+    DARK_AND_DARKER = "Dark and Darker"
     GOLFISTI = "golfisti"
     WOWKO = "WoWko"
-    CIVKY = "civky"
-    ROCKANDSTONE = "rockandstone"
+    ROCKANDSTONE = "kámen a šutr"
     HOTS = "hots"
-    GTAONLINE = "gtaonline"
-    WARFRAME = "warframe"
+    GTAONLINE = "GTA Online"
+    WARFRAME = "Warframe"
     HELLDIVERS = "helldivers"
     VOIDBOYS = "voidboys"
-    THEFINALS = "thefinals"
+    THEFINALS = "finalnici"
     BEYOND_ALL_REASON = "BeyondAllReason"
-    VALHEIM = "Valheim"
+    VALHEIM = "valheim"
+    ARC_RAIDERS = "ArcRaiders"
+    FRIENDSLOP = "Friendslop"
 
     @property
     def role_id(self) -> int:
         """Get the Discord role ID for this role"""
         match self:
-            case DiscordGamingRoles.WARCRAFT:
+            case GamingRoles.WARCRAFT:
                 return 871817685439234108
-            case DiscordGamingRoles.GMOD:
+            case GamingRoles.GMOD:
                 return 951457356221394975
-            case DiscordGamingRoles.VALORANT:
+            case GamingRoles.VALORANT:
                 return 991026818054225931
-            case DiscordGamingRoles.KYOUDAI:
+            case GamingRoles.KYOUDAI:
                 return 1031510557163008010
-            case DiscordGamingRoles.LOLKO:
+            case GamingRoles.LOLKO:
                 return 994302892561399889
-            case DiscordGamingRoles.DOTA2:
+            case GamingRoles.DOTA2:
                 return 994303445735587991
-            case DiscordGamingRoles.CSGO:
+            case GamingRoles.CSGO:
                 return 994303566082740224
-            case DiscordGamingRoles.SEA_OF_THIEVES:
+            case GamingRoles.SEA_OF_THIEVES:
                 return 994303863643451442
-            case DiscordGamingRoles.DUHOVA_SESTKA:
-                return 1011212649704460378
-            case DiscordGamingRoles.MINECRAFT:
+            case GamingRoles.MINECRAFT:
                 return 1049052005341069382
-            case DiscordGamingRoles.DARK_AND_DARKER:
+            case GamingRoles.DARK_AND_DARKER:
                 return 1054111346733617222
-            case DiscordGamingRoles.GOLFISTI:
+            case GamingRoles.GOLFISTI:
                 return 1076931268555587645
-            case DiscordGamingRoles.WOWKO:
+            case GamingRoles.WOWKO:
                 return 1120426868697473024
-            case DiscordGamingRoles.CIVKY:
-                return 1070800908729995386
-            case DiscordGamingRoles.ROCKANDSTONE:
+            case GamingRoles.ROCKANDSTONE:
                 return 1107334623983312897
-            case DiscordGamingRoles.HOTS:
+            case GamingRoles.HOTS:
                 return 1140376580800118835
-            case DiscordGamingRoles.GTAONLINE:
+            case GamingRoles.GTAONLINE:
                 return 1189322955063316551
-            case DiscordGamingRoles.WARFRAME:
+            case GamingRoles.WARFRAME:
                 return 1200135734590451834
-            case DiscordGamingRoles.HELLDIVERS:
+            case GamingRoles.HELLDIVERS:
                 return 1228002980754751621
-            case DiscordGamingRoles.VOIDBOYS:
+            case GamingRoles.VOIDBOYS:
                 return 1281326981878906931
-            case DiscordGamingRoles.THEFINALS:
+            case GamingRoles.THEFINALS:
                 return 1242187454837035228
-            case DiscordGamingRoles.BEYOND_ALL_REASON:
+            case GamingRoles.BEYOND_ALL_REASON:
                 return 1358445521227874424
-            case DiscordGamingRoles.VALHEIM:
+            case GamingRoles.VALHEIM:
                 return 1356164640152883241
+            case GamingRoles.KAMEN_A_SUTR:
+                return 1107334623983312897
+            case GamingRoles.ARC_RAIDERS:
+                return 1432779821183930401
+            case GamingRoles.FRIENDSLOP:
+                return 1435240483852124292
 
     @classmethod
     def get_role_id_by_name(cls, role_name: str) -> int | None:
@@ -238,7 +250,8 @@ async def decimhelp(ctx: ApplicationCommandInteraction):
 
 # debug command/trolling
 @client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
-@default_member_permissions(administrator=True)
+# @default_member_permissions(administrator=True)
+@has_any_role(329712366415642625)
 async def say(ctx: ApplicationCommandInteraction, message: str):
     await ctx.response.send_message("Message sent!")
     await ctx.channel.send(message)
@@ -338,7 +351,8 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 
 
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
-@default_member_permissions(administrator=True)
+# @default_member_permissions(administrator=True)
+@has_any_role(329712366415642625)
 async def ping(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
@@ -387,7 +401,8 @@ async def game_ping(
 
 # TODO is this even used?
 @client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)
-@default_member_permissions(administrator=True)
+# @default_member_permissions(administrator=True)
+@has_any_role(329712366415642625)
 async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
     role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
@@ -396,7 +411,8 @@ async def fetchrole(ctx: ApplicationCommandInteraction):
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
-@default_member_permissions(administrator=True)
+# @default_member_permissions(administrator=True)
+@has_any_role(329712366415642625)
 async def command(ctx):
     embed = disnake.Embed(
         title="Role picker",
@@ -417,46 +433,47 @@ async def command(ctx):
     await ctx.channel.send(
         embed=embed,
         components=[
-            disnake.ui.Button(label="Člen", style=disnake.ButtonStyle.grey, custom_id="Člen", row=0),
-            disnake.ui.Button(label="Pražák", style=disnake.ButtonStyle.green, custom_id="Pražák", row=1),
-            disnake.ui.Button(label="Ostravák", style=disnake.ButtonStyle.green, custom_id="Ostravák", row=1),
-            disnake.ui.Button(label="Brňák", style=disnake.ButtonStyle.green, custom_id="brnak", row=1),
-            disnake.ui.Button(label="Carfag-péro", style=disnake.ButtonStyle.grey, custom_id="carfag", row=2),
+            Button(label="Člen", style=ButtonStyle.grey, custom_id=SelfServiceRoles.CLEN, row=0),
+            Button(label="Pražák", style=ButtonStyle.green, custom_id=SelfServiceRoles.PRAZAK, row=1),
+            Button(label="Ostravák", style=ButtonStyle.green, custom_id=SelfServiceRoles.OSTRAVAK, row=1),
+            Button(label="Brňák", style=ButtonStyle.green, custom_id=SelfServiceRoles.BRNAK, row=1),
+            Button(label="Carfag-péro", style=ButtonStyle.grey, custom_id=SelfServiceRoles.CARFAG, row=2),
         ],
     )
     await ctx.channel.send(
         embed=gamingembed,
         components=[
-            disnake.ui.Button(label="Warcraft 3", style=disnake.ButtonStyle.blurple, custom_id="warcraft"),
-            disnake.ui.Button(label="Wowko", style=disnake.ButtonStyle.blurple, custom_id="wowko"),
-            disnake.ui.Button(label="Garry's Mod", style=disnake.ButtonStyle.blurple, custom_id="gmod"),
-            disnake.ui.Button(label="Valorant", style=disnake.ButtonStyle.blurple, custom_id="valorant"),
-            disnake.ui.Button(label="LoL", style=disnake.ButtonStyle.blurple, custom_id="lolko"),
-            disnake.ui.Button(label="Dota 2", style=disnake.ButtonStyle.blurple, custom_id="dota2"),
-            disnake.ui.Button(label="CS:GO", style=disnake.ButtonStyle.blurple, custom_id="csgo"),
-            disnake.ui.Button(label="Sea of Thieves", style=disnake.ButtonStyle.blurple, custom_id="sea of thieves"),
-            disnake.ui.Button(label="Kyoudai (Yakuza/Mahjong)", style=disnake.ButtonStyle.blurple, custom_id="kyoudai"),
-            disnake.ui.Button(label="Minecraft", style=disnake.ButtonStyle.blurple, custom_id="minecraft"),
-            disnake.ui.Button(label="Dark and Darker", style=disnake.ButtonStyle.blurple, custom_id="dark and darker"),
-            disnake.ui.Button(label="Rainbow Six Siege", style=disnake.ButtonStyle.blurple, custom_id="duhová šestka"),
-            disnake.ui.Button(label="Golf With Your Friends", style=disnake.ButtonStyle.blurple, custom_id="golfisti"),
-            disnake.ui.Button(label="Civilisation V", style=disnake.ButtonStyle.blurple, custom_id="civky"),
-            disnake.ui.Button(
-                label="ROCK AND STONE (Deep rock Gal.)", style=disnake.ButtonStyle.blurple, custom_id="rockandstone"
+            Button(label="Warcraft 3", style=ButtonStyle.blurple, custom_id=GamingRoles.WARCRAFT),
+            Button(label="Wowko", style=ButtonStyle.blurple, custom_id=GamingRoles.WOWKO),
+            Button(label="Garry's Mod", style=ButtonStyle.blurple, custom_id=GamingRoles.GMOD),
+            Button(label="Valorant", style=ButtonStyle.blurple, custom_id=GamingRoles.VALORANT),
+            Button(label="LoL", style=ButtonStyle.blurple, custom_id=GamingRoles.LOLKO),
+            Button(label="Dota 2", style=ButtonStyle.blurple, custom_id=GamingRoles.DOTA2),
+            Button(label="CS:GO", style=ButtonStyle.blurple, custom_id=GamingRoles.CSGO),
+            Button(label="Sea of Thieves", style=ButtonStyle.blurple, custom_id=GamingRoles.SEA_OF_THIEVES),
+            Button(label="Kyoudai (Yakuza/Mahjong)", style=ButtonStyle.blurple, custom_id=GamingRoles.KYOUDAI),
+            Button(label="Minecraft", style=ButtonStyle.blurple, custom_id=GamingRoles.MINECRAFT),
+            Button(label="Dark and Darker", style=ButtonStyle.blurple, custom_id=GamingRoles.DARK_AND_DARKER),
+            Button(label="Golf With Your Friends", style=ButtonStyle.blurple, custom_id=GamingRoles.GOLFISTI),
+            Button(
+                label="ROCK AND STONE (Deep rock Gal.)", style=ButtonStyle.blurple, custom_id=GamingRoles.ROCKANDSTONE
             ),
-            disnake.ui.Button(label="Heroes of the Storm", style=disnake.ButtonStyle.blurple, custom_id="hots"),
-            disnake.ui.Button(label="GTA V online", style=disnake.ButtonStyle.blurple, custom_id="gtaonline"),
-            disnake.ui.Button(label="Warframe", style=disnake.ButtonStyle.blurple, custom_id="warframe"),
-            disnake.ui.Button(label="Helldivers II", style=disnake.ButtonStyle.blurple, custom_id="helldivers"),
-            disnake.ui.Button(label="Void Crew", style=disnake.ButtonStyle.blurple, custom_id="voidboys"),
-            disnake.ui.Button(label="Finálníci (the Finals)", style=disnake.ButtonStyle.blurple, custom_id="thefinals"),
-            disnake.ui.Button(
-                label="Magic: The Gathering", style=disnake.ButtonStyle.blurple, custom_id="magicTheGathering"
+            Button(label="Heroes of the Storm", style=ButtonStyle.blurple, custom_id=GamingRoles.HOTS),
+            Button(label="GTA V online", style=ButtonStyle.blurple, custom_id=GamingRoles.GTAONLINE),
+            Button(label="Warframe", style=ButtonStyle.blurple, custom_id=GamingRoles.WARFRAME),
+            Button(label="Helldivers II", style=ButtonStyle.blurple, custom_id=GamingRoles.HELLDIVERS),
+            Button(label="Void Crew", style=ButtonStyle.blurple, custom_id=GamingRoles.VOIDBOYS),
+            Button(label="Finálníci (the Finals)", style=ButtonStyle.blurple, custom_id=GamingRoles.THEFINALS),
+            Button(label="Beyond All Reason", style=ButtonStyle.blurple, custom_id=GamingRoles.BEYOND_ALL_REASON),
+            Button(label="Valheim", style=ButtonStyle.blurple, custom_id=GamingRoles.VALHEIM),
+            Button(
+                label="Mariáš The Gathering",
+                style=ButtonStyle.blurple,
+                custom_id=SelfServiceRoles.MAGIC_THE_GATHERING,
+                row=1,
             ),
-            disnake.ui.Button(
-                label="Beyond All Reason", style=disnake.ButtonStyle.blurple, custom_id="BeyondAllReason"
-            ),
-            disnake.ui.Button(label="Valheim", style=disnake.ButtonStyle.blurple, custom_id="Valheim"),
+            Button(label="Friendslop", style=ButtonStyle.blurple, custom_id=GamingRoles.FRIENDSLOP),
+            Button(label="Arc Raiders", style=ButtonStyle.blurple, custom_id=GamingRoles.ARC_RAIDERS),
         ],
     )
 
@@ -464,7 +481,10 @@ async def command(ctx):
 # TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
-    role_id = DiscordSelfServiceRoles.get_role_id_by_name(ctx.component.custom_id)
+    role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or GamingRoles.get_role_id_by_name(
+        ctx.component.custom_id
+    )
+    logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
     if role_id is not None:
         role = ctx.guild.get_role(role_id)
         if role in ctx.author.roles:
@@ -474,7 +494,10 @@ async def listener(ctx: disnake.MessageInteraction):
             await ctx.author.add_roles(role)
             await ctx.response.send_message(content=f"Role `{ctx.component.custom_id}` added!", ephemeral=True)
     else:
-        pass
+        raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
+
+
+# todo: role by měly svítit podle toho, jestli je uživatel má nebo nemá, pokud by to šlo
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=decdi.GIDS)

@@ -37,13 +37,13 @@ MOT_HLASKY = simekdict.MOT_HLASKY
 LINUX_COPYPASTA = simekdict.LINUX_COPYPASTA
 RECENZE = simekdict.RECENZE
 ALLOW_CHANNELS = [
-    1420168841501216873, # bot debug server - general
-    1000800481397973052, # general
+    1420168841501216873,  # bot debug server - general
+    1000800481397973052,  # general
     324970596360257548,  # memes-shitposting
     932301697836003358,  # bot testing
     959137743412269187,  # gaming-general
     996357109727891456,  # deskovky-general
-    1370041352846573630, # magic-the-gathering-general
+    1370041352846573630,  # magic-the-gathering-general
     786608717411647488,  # phase-connect-channel (Vtubers)
     276720867344646144,  # minecraft-general
     438037897023848448,  # warcraft3-general
@@ -153,7 +153,9 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
 
 @client.event
 async def on_message(m: Message):
-    print(f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}")
+    print(
+        f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
+    )
     if not m.content:
         return
     if str(m.author) == "šimek#3885":
@@ -167,13 +169,15 @@ async def on_message(m: Message):
 
     # grok feature is above all other and will trigger anywhere
     response = ""
-    if (
-        "@grok" in m.content.lower()
-        or "@schizo" in m.content.lower()
-        or "@šimek" in m.content.lower()
-        or "šimku" in m.content.lower()
-        or "simku" in m.content.lower()
-    ):
+    if Substring(m.content.lower()) in [
+        "@grok",
+        "@schizo",
+        "@šimek",
+        "@1420163586310803566",
+        "@&1437546286487175252",
+        "šimku",
+        "simku",
+    ]:
         # Fetch previous 50 messages (excluding the current one)
         messages = []
         async for msg in m.channel.history(limit=50, before=m):
@@ -197,7 +201,7 @@ async def on_message(m: Message):
 
     elif m.channel.id not in ALLOW_CHANNELS:
         return
-    print(f"check passed getting into main loop")
+    print("check passed getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     match Substring(m.content.lower()):
         case "hodný bot":
