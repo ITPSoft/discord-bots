@@ -37,20 +37,22 @@ MOT_HLASKY = simekdict.MOT_HLASKY
 LINUX_COPYPASTA = simekdict.LINUX_COPYPASTA
 RECENZE = simekdict.RECENZE
 ALLOW_CHANNELS = [
-    1420168841501216873,
-    1000800481397973052,
-    324970596360257548,
-    932301697836003358,
-    959137743412269187,
-    996357109727891456,
-    1370041352846573630,
-    276720867344646144,
-    438037897023848448,
-    979875595896901682,
-    786625189038915625,
-    786643519430459423,
-    990724186550972477,
-    998556012086829126,
+    1420168841501216873, # bot debug server - general
+    1000800481397973052, # general
+    324970596360257548,  # memes-shitposting
+    932301697836003358,  # bot testing
+    959137743412269187,  # gaming-general
+    996357109727891456,  # deskovky-general
+    1370041352846573630, # magic-the-gathering-general
+    786608717411647488,  # phase-connect-channel (Vtubers)
+    276720867344646144,  # minecraft-general
+    438037897023848448,  # warcraft3-general
+    979875595896901682,  # gacha
+    786625189038915625,  # it-pero
+    786643519430459423,  # dymkopero
+    990724186550972477,  # jidlopero
+    998556012086829126,  # schizopero
+    941703477694955560,  # kouzelnici-general
 ]
 MARKOV_FILE = "markov_twogram.pkl"
 
@@ -151,6 +153,7 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
 
 @client.event
 async def on_message(m: Message):
+    print(f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}")
     if not m.content:
         return
     if str(m.author) == "šimek#3885":
@@ -162,9 +165,15 @@ async def on_message(m: Message):
     if last_time and (now - last_time).total_seconds() < 10:
         return
 
-    # TODO change discord user id after new name
+    # grok feature is above all other and will trigger anywhere
     response = ""
-    if "@grok" in m.content.lower() or "@schizo" in m.content.lower():
+    if (
+        "@grok" in m.content.lower()
+        or "@schizo" in m.content.lower()
+        or "@šimek" in m.content.lower()
+        or "šimku" in m.content.lower()
+        or "simku" in m.content.lower()
+    ):
         # Fetch previous 50 messages (excluding the current one)
         messages = []
         async for msg in m.channel.history(limit=50, before=m):
@@ -174,9 +183,21 @@ async def on_message(m: Message):
         response += markov_chain(messages)
         await m.reply(response)
         client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
-    elif m.channel.id not in ALLOW_CHANNELS:
+
+    # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
+    if m.channel.id == 786626221856391199:
+        if ":KekWR:" in m.content.lower() or ":KekW:" in m.content.lower():
+            await do_response(
+                "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",
+                m,
+                chance=4,
+                reaction=False,
+            )
         return
 
+    elif m.channel.id not in ALLOW_CHANNELS:
+        return
+    print(f"check passed getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     match Substring(m.content.lower()):
         case "hodný bot":
