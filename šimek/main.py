@@ -159,7 +159,7 @@ async def on_message(m: Message):
         client.last_reaction_time = {}
     now = dt.datetime.now()
     last_time = client.last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 10:
+    if last_time and (now - last_time).total_seconds() < 1:
         return
 
     # TODO change discord user id after new name
@@ -212,12 +212,12 @@ async def on_message(m: Message):
                 m,
                 chance=4,
             )
+        case "schizo":
+            await do_response("never forgeti", m, chance=4)
         case "kdo":
             await do_response("kdo se ptal?", m, chance=3)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
-        case "schizo":
-            await do_response("never forgeti", m, chance=4)
         case "?":
             await do_response(f"{random.choice(REPLIES)}", m, chance=6)
         case "proč" | "proc":
