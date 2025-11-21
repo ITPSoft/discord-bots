@@ -164,7 +164,7 @@ async def on_message(m: Message):
         client.last_reaction_time = {}
     now = dt.datetime.now()
     last_time = client.last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 1:
+    if last_time and (now - last_time).total_seconds() < 30:
         return
 
     # grok feature is above all other and will trigger anywhere
@@ -186,7 +186,8 @@ async def on_message(m: Message):
         response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages)
         await m.reply(response)
-        client.last_reaction_time[m.channel.id] = dt.datetime.utcnow()
+        client.last_reaction_time[m.channel.id] = dt.datetime.now()
+        return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
     if m.channel.id == 786626221856391199:
@@ -235,12 +236,12 @@ async def on_message(m: Message):
             await do_response(
                 f"Ahoj, {' '.join(m.content.split('jsem')[1].split('.')[0].split(',')[0].split(' ')[1:])}. Já jsem táta.",
                 m,
-                chance=4,
+                chance=18,
             )
         case "schizo":
             await do_response("never forgeti", m, chance=4)
         case "kdo":
-            await do_response("kdo se ptal?", m, chance=3)
+            await do_response("kdo se ptal?", m, chance=16)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
         case "?":
@@ -248,9 +249,9 @@ async def on_message(m: Message):
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
         case "jsi":
-            await do_response(f"Tvoje máma je {' '.join(m.content.split('jsi')[1].split(' ')[1:])}.", m, chance=8)
+            await do_response(f"Tvoje máma je {' '.join(m.content.split('jsi')[1].split(' ')[1:])}.", m, chance=16)
         case "negr":
-            await do_response(":sad:", m, chance=10)
+            await do_response(":pensive:", m, chance=10)
             await do_response(":+1:", m, chance=30)
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
