@@ -1,6 +1,8 @@
 import os
 import random
 import datetime as dt
+from collections.abc import Callable
+
 import disnake
 from disnake import Message
 from collections import defaultdict, Counter
@@ -131,13 +133,29 @@ def markov_chain(messages, max_words=20):
 # https://stackoverflow.com/a/78046484
 class Substring(str):
     def __eq__(self, other):
-        return self.__contains__(other)
+        return other in self
 
 
+
+class TransformedSubstring(str):
+    def __new__(cls, value: str, transform: Callable[[str], str]=lambda s: s):
+        # we store the transform on the instance, so we need to create the
+        # object first, then attach attributes
+        obj = super().__new__(cls, value)
+        obj._transform = transform
+        return obj
+
+    def __eq__(self, other):
+        # `other` is the Substring(m.content.lower()) (or whatever you match on)
+        normalized = self._transform(str(other))
+        # classic "substring" semantics: is this pattern in the normalized string?
+        return self in normalized
 # evil hack end
 
+def strip_commas(s: str) -> str:
+    return s.replace(",", "")
 
-async def do_response(reply: str, m: Message, chance=10, reaction=False):
+async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     reply: str - text or emoji to reply with
     m: Message - message object to reply to
@@ -150,23 +168,7 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
         else:
             await m.reply(reply)
 
-
-@client.event
-async def on_message(m: Message):
-    print(
-        f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
-    )
-    if not m.content:
-        return
-    if str(m.author) == "šimek#3885":
-        return
-    if not hasattr(client, "last_reaction_time"):
-        client.last_reaction_time = {}
-    now = dt.datetime.now()
-    last_time = client.last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 30:
-        return
-
+async def maybe_respond(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
     if Substring(m.content.lower()) in [
@@ -244,6 +246,11 @@ async def on_message(m: Message):
             await do_response("kdo se ptal?", m, chance=16)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
+        case "groku":   # this makes groku not fall through to the rest :(
+            # other pre-processings
+            match Substring(m.content.lower().replace(",", "")):
+                case "groku je to pravda" | "groku je toto pravda":
+                    await do_response(random.choice(REPLIES), m, chance=1)
         case "?":
             await do_response(f"{random.choice(REPLIES)}", m, chance=6)
         case "proč" | "proc":
@@ -288,7 +295,7 @@ async def on_message(m: Message):
         case "twitter" | "twiter":
             await do_response("preferuji #twitter-péro", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
-            await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}")
+            await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
             if random.randint(1, 5000) == 1:
                 messages = []
@@ -318,6 +325,23 @@ async def on_message(m: Message):
                 reaction=True,
                 chance=1000,
             )
+
+@client.event
+async def on_message(m: Message):
+    print(
+        f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
+    )
+    if not m.content:
+        return
+    if str(m.author) == "šimek#3885":
+        return
+    if not hasattr(client, "last_reaction_time"):
+        client.last_reaction_time = {}
+    now = dt.datetime.now()
+    last_time = client.last_reaction_time.get(m.channel.id)
+    if last_time and (now - last_time).total_seconds() < 30:
+        return
+    await maybe_respond(m)
     client.last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
