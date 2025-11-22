@@ -136,9 +136,8 @@ class Substring(str):
         return other in self
 
 
-
 class TransformedSubstring(str):
-    def __new__(cls, value: str, transform: Callable[[str], str]=lambda s: s):
+    def __new__(cls, value: str, transform: Callable[[str], str] = lambda s: s):
         # we store the transform on the instance, so we need to create the
         # object first, then attach attributes
         obj = super().__new__(cls, value)
@@ -150,10 +149,14 @@ class TransformedSubstring(str):
         normalized = self._transform(str(other))
         # classic "substring" semantics: is this pattern in the normalized string?
         return self in normalized
+
+
 # evil hack end
+
 
 def strip_commas(s: str) -> str:
     return s.replace(",", "")
+
 
 async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
@@ -167,6 +170,7 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
             await m.add_reaction(reply)
         else:
             await m.reply(reply)
+
 
 async def maybe_respond(m: Message):
     # grok feature is above all other and will trigger anywhere
@@ -246,7 +250,7 @@ async def maybe_respond(m: Message):
             await do_response("kdo se ptal?", m, chance=16)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
-        case "groku":   # this makes groku not fall through to the rest :(
+        case "groku":  # this makes groku not fall through to the rest :(
             # other pre-processings
             match Substring(m.content.lower().replace(",", "")):
                 case "groku je to pravda" | "groku je toto pravda":
@@ -325,6 +329,7 @@ async def maybe_respond(m: Message):
                 reaction=True,
                 chance=1000,
             )
+
 
 @client.event
 async def on_message(m: Message):
