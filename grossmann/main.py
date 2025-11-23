@@ -515,6 +515,7 @@ async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int
 
 
 async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
+    assert http_session is not None
     try:
         async with http_session.get(url) as api_call:
             if api_call.status == 200:
