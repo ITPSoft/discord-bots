@@ -237,13 +237,8 @@ async def on_message(m: Message):
             return  # skip setting the time again at the end of the function
         case "jsem":
             is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsem", True)
-            if is_self_reference and random.randint(0, 36) == 4:
-                await m.reply(f"Ahoj, {who}. Já jsem táta.")
-                await do_response(
-                    f"Ahoj, {' '.join(m.content.split('jsem')[1].split('.')[0].split(',')[0].split(' ')[1:])}. Já jsem táta.",
-                    m,
-                    chance=9,
-                )
+            if is_self_reference:
+                await do_response(f"Ahoj, {who}. Já jsem táta.", m, chance=5)
         case "schizo":
             await do_response("never forgeti", m, chance=4)
         case "kdo":
@@ -255,7 +250,9 @@ async def on_message(m: Message):
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
         case "jsi":
-            await do_response(f"Tvoje máma je {' '.join(m.content.split('jsi')[1].split(' ')[1:])}.", m, chance=16)
+            is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsi", False)
+            if is_self_reference:
+                await do_response(f"Tvoje máma je {who}.", m, chance=8)
         case "negr":
             await do_response(":pensive:", m, chance=10)
             await do_response(":+1:", m, chance=30)
@@ -306,14 +303,14 @@ async def on_message(m: Message):
 
             await do_response(
                 f"{
-                    random.choice(
-                        [
-                            'Mňau',
-                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                        ]
-                    )
+                random.choice(
+                    [
+                        'Mňau',
+                        'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                        'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                        'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                    ]
+                )
                 }",
                 m,
                 chance=500000,

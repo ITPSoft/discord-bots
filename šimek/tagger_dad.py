@@ -1,7 +1,5 @@
 import time
 
-from ufal.morphodita import *
-
 from utils import truncate_emojis, find_self_reference
 
 # load from file
