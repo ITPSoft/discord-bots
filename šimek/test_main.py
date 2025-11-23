@@ -48,12 +48,12 @@ async def test_maybe_respond(mock_message, content, expected_response):
 
     with patch("random.choice") as mock_choice:
         mock_choice.return_value = expected_response
-        await main.maybe_respond(mock_message)
+        await main.manage_response(mock_message)
         mock_message.reply.assert_called_once_with(expected_response)
 
 
 async def test_business(mock_message):
     mock_message.content = "Dobrý buisness"
-    await main.maybe_respond(mock_message)
+    await main.manage_response(mock_message)
     mock_message.reply.assert_called_once()
     assert "příště raději napiš 'byznys'" in mock_message.reply.call_args[0][0]

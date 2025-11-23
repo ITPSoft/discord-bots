@@ -172,7 +172,7 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
             await m.reply(reply)
 
 
-async def maybe_respond(m: Message):
+async def manage_response(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
     if Substring(m.content.lower()) in [
@@ -250,11 +250,8 @@ async def maybe_respond(m: Message):
             await do_response("kdo se ptal?", m, chance=16)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
-        case "groku":  # this makes groku not fall through to the rest :(
-            # other pre-processings
-            match Substring(m.content.lower().replace(",", "")):
-                case "groku je to pravda" | "groku je toto pravda":
-                    await do_response(random.choice(REPLIES), m, chance=1)
+        case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
+            await do_response(random.choice(REPLIES), m, chance=1)
         case "?":
             await do_response(f"{random.choice(REPLIES)}", m, chance=6)
         case "proč" | "proc":
@@ -329,6 +326,7 @@ async def maybe_respond(m: Message):
                 reaction=True,
                 chance=1000,
             )
+    client.last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
 @client.event
@@ -346,8 +344,7 @@ async def on_message(m: Message):
     last_time = client.last_reaction_time.get(m.channel.id)
     if last_time and (now - last_time).total_seconds() < 30:
         return
-    await maybe_respond(m)
-    client.last_reaction_time[m.channel.id] = dt.datetime.now()
+    await manage_response(m)
 
 
 async def cleanup():
