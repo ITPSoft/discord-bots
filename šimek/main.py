@@ -62,6 +62,8 @@ MARKOV_FILE = "markov_twogram.pkl"
 intents = disnake.Intents.all()
 client = disnake.Client(intents=intents)
 
+last_reaction_time = {}
+
 
 # on_ready event - happens when bot connects to Discord API
 @client.event
@@ -192,7 +194,7 @@ async def manage_response(m: Message):
         response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages)
         await m.reply(response)
-        client.last_reaction_time[m.channel.id] = dt.datetime.now()
+        last_reaction_time[m.channel.id] = dt.datetime.now()
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
@@ -234,7 +236,7 @@ async def manage_response(m: Message):
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
         case "drž hubu":
             await do_response("ok", m, chance=1)
-            client.last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
+            last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
                 minutes=5
             )  # 5 minute timeout after being told to shut up
             return  # skip setting the time again at the end of the function
@@ -326,7 +328,7 @@ async def manage_response(m: Message):
                 reaction=True,
                 chance=1000,
             )
-    client.last_reaction_time[m.channel.id] = dt.datetime.now()
+    last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
 @client.event
@@ -338,10 +340,8 @@ async def on_message(m: Message):
         return
     if str(m.author) == "šimek#3885":
         return
-    if not hasattr(client, "last_reaction_time"):
-        client.last_reaction_time = {}
     now = dt.datetime.now()
-    last_time = client.last_reaction_time.get(m.channel.id)
+    last_time = last_reaction_time.get(m.channel.id)
     if last_time and (now - last_time).total_seconds() < 30:
         return
     await manage_response(m)
