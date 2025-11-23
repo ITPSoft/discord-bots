@@ -221,7 +221,7 @@ async def on_message(m: Message):
             await do_response(LINUX_COPYPASTA, m, chance=10)
         case "hilfe" | "pomoc" | "pomocí" | "help":
             await do_response(
-                f"""„{MOT_HLASKY[random.randint(0, len(MOT_HLASKY) - 1)]}“
+                f"""„{random.choice(MOT_HLASKY)}“
                                                                                 - Mistr Oogway, {random.randint(470, 480)} př. n. l.""",
                 m,
                 chance=3,
@@ -303,14 +303,14 @@ async def on_message(m: Message):
 
             await do_response(
                 f"{
-                random.choice(
-                    [
-                        'Mňau',
-                        'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                        'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                        'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                    ]
-                )
+                    random.choice(
+                        [
+                            'Mňau',
+                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                        ]
+                    )
                 }",
                 m,
                 chance=500000,

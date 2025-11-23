@@ -16,7 +16,7 @@ keyword = "jsem"
 for text in texts:
     ok, sentence, word_count_add = find_self_reference(text, keyword, True)
     word_count += word_count_add
-    print(f"{"správná" if ok else "špatná"}: "  + sentence)
+    print(f"{'správná' if ok else 'špatná'}: " + sentence)
 
 end = time.monotonic()
 print("Time in seconds: ", end - start)

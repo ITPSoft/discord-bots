@@ -118,6 +118,7 @@ async def test_run_async():
 def test_needs_help(content, expected):
     assert needs_help(content) == expected
 
+
 @pytest.mark.parametrize(
     "token, tag, expected",
     [

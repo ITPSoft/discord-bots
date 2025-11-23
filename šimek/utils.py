@@ -98,12 +98,16 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
 
 def needs_help(text: str) -> bool:
     toks, word_count = parse_sentence_with_keyword(text, "pomoc", False)
-    if any(tok.tag_matches("NN*S") and tok.lemma == "pomoc" for tok in toks) or any(tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks):
+    if any(tok.tag_matches("NN*S") and tok.lemma == "pomoc" for tok in toks) or any(
+        tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks
+    ):
         if len(toks) == 1:
             return True
-        if any(tok.tag_matches("VB-S***1P*A")
-               # and tok.lemma in ["potřebovat", "chtít"]
-        for tok in toks) and not any(tok.tag_matches("V*******R") for tok in toks):   # jen přítomný čas a žádný záporný
+        if any(
+            tok.tag_matches("VB-S***1P*A")
+            # and tok.lemma in ["potřebovat", "chtít"]
+            for tok in toks
+        ) and not any(tok.tag_matches("V*******R") for tok in toks):  # jen přítomný čas a žádný záporný
             return True
     return False
 
@@ -135,7 +139,7 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
             token = tokens[i]
 
             tok = Token(
-                text[t_iter: token.start], lemma.lemma, lemma.tag, text[token.start: token.start + token.length]
+                text[t_iter : token.start], lemma.lemma, lemma.tag, text[token.start : token.start + token.length]
             )
             t_iter = token.start + token.length
 
