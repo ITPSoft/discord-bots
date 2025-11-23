@@ -272,10 +272,11 @@ async def poll(
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
-        await ctx.response.send_message("You must provide at least two options.", ephemeral=True)
+        await ctx.send("You must provide at least two options.", ephemeral=True)
         return
     poll_mess = f"Anketa: {question}\n"
-    m = await ctx.response.send_message("Creating poll...", ephemeral=False)
+    await ctx.send("Creating poll...", ephemeral=False)
+    m = await ctx.original_response()
     emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     for i, option in enumerate(options):
         poll_mess += f"{emoji_list[i]} = {option}\n"

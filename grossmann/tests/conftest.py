@@ -48,13 +48,6 @@ def mock_ctx_with_message(mock_ctx, mock_message):
 
 
 @pytest.fixture
-def mock_ctx_with_response_message(mock_ctx, mock_message):
-    """Create a mock context where send_message returns a message object."""
-    mock_ctx.response.send_message = AsyncMock(return_value=mock_message)
-    return mock_ctx, mock_message
-
-
-@pytest.fixture
 def patched_main():
     """Patch main.client to avoid bot instantiation issues."""
     with patch("main.client"):

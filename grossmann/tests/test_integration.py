@@ -1,7 +1,7 @@
 """Integration tests for Grossmann bot scenarios and business logic."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 # Import modules to test
 import grossmanndict as decdi
@@ -30,9 +30,9 @@ async def test_warcraft_ping_command_integration(patched_main, mock_ctx_with_mes
     assert_reactions_added(mock_message, gaming_reactions)
 
 
-async def test_poll_command_integration(patched_main, mock_ctx_with_response_message, sample_poll_data):
+async def test_poll_command_integration(patched_main, mock_ctx, mock_message, sample_poll_data):
     """Test poll command with actual business logic from main.py."""
-    mock_ctx, mock_message = mock_ctx_with_response_message
+    mock_ctx.original_response = AsyncMock(return_value=mock_message)
 
     # Execute the actual poll command function
     question = sample_poll_data["question"]
@@ -40,7 +40,7 @@ async def test_poll_command_integration(patched_main, mock_ctx_with_response_mes
     await patched_main.poll(mock_ctx, question, options[0], options[1], options[2], None, None)
 
     # Verify initial message was sent
-    mock_ctx.response.send_message.assert_called_once_with("Creating poll...", ephemeral=False)
+    mock_ctx.send.assert_called_once_with("Creating poll...", ephemeral=False)
 
     # Verify poll reactions were added
     expected_reactions = sample_poll_data["expected_reactions"]
@@ -61,7 +61,7 @@ async def test_poll_command_insufficient_options(patched_main, mock_ctx):
     await patched_main.poll(mock_ctx, "Test?", "OnlyOption", "", None, None, None)
 
     # Verify error message was sent
-    mock_ctx.response.send_message.assert_called_once_with("You must provide at least two options.", ephemeral=True)
+    mock_ctx.send.assert_called_once_with("You must provide at least two options.", ephemeral=True)
 
 
 async def test_yesorno_command_integration(patched_main, mock_ctx, yesorno_answers):
