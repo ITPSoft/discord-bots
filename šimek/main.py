@@ -1,7 +1,6 @@
 import os
 import random
 import datetime as dt
-from collections.abc import Callable
 
 import disnake
 from disnake import Message
@@ -136,21 +135,6 @@ def markov_chain(messages, max_words=20):
 class Substring(str):
     def __eq__(self, other):
         return other in self
-
-
-class TransformedSubstring(str):
-    def __new__(cls, value: str, transform: Callable[[str], str] = lambda s: s):
-        # we store the transform on the instance, so we need to create the
-        # object first, then attach attributes
-        obj = super().__new__(cls, value)
-        obj._transform = transform
-        return obj
-
-    def __eq__(self, other):
-        # `other` is the Substring(m.content.lower()) (or whatever you match on)
-        normalized = self._transform(str(other))
-        # classic "substring" semantics: is this pattern in the normalized string?
-        return self in normalized
 
 
 # evil hack end
