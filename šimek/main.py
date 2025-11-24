@@ -12,6 +12,8 @@ import simekdict
 from dotenv import load_dotenv
 import pickle
 
+from utils import run_async, find_self_reference
+
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
 
@@ -196,6 +198,7 @@ async def manage_response(m: Message):
         return
     print("check passed getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
+    assert http_session is not None
     match Substring(m.content.lower()):
         case "hodný bot":
             await do_response("🙂", m, chance=1, reaction=True)
@@ -210,7 +213,7 @@ async def manage_response(m: Message):
             await do_response(LINUX_COPYPASTA, m, chance=10)
         case "hilfe" | "pomoc" | "pomocí" | "help":
             await do_response(
-                f"""„{MOT_HLASKY[random.randint(0, len(MOT_HLASKY) - 1)]}“
+                f"""„{random.choice(MOT_HLASKY)}“
                                                                                 - Mistr Oogway, {random.randint(470, 480)} př. n. l.""",
                 m,
                 chance=3,
@@ -225,11 +228,9 @@ async def manage_response(m: Message):
             )  # 5 minute timeout after being told to shut up
             return  # skip setting the time again at the end of the function
         case "jsem":
-            await do_response(
-                f"Ahoj, {' '.join(m.content.split('jsem')[1].split('.')[0].split(',')[0].split(' ')[1:])}. Já jsem táta.",
-                m,
-                chance=18,
-            )
+            is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsem", True)
+            if is_self_reference:
+                await do_response(f"Ahoj, {who}. Já jsem táta.", m, chance=5)
         case "schizo":
             await do_response("never forgeti", m, chance=4)
         case "kdo":
@@ -243,7 +244,9 @@ async def manage_response(m: Message):
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
         case "jsi":
-            await do_response(f"Tvoje máma je {' '.join(m.content.split('jsi')[1].split(' ')[1:])}.", m, chance=16)
+            is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsi", False)
+            if is_self_reference:
+                await do_response(f"Tvoje máma je {who}.", m, chance=8)
         case "negr":
             await do_response(":pensive:", m, chance=10)
             await do_response(":+1:", m, chance=30)
@@ -276,7 +279,7 @@ async def manage_response(m: Message):
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
-            await do_response(RECENZE[random.randint(0, len(RECENZE) - 1)], m, chance=1)
+            await do_response(random.choice(RECENZE), m, chance=1)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "twitter" | "twiter":
