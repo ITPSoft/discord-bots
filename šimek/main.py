@@ -76,7 +76,7 @@ async def on_ready():
 
 
 def build_trigram_counts(messages):
-    words = " ".join(messages).split()
+    words = " ".join(messages).lower().split()
     if len(words) < 3:
         return {}
     markov = defaultdict(list)
@@ -120,13 +120,13 @@ def markov_chain(messages, max_words=20):
             next_words, weights = zip(*markov_counts[start_key].items())
             next_word = random.choices(next_words, weights=weights)[0]
             sentence.append(next_word)
-            if next_word.endswith((".", "!", "?:D", ":)", "😂", "🤣")):
+            if next_word.endswith((".", "!", "?:D",":D" , ":)", "😂", "🤣", ":kekw:")):
                 break
             start_key = (start_key[1], next_word)
         else:
             break
 
-    return " ".join(sentence)
+    return " ".join(sentence).lower()
 
 
 # trigram Markov chain functions end
@@ -141,9 +141,6 @@ class Substring(str):
 
 # evil hack end
 
-
-def strip_commas(s: str) -> str:
-    return s.replace(",", "")
 
 
 async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
@@ -176,9 +173,13 @@ async def manage_response(m: Message):
         messages = []
         async for msg in m.channel.history(limit=50, before=m):
             if msg.content:
+                msg.content = msg.content.replace("@","")  # remove bot mentions
+                msg.content = msg.content.replace(",","")  # cleanup
+                if msg.author == client.user: # throw away messages from itself 
+                    continue
                 messages.append(msg.content)
         response = f"{random.choice(REPLIES)} Protože "
-        response += markov_chain(messages)
+        response += markov_chain(messages, max_words=random.randint(15, 40))
         await m.reply(response)
         last_reaction_time[m.channel.id] = dt.datetime.now()
         return
@@ -214,7 +215,7 @@ async def manage_response(m: Message):
         case "hilfe" | "pomoc" | "pomocí" | "help":
             await do_response(
                 f"""„{random.choice(MOT_HLASKY)}“
-                                                                                - Mistr Oogway, {random.randint(470, 480)} př. n. l.""",
+                                                                                - Mistr Oogway, {random.randint(461, 490)} př. n. l.""",
                 m,
                 chance=3,
             )
@@ -234,13 +235,14 @@ async def manage_response(m: Message):
         case "schizo":
             await do_response("never forgeti", m, chance=4)
         case "kdo":
-            await do_response("kdo se ptal?", m, chance=16)
+            await do_response("kdo se ptal?", m, chance=100)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
         case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
             await do_response(random.choice(REPLIES), m, chance=1)
         case "?":
-            await do_response(f"{random.choice(REPLIES)}", m, chance=6)
+            if m.content[-1]=="?": # to not trigger on Youtube links and similar
+                await do_response(f"{random.choice(REPLIES)}", m, chance=12)
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
         case "jsi":
@@ -263,9 +265,9 @@ async def manage_response(m: Message):
         case "crab rave":
             await do_response("https://youtu.be/LDU_Txk06tM?t=75", m, chance=1)
         case "já jo":
-            await do_response("já ne", m, chance=2)
+            await do_response("já ne", m, chance=4)
         case "já ne":
-            await do_response("já jo", m, chance=2)
+            await do_response("já jo", m, chance=4)
         case "chci se zabít" | "suicidal":
             await do_response("omg don't kill yourself, ur too sexy, haha", m, chance=1)
         case "v píči" | "v pici":
@@ -276,6 +278,8 @@ async def manage_response(m: Message):
                 m,
                 chance=1,
             )
+        case "business" | "byznys":
+            await do_response(":+1:",                chance=1,                reaction=True            )
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
@@ -287,7 +291,7 @@ async def manage_response(m: Message):
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
-            if random.randint(1, 5000) == 1:
+            if random.randint(1, 500) == 1:
                 messages = []
                 async for msg in m.channel.history(limit=50, before=m):
                     if msg.content:
@@ -307,7 +311,7 @@ async def manage_response(m: Message):
                     )
                 }",
                 m,
-                chance=500000,
+                chance=50000,
             )
             await do_response(
                 f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
