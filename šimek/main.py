@@ -1,6 +1,7 @@
 import os
 import random
 import datetime as dt
+
 import disnake
 from disnake import Message
 from collections import defaultdict, Counter
@@ -59,6 +60,8 @@ MARKOV_FILE = "markov_twogram.pkl"
 # add intents for bot and command prefix for classic command support
 intents = disnake.Intents.all()
 client = disnake.Client(intents=intents)
+
+last_reaction_time = {}
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -131,13 +134,17 @@ def markov_chain(messages, max_words=20):
 # https://stackoverflow.com/a/78046484
 class Substring(str):
     def __eq__(self, other):
-        return self.__contains__(other)
+        return other in self
 
 
 # evil hack end
 
 
-async def do_response(reply: str, m: Message, chance=10, reaction=False):
+def strip_commas(s: str) -> str:
+    return s.replace(",", "")
+
+
+async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     reply: str - text or emoji to reply with
     m: Message - message object to reply to
@@ -151,22 +158,7 @@ async def do_response(reply: str, m: Message, chance=10, reaction=False):
             await m.reply(reply)
 
 
-@client.event
-async def on_message(m: Message):
-    print(
-        f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
-    )
-    if not m.content:
-        return
-    if str(m.author) == "šimek#3885":
-        return
-    if not hasattr(client, "last_reaction_time"):
-        client.last_reaction_time = {}
-    now = dt.datetime.now()
-    last_time = client.last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 30:
-        return
-
+async def manage_response(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
     if Substring(m.content.lower()) in [
@@ -186,7 +178,7 @@ async def on_message(m: Message):
         response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages)
         await m.reply(response)
-        client.last_reaction_time[m.channel.id] = dt.datetime.now()
+        last_reaction_time[m.channel.id] = dt.datetime.now()
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
@@ -228,7 +220,7 @@ async def on_message(m: Message):
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
         case "drž hubu":
             await do_response("ok", m, chance=1)
-            client.last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
+            last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
                 minutes=5
             )  # 5 minute timeout after being told to shut up
             return  # skip setting the time again at the end of the function
@@ -244,6 +236,8 @@ async def on_message(m: Message):
             await do_response("kdo se ptal?", m, chance=16)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
+        case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
+            await do_response(random.choice(REPLIES), m, chance=1)
         case "?":
             await do_response(f"{random.choice(REPLIES)}", m, chance=6)
         case "proč" | "proc":
@@ -288,7 +282,7 @@ async def on_message(m: Message):
         case "twitter" | "twiter":
             await do_response("preferuji #twitter-péro", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
-            await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}")
+            await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
             if random.randint(1, 5000) == 1:
                 messages = []
@@ -318,7 +312,23 @@ async def on_message(m: Message):
                 reaction=True,
                 chance=1000,
             )
-    client.last_reaction_time[m.channel.id] = dt.datetime.now()
+    last_reaction_time[m.channel.id] = dt.datetime.now()
+
+
+@client.event
+async def on_message(m: Message):
+    print(
+        f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
+    )
+    if not m.content:
+        return
+    if str(m.author) == "šimek#3885":
+        return
+    now = dt.datetime.now()
+    last_time = last_reaction_time.get(m.channel.id)
+    if last_time and (now - last_time).total_seconds() < 30:
+        return
+    await manage_response(m)
 
 
 async def cleanup():
