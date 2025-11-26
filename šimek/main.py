@@ -288,6 +288,10 @@ async def manage_response(m: Message):
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "twitter" | "twiter":
             await do_response("preferuji #twitter-péro", m, chance=1)
+        case "problém" & "windows":
+            await do_response("Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:", m, chance=1)
+        case "nvidia" & "driver" & "linux":
+            await do_response("Nemůžu za to, že si neumíš vybrat distro, smh", m, chance=2)
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
