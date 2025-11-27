@@ -62,7 +62,7 @@ MARKOV_FILE = "markov_twogram.pkl"
 
 # add intents for bot
 intents = disnake.Intents.all()
-client = InteractionBot(intents=intents)  # so we can
+client = InteractionBot(intents=intents)  # so we can have debug commands
 
 last_reaction_time = {}
 
@@ -161,7 +161,10 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     chance: int - 1 in `chance` probability to reply
     reaction: bool - if True, add reaction instead of reply
     """
+    # safeguard against all role tags
     if random.randint(1, chance) == 1:
+        import re
+        reply = re.sub(r'<@!?&?\d+>', '<nějaká role>', reply)
         if reaction:
             await m.add_reaction(reply)
         else:

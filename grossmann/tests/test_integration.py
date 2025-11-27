@@ -110,3 +110,18 @@ def test_template_replacement_integration(template, replacement, expected_conten
     """Test that command templates work correctly with various inputs."""
     result = template.replace("{0}", replacement)
     assert expected_content in result
+
+
+@pytest.mark.parametrize(
+    "content,words,expected",
+    [
+        ("this contains bad bot text", ["bad bot", "good bot"], True),
+        ("this is normal text", ["bad bot", "good bot"], False),
+        ("any text", [], False),
+        ("good bot here", ["good bot"], True),
+        ("no match here", ["xyz", "abc"], False),
+    ],
+)
+def test_has_any_utility_integration(patched_main, content, words, expected):
+    """Test has_any utility function from main.py."""
+    assert patched_main.has_any(content, words) is expected

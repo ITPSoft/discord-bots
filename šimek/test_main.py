@@ -90,3 +90,19 @@ async def test_business(mock_message):
     await main.manage_response(mock_message)
     mock_message.reply.assert_called_once()
     assert "příště raději napiš 'byznys'" in mock_message.reply.call_args[0][0]
+
+
+@pytest.mark.parametrize(
+    "mention,expected",
+    [
+        ("<@&123456789>", "Hello <nějaká role>"),
+        ("<@123456789>", "Hello <nějaká role>"),
+    ],
+)
+async def test_do_response_escaping(mock_message, always_answer, mention, expected):
+    """Test that do_response escapes mentions."""
+    reply_text = f"Hello {mention}"
+
+    await main.do_response(reply_text, mock_message)
+
+    mock_message.reply.assert_called_once_with(expected)
