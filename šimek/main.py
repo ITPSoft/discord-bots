@@ -164,7 +164,8 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     # safeguard against all role tags
     if random.randint(1, chance) == 1:
         import re
-        reply = re.sub(r'<@!?&?\d+>', '<nějaká role>', reply)
+
+        reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
         if reaction:
             await m.add_reaction(reply)
         else:
