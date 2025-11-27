@@ -209,7 +209,7 @@ http_session: aiohttp.ClientSession | None = None
 
 # Store last 50 forwarded message IDs for hall of fame duplicate checking
 # Dict maps message_id -> timestamp
-hall_of_fame_message_ids: dict[int, float] = {}
+hall_of_fame_message_ids: dict[int, datetime] = {}
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -274,9 +274,7 @@ async def decimhelp(ctx: ApplicationCommandInteraction):
 async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
     response = "Last messages forwarded to hall of fame ids and times:\n"
     for message_id, sent_time in hall_of_fame_message_ids.items():
-        channel = client.get_channel(message_id)
-        if channel:
-            response += f"{channel.name}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
     await ctx.response.send_message(response)
 
 # debug command/trolling
