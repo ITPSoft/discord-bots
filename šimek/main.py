@@ -4,6 +4,7 @@ import datetime as dt
 
 import disnake
 from disnake import Message
+from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
@@ -12,7 +13,7 @@ import simekdict
 from dotenv import load_dotenv
 import pickle
 
-from utils import run_async, find_self_reference
+from utils import has_all, has_any, find_self_reference_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -59,11 +60,22 @@ ALLOW_CHANNELS = [
 ]
 MARKOV_FILE = "markov_twogram.pkl"
 
-# add intents for bot and command prefix for classic command support
+# add intents for bot
 intents = disnake.Intents.all()
-client = disnake.Client(intents=intents)
+client = InteractionBot(intents=intents)  # so we can have debug commands
 
 last_reaction_time = {}
+
+
+@client.slash_command(description="Show last reaction times")
+@default_member_permissions(administrator=True)
+async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction):
+    response = "Last reaction times per channel:\n"
+    for channel_id, time in last_reaction_time.items():
+        channel = client.get_channel(channel_id)
+        if channel:
+            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    await inter.response.send_message(response)
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -120,7 +132,7 @@ def markov_chain(messages, max_words=20):
             next_words, weights = zip(*markov_counts[start_key].items())
             next_word = random.choices(next_words, weights=weights)[0]
             sentence.append(next_word)
-            if next_word.endswith((".", "!", "?:D",":D" , ":)", "😂", "🤣", ":kekw:")):
+            if next_word.endswith((".", "!", "?:D", ":D", ":)", "😂", "🤣", ":kekw:")):
                 break
             start_key = (start_key[1], next_word)
         else:
@@ -142,7 +154,6 @@ class Substring(str):
 # evil hack end
 
 
-
 async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     reply: str - text or emoji to reply with
@@ -150,7 +161,11 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     chance: int - 1 in `chance` probability to reply
     reaction: bool - if True, add reaction instead of reply
     """
+    # safeguard against all role tags
     if random.randint(1, chance) == 1:
+        import re
+
+        reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
         if reaction:
             await m.add_reaction(reply)
         else:
@@ -160,7 +175,8 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
 async def manage_response(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
-    if Substring(m.content.lower()) in [
+    mess = m.content.lower()
+    if Substring(mess) in [
         "@grok",
         "@schizo",
         "@šimek",
@@ -173,9 +189,9 @@ async def manage_response(m: Message):
         messages = []
         async for msg in m.channel.history(limit=50, before=m):
             if msg.content:
-                msg.content = msg.content.replace("@","")  # remove bot mentions
-                msg.content = msg.content.replace(",","")  # cleanup
-                if msg.author == client.user: # throw away messages from itself 
+                msg.content = msg.content.replace("@", "")  # remove bot mentions
+                msg.content = msg.content.replace(",", "")  # cleanup
+                if msg.author == client.user:  # throw away messages from itself
                     continue
                 messages.append(msg.content)
         response = f"{random.choice(REPLIES)} Protože "
@@ -186,7 +202,7 @@ async def manage_response(m: Message):
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
     if m.channel.id == 786626221856391199:
-        if ":KekWR:" in m.content.lower() or ":KekW:" in m.content.lower():
+        if has_any(mess, [":KekWR:", ":KekW:"]):
             await do_response(
                 "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",
                 m,
@@ -200,9 +216,23 @@ async def manage_response(m: Message):
     print("check passed getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     assert http_session is not None
-    match Substring(m.content.lower()):
+
+    jsi_is_ref = jsem_is_ref = False
+    jsi_who = jsem_who = ""
+    if "jsi" in mess:
+        jsi_is_ref, jsi_who, _ = await find_self_reference_a(mess, "jsi", False)
+    if "jsem" in mess:
+        jsem_is_ref, jsem_who, _ = await find_self_reference_a(mess, "jsem", True)
+
+    match Substring(mess):
         case "hodný bot":
             await do_response("🙂", m, chance=1, reaction=True)
+        case _ if has_all(mess, ["problém", "windows"]):
+            await do_response(
+                "Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:", m, chance=1
+            )
+        case _ if has_all(mess, ["nvidia", "driver", "linux"]):
+            await do_response("Nemůžu za to, že si neumíš vybrat distro, smh", m, chance=2)
         case "windows":
             await do_response("😔", m, chance=4, reaction=True)
         case "debian":
@@ -228,10 +258,8 @@ async def manage_response(m: Message):
                 minutes=5
             )  # 5 minute timeout after being told to shut up
             return  # skip setting the time again at the end of the function
-        case "jsem":
-            is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsem", True)
-            if is_self_reference:
-                await do_response(f"Ahoj, {who}. Já jsem táta.", m, chance=5)
+        case "jsem" if jsem_is_ref:
+            await do_response(f"Ahoj, {jsem_who}. Já jsem táta.", m, chance=5)
         case "schizo":
             await do_response("never forgeti", m, chance=4)
         case "kdo":
@@ -240,15 +268,12 @@ async def manage_response(m: Message):
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
         case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
             await do_response(random.choice(REPLIES), m, chance=1)
-        case "?":
-            if m.content[-1]=="?": # to not trigger on Youtube links and similar
-                await do_response(f"{random.choice(REPLIES)}", m, chance=12)
+        case "?" if m.content[-1] == "?":  # to not trigger on Youtube links and similar
+            await do_response(f"{random.choice(REPLIES)}", m, chance=12)
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
-        case "jsi":
-            is_self_reference, who, _ = await run_async(find_self_reference, m.content.lower(), "jsi", False)
-            if is_self_reference:
-                await do_response(f"Tvoje máma je {who}.", m, chance=8)
+        case "jsi" if jsi_is_ref:
+            await do_response(f"Tvoje máma je {jsi_who}.", m, chance=8)
         case "negr":
             await do_response(":pensive:", m, chance=10)
             await do_response(":+1:", m, chance=30)
@@ -279,7 +304,7 @@ async def manage_response(m: Message):
                 chance=1,
             )
         case "business" | "byznys":
-            await do_response(":+1:",                chance=1,                reaction=True            )
+            await do_response(":+1:", m, chance=1, reaction=True)
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
@@ -288,10 +313,6 @@ async def manage_response(m: Message):
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "twitter" | "twiter":
             await do_response("preferuji #twitter-péro", m, chance=1)
-        case "problém" & "windows":
-            await do_response("Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:", m, chance=1)
-        case "nvidia" & "driver" & "linux":
-            await do_response("Nemůžu za to, že si neumíš vybrat distro, smh", m, chance=2)
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
