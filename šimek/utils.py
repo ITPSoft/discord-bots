@@ -64,10 +64,10 @@ executor = ThreadPoolExecutor(max_workers=1)
 async def run_async(func: Callable[..., Any], *args: Any) -> tuple[bool, str, int]:
     return await asyncio.get_running_loop().run_in_executor(executor, func, *args)
 
+
 async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    return await run_async(
-        find_self_reference, text, keyword, use_vocative
-    )
+    return await run_async(find_self_reference, text, keyword, use_vocative)
+
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
     lemmas_forms = TaggedLemmasForms()
@@ -170,6 +170,7 @@ def find_who(content: str, verb: str) -> str:
 
 def has_any(content: str, words: Iterable) -> bool:
     return any(word in content for word in words)
+
 
 def has_all(content: str, words: Iterable) -> bool:
     return all(word in content for word in words)

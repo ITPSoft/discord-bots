@@ -13,7 +13,7 @@ import simekdict
 from dotenv import load_dotenv
 import pickle
 
-from utils import run_async, find_self_reference, has_all, has_any, find_self_reference_a
+from utils import has_all, has_any, find_self_reference_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -265,7 +265,7 @@ async def manage_response(m: Message):
         case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
             await do_response(random.choice(REPLIES), m, chance=1)
         case "?" if m.content[-1] == "?":  # to not trigger on Youtube links and similar
-                await do_response(f"{random.choice(REPLIES)}", m, chance=12)
+            await do_response(f"{random.choice(REPLIES)}", m, chance=12)
         case "proč" | "proc":
             await do_response("skill issue", m, chance=8)
         case "jsi" if jsi_is_ref:
