@@ -90,6 +90,7 @@ def test_dad_who(content, expected):
         ("jsem blbec velký", (True, "blbče velký")),
         ("jsem expert na prsteny a trouba", (True, "experte na prsteny a troubo")),
         ("jsem trouba a expert na prsteny", (True, "troubo a experte na prsteny")),
+        ("jsem :kekW:", (False, "")),
     ],
 )
 def test_self_reference(content, expected):
