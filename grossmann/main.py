@@ -2,14 +2,16 @@ import io
 import logging
 import os
 import random
+import time
 from collections.abc import Iterable
+from datetime import datetime
 from enum import Enum
 
 import aiohttp
 import disnake
 from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
 from disnake.ui import Button
-from disnake.ext.commands import Bot, Param, InteractionBot, has_any_role
+from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
 import grossmanndict as decdi
@@ -205,13 +207,33 @@ client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
 
+# Store last 50 forwarded message IDs for hall of fame duplicate checking
+# Dict maps message_id -> timestamp
+hall_of_fame_message_ids: dict[int, datetime] = {}
+
 
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    global http_session
+    global http_session, hall_of_fame_message_ids
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    # Preload last 50 message IDs from hall of fame channel
+    hall_of_fame_channel = client.get_channel(1276805111506796605)
+    if hall_of_fame_channel:
+        current_time = datetime.now()
+        async for msg in hall_of_fame_channel.history(limit=50):
+            # Extract original message ID from forwarded message
+            # Forwarded messages have a reference to the original message
+            if msg.reference and msg.reference.message_id:
+                original_id = msg.reference.message_id
+                # Use message creation time as timestamp, or current time if unavailable
+                timestamp = msg.created_at if hasattr(msg, "created_at") else current_time
+                hall_of_fame_message_ids[original_id] = timestamp
+        # Keep only the 50 most recent entries (by timestamp)
+        if len(hall_of_fame_message_ids) > 50:
+            sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1], reverse=True)
+            hall_of_fame_message_ids = dict(sorted_items[:50])
     print(f"{client.user} has connected to Discord!")
 
 
@@ -248,10 +270,17 @@ async def decimhelp(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(HELP, ephemeral=True, delete_after=60)
 
 
+@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=decdi.GIDS)
+async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
+    response = "Last messages forwarded to hall of fame ids and times:\n"
+    for message_id, sent_time in hall_of_fame_message_ids.items():
+        response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    await ctx.response.send_message(response)
+
+
 # debug command/trolling
 @client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
-# @default_member_permissions(administrator=True)
-@has_any_role(329712366415642625)
+@default_member_permissions(administrator=True)
 async def say(ctx: ApplicationCommandInteraction, message: str):
     await ctx.response.send_message("Message sent!")
     await ctx.channel.send(message)
@@ -352,8 +381,7 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 
 
 @client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
-# @default_member_permissions(administrator=True)
-@has_any_role(329712366415642625)
+@default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
@@ -402,8 +430,7 @@ async def game_ping(
 
 # TODO is this even used?
 @client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)
-# @default_member_permissions(administrator=True)
-@has_any_role(329712366415642625)
+@default_member_permissions(administrator=True)
 async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
     role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
@@ -412,8 +439,7 @@ async def fetchrole(ctx: ApplicationCommandInteraction):
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
-# @default_member_permissions(administrator=True)
-@has_any_role(329712366415642625)
+@default_member_permissions(administrator=True)
 async def command(ctx):
     embed = disnake.Embed(
         title="Role picker",
@@ -600,6 +626,7 @@ async def on_message(m: Message):
 # on reaction add event - hall of fame functionality
 @client.event
 async def on_reaction_add(reaction, user):
+    global hall_of_fame_message_ids
     hall_of_fame_channel = client.get_channel(1276805111506796605)  # antispiral halloffame channel
     message = reaction.message
     # Ensure the message is on server (not a DM)
@@ -607,12 +634,11 @@ async def on_reaction_add(reaction, user):
         return
     if message.channel == hall_of_fame_channel:  # ignore hall of fame channel itself
         return
-    if hall_of_fame_channel:
-        # Avoid duplicate forwarding by checking if already sent
-        # TODO check if this can be done faster (store ids in dictionary with message id as key?)
-        async for msg in hall_of_fame_channel.history(limit=50):
-            if msg.id == message.id:
-                return
+
+    # Avoid duplicate forwarding by checking if already sent
+    # Check against cached message IDs (much faster than fetching channel history)
+    if message.id in hall_of_fame_message_ids:
+        return
 
     # Custom emojis (IDs must match actual server emojis)
     # TODO check that the match is correctly done
@@ -638,6 +664,16 @@ async def on_reaction_add(reaction, user):
     # anything that is interesting enough to cause more than 10 reactions with specific emoji should be interesting enough for hall of fame
     for r in message.reactions:
         if str(r.emoji) in hall_of_fame_emojis and r.count > 10:
+            # Add message ID to cache BEFORE forwarding to prevent race conditions
+            # This ensures that if multiple reactions come in simultaneously, only one forward happens
+            current_time = time.time()
+            hall_of_fame_message_ids[message.id] = current_time
+            # Keep only the 50 most recent entries (by timestamp)
+            if len(hall_of_fame_message_ids) > 50:
+                # Sort by timestamp (oldest first) and remove the oldest
+                sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1])
+                hall_of_fame_message_ids = dict(sorted_items[-50:])
+
             await message.forward(hall_of_fame_channel)  # forward that specific messeage
             break
 
