@@ -1,7 +1,7 @@
 """Basic smoke tests for Šimek Discord bot."""
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock, call
 
 import aiohttp
 import pytest
@@ -53,28 +53,29 @@ def test_markov_chain_insufficient_data():
 
 
 @pytest.mark.parametrize(
-    "user_message,expected_response",
+    "user_message,expected_responses",
     [
-        ("Groku, je toto pravda?", "Ano."),
-        ("Groku, je to pravda?", "Ano."),
-        ("Groku je to pravda", "Ano."),
-        ("Groku je toto pravda", "Ano."),
-        ("mám velký problém s windows", "Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"),
-        ("mé windows mají velký problém", "Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"),
-        ("https://youtube.com/shorts/mI1j_27pE-s?si=ezwOsgzXzsjqd1_G", "recenze: strašnej banger"),
-        ("co se děje?", "Ano."),
-        ("jsi negr", 'Tvoje máma je negr.'),
-        ("nejsi negr", ":+1:"),
-        ("jsi v cum zone", "https://www.youtube.com/watch?v=j0lN0w5HVT8"),
+        ("Groku, je toto pravda?", ["Ano."]),
+        ("Groku, je to pravda?", ["Ano."]),
+        ("Groku je to pravda", ["Ano."]),
+        ("Groku je toto pravda", ["Ano."]),
+        ("mám velký problém s windows", ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"]),
+        ("mé windows mají velký problém", ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"]),
+        ("https://youtube.com/shorts/mI1j_27pE-s?si=ezwOsgzXzsjqd1_G", ["recenze: strašnej banger"]),
+        ("co se děje?", ["Ano."]),
+        ("jsi negr", ['Tvoje máma je negr.']),
+        ("nejsi negr", [":pensive:", ":+1:"]),
+        ("jsi v cum zone", ["https://www.youtube.com/watch?v=j0lN0w5HVT8"]),
     ],
 )
-async def test_maybe_respond(mock_message, user_message, expected_response, first_rand_answer, always_answer):
+async def test_maybe_respond(mock_message, user_message, expected_responses, first_rand_answer, always_answer):
     main.http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     """Test special message responses."""
     mock_message.content = user_message
 
     await main.manage_response(mock_message)
-    mock_message.reply.assert_called_once_with(expected_response)
+    
+    mock_message.reply.assert_has_calls([call(r) for r in expected_responses])
 
 
 async def test_business(mock_message):

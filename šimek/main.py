@@ -74,7 +74,7 @@ async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction)
     for channel_id, time in last_reaction_time.items():
         channel = client.get_channel(channel_id)
         if channel:
-            response += f"{channel.name}: {time}\n"
+            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
     await inter.response.send_message(response)
 
 
