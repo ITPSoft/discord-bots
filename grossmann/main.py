@@ -228,7 +228,7 @@ async def on_ready():
             if msg.reference and msg.reference.message_id:
                 original_id = msg.reference.message_id
                 # Use message creation time as timestamp, or current time if unavailable
-                timestamp = msg.created_at if hasattr(msg, 'created_at') else current_time
+                timestamp = msg.created_at if hasattr(msg, "created_at") else current_time
                 hall_of_fame_message_ids[original_id] = timestamp
         # Keep only the 50 most recent entries (by timestamp)
         if len(hall_of_fame_message_ids) > 50:
@@ -276,6 +276,7 @@ async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
     for message_id, sent_time in hall_of_fame_message_ids.items():
         response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
     await ctx.response.send_message(response)
+
 
 # debug command/trolling
 @client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
@@ -633,7 +634,7 @@ async def on_reaction_add(reaction, user):
         return
     if message.channel == hall_of_fame_channel:  # ignore hall of fame channel itself
         return
-    
+
     # Avoid duplicate forwarding by checking if already sent
     # Check against cached message IDs (much faster than fetching channel history)
     if message.id in hall_of_fame_message_ids:
@@ -672,7 +673,7 @@ async def on_reaction_add(reaction, user):
                 # Sort by timestamp (oldest first) and remove the oldest
                 sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1])
                 hall_of_fame_message_ids = dict(sorted_items[-50:])
-            
+
             await message.forward(hall_of_fame_channel)  # forward that specific messeage
             break
 
