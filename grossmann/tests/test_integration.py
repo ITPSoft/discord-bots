@@ -100,19 +100,6 @@ async def test_batch_react_integration(patched_main, mock_message):
 
 
 @pytest.mark.parametrize(
-    "template,replacement,expected_content",
-    [
-        (decdi.WARCRAFTY_CZ, " v cca 20:00", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"),
-        (decdi.WARCRAFTY_CZ, "", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes?"),
-    ],
-)
-def test_template_replacement_integration(template, replacement, expected_content):
-    """Test that command templates work correctly with various inputs."""
-    result = template.replace("{0}", replacement)
-    assert expected_content in result
-
-
-@pytest.mark.parametrize(
     "content,words,expected",
     [
         ("this contains bad bot text", ["bad bot", "good bot"], True),
@@ -125,3 +112,16 @@ def test_template_replacement_integration(template, replacement, expected_conten
 def test_has_any_utility_integration(patched_main, content, words, expected):
     """Test has_any utility function from main.py."""
     assert patched_main.has_any(content, words) is expected
+
+
+@pytest.mark.parametrize(
+    "template,replacement,expected_content",
+    [
+        (decdi.WARCRAFTY_CZ, " v cca 20:00", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"),
+        (decdi.WARCRAFTY_CZ, "", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes?"),
+    ],
+)
+def test_template_replacement_integration(template, replacement, expected_content):
+    """Test that command templates work correctly with various inputs."""
+    result = template.replace("{0}", replacement)
+    assert expected_content in result
