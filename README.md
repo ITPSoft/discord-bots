@@ -47,9 +47,7 @@ We use [uv](https://docs.astral.sh/uv/) for package and Python version managemen
       uv run src/grossmann/main.py
       ```
 
-Make .env file following .env.sample in all directories:
-- [src/grossmann](src/grossmann/.env.sample))
-- [src/šimek](src/šimek/.env.sample))
+Make .env file following [.env.sample](.env.sample) and fill there the required variables.
 
 ## Deployment
 
