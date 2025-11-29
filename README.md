@@ -12,21 +12,11 @@ this time developed as a community project in a monorepo.
 We use [uv](https://docs.astral.sh/uv/) for package and Python version management.
 
 - [uv installation](https://docs.astral.sh/uv/getting-started/installation/)
-- Enter the bot folder
-  - ```shell
-    cd grossmann
-    ```
-  - ```shell
-    cd šimek
-    ```
-  - ```shell
-    cd krampol
-    ```
 - Install dependencies
   - ```shell
     uv sync --frozen
     ```
-  this installs everything needed into the `.venv` folder for the given bot
+  this installs everything needed into the `.venv` folder
 
 - Local execution
   - ```shell
