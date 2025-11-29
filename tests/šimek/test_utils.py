@@ -33,7 +33,7 @@ def test_dad_who(content, expected):
 
 
 @pytest.mark.parametrize(
-    "content, expected",
+    "content, expected_self_reference",
     [
         ("jsem programátor.", (True, "programátore")),
         ("jsem, programátor.", (False, "")),
@@ -91,12 +91,14 @@ def test_dad_who(content, expected):
         ("jsem expert na prsteny a trouba", (True, "experte na prsteny a troubo")),
         ("jsem trouba a expert na prsteny", (True, "troubo a experte na prsteny")),
         ("jsem :kekW:", (False, "")),
+        # ("dohledal jsem rarran video kde prošel všechny championships, cool kontext", (False, "dohledal jsem rarran video kde prošel všechny championships")),
+        ("doběhl jsem maraton", (False, "maraton")),
     ],
 )
-def test_self_reference(content, expected):
+def test_self_reference(content, expected_self_reference):
     # already assumes lowercased text
     result = find_self_reference(content, "jsem", True)
-    assert result[:2] == expected
+    assert result[:2] == expected_self_reference
 
 
 async def test_run_async():

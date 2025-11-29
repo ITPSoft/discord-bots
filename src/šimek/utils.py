@@ -74,7 +74,8 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
     lemmas_forms = TaggedLemmasForms()  # type: ignore[abstract]
-    toks, word_count = parse_sentence_with_keyword(text, keyword, True)
+    # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, False)
+    toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
     singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
     # pokud je tam další sloveso, je to špatně
@@ -83,6 +84,7 @@ def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bo
     # správné skloňování
     if use_vocative:
         nouns2vocative(lemmas_forms, toks)
+    # result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
     result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks)])
     return valid_me, result, word_count
 
@@ -101,7 +103,7 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
 
 
 def needs_help(text: str) -> bool:
-    toks, word_count = parse_sentence_with_keyword(text, "pomoc", False)
+    toks, word_count, _ = parse_sentence_with_keyword(text, "pomoc", False)
     if any(tok.tag_matches("NN*S") and tok.lemma == "pomoc" for tok in toks) or any(
         tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks
     ):
@@ -116,9 +118,10 @@ def needs_help(text: str) -> bool:
     return False
 
 
-def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int]:
+def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int, int]:
     text = truncate_emojis(text.lower())
     word_count = 0
+    keyword_idx = 0
     forms = Forms()  # type: ignore[abstract]
     lemmas = TaggedLemmas()  # type: ignore[abstract]
     tokens = TokenRanges()  # type: ignore[abstract]
@@ -158,9 +161,10 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
             # jsem
             if tok.text == keyword:
                 has_word = True
+                keyword_idx = len(toks)
         if has_word and sentence_end:
             break
-    return toks, word_count
+    return toks, word_count, keyword_idx
 
 
 def find_who(content: str, verb: str) -> str:

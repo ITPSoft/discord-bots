@@ -177,6 +177,19 @@ async def manage_response(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
     mess = m.content.lower()
+
+    now = dt.datetime.now()
+    # higher priority than rest
+    if "drž hubu" in mess and m.reference and m.reference.resolved and m.reference.resolved.author == client.user:
+        await do_response("ok", m, chance=1)
+        last_reaction_time[m.channel.id] = now + dt.timedelta(minutes=5)  # 5 minute timeout after being told to shut up
+        return  # skip setting the time again at the end of the function
+
+    last_time = last_reaction_time.get(m.channel.id)
+    if last_time and (seconds_diff := (now - last_time).total_seconds()) < 30:
+        print(f"too soon, last replied {seconds_diff} seconds ago")
+        return
+
     if Substring(mess) in [
         "@grok",
         "@schizo",
@@ -253,12 +266,6 @@ async def manage_response(m: Message):
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
-        case "drž hubu" if m.reference and m.reference.resolved and m.reference.resolved.author == client.user:
-            await do_response("ok", m, chance=1)
-            last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
-                minutes=5
-            )  # 5 minute timeout after being told to shut up
-            return  # skip setting the time again at the end of the function
         case "jsem" if jsem_is_ref:
             await do_response(f"Ahoj, {jsem_who}. Já jsem táta.", m, chance=5)
         case "schizo":
@@ -327,14 +334,14 @@ async def manage_response(m: Message):
 
             await do_response(
                 f"{
-                    random.choice(
-                        [
-                            'Mňau',
-                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                        ]
-                    )
+                random.choice(
+                    [
+                        'Mňau',
+                        'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                        'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                        'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                    ]
+                )
                 }",
                 m,
                 chance=50000,
@@ -356,10 +363,6 @@ async def on_message(m: Message):
     if not m.content:
         return
     if str(m.author) == "šimek#3885":
-        return
-    now = dt.datetime.now()
-    last_time = last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 30:
         return
     await manage_response(m)
 
