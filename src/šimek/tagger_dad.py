@@ -1,6 +1,6 @@
 import time
 
-from utils import truncate_emojis, find_self_reference
+from šimek.utils import truncate_emojis, find_self_reference
 
 # load from file
 with open("sentences.txt", "r", encoding="utf-8") as f:

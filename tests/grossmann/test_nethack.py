@@ -7,8 +7,8 @@ import pytest
 from PIL import Image
 from disnake.ext import commands
 
-import nethack_module
-from conftest import TEST_ADMIN_ROLE_ID, TEST_ALLOWED_CHANNEL_ID
+from grossmann import nethack_module
+from tests.grossmann.conftest import TEST_ADMIN_ROLE_ID, TEST_ALLOWED_CHANNEL_ID
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ async def test_nethack_start_command_admin(bot, mock_admin_interaction):
     # Mock the allowed channel and admin role IDs
     with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
         with patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID):
-            with patch("nethack_module.start_nethack") as mock_start:
+            with patch("grossmann.nethack_module.start_nethack") as mock_start:
                 mock_start.return_value = "NetHack started successfully"
 
                 # Execute the command
@@ -88,7 +88,7 @@ async def test_nethack_start_command_no_admin(bot, mock_interaction):
 async def test_nethack_key_command(bot, mock_interaction):
     """Test NetHack key command."""
     with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
-        with patch("nethack_module.send_key") as mock_send_key:
+        with patch("grossmann.nethack_module.send_key") as mock_send_key:
             mock_send_key.return_value = Image.new("RGB", (100, 100))
 
             nethack_cmd = bot.get_slash_command("nethack")
@@ -107,7 +107,7 @@ async def test_nethack_key_command(bot, mock_interaction):
 async def test_nethack_status_command(bot, mock_interaction):
     """Test NetHack status command."""
     with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
-        with patch("nethack_module.nethack_proc", None):
+        with patch("grossmann.nethack_module.nethack_proc", None):
             nethack_cmd = bot.get_slash_command("nethack")
             status_cmd = None
             for cmd in nethack_cmd.children.values():
@@ -154,12 +154,12 @@ def test_is_correct_channel():
 async def test_start_nethack():
     """Test NetHack start function."""
     with patch("pexpect.spawn") as mock_spawn:
-        with patch("nethack_module.nethack_proc", None):
+        with patch("grossmann.nethack_module.nethack_proc", None):
             mock_process = MagicMock()
             mock_process.read_nonblocking.return_value = "test output"
             mock_spawn.return_value = mock_process
 
-            with patch("nethack_module.render_screen") as mock_render:
+            with patch("grossmann.nethack_module.render_screen") as mock_render:
                 mock_render.return_value = "rendered screen"
 
                 result = await nethack_module.start_nethack()
@@ -208,8 +208,8 @@ async def test_send_key_with_modifier():
     mock_process.send = MagicMock()
     mock_process.read_nonblocking.return_value = "output"
 
-    with patch("nethack_module.nethack_proc", mock_process):
-        with patch("nethack_module.render_screen") as mock_render:
+    with patch("grossmann.nethack_module.nethack_proc", mock_process):
+        with patch("grossmann.nethack_module.render_screen") as mock_render:
             mock_render.return_value = "rendered"
 
             # Test CTRL modifier

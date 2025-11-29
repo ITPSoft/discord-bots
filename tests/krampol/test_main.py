@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 mock_automaton = MagicMock()
 with patch.dict("sys.modules", {"automaton": mock_automaton}):
     with patch("disnake.ext.commands.Bot"):
-        import main
+        import krampol.main as main
 
 
 async def test_work_loop_empty():

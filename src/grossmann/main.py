@@ -14,7 +14,7 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-import grossmanndict as decdi
+from grossmann import grossmanndict as decdi
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 
@@ -185,7 +185,7 @@ class DiscordGamingTestingRoles(str, Enum):
 
 # preload all useful stuff
 load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("GROSSMANN_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 
 

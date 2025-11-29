@@ -8,19 +8,19 @@ from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
-import simekdict
+from šimek import simekdict
 
 from dotenv import load_dotenv
 import pickle
 
-from utils import has_all, has_any, find_self_reference_a
+from šimek.utils import has_all, has_any, find_self_reference_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
 
 # preload all useful stuff
 load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 REPLIES = (
     "Ano.",

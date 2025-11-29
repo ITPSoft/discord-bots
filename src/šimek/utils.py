@@ -1,4 +1,5 @@
 import asyncio
+import os.path as osp
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -25,11 +26,12 @@ def truncate_emojis(text):
 
 
 print("Loading tagger: ")
-tagger_path = "./czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-pdtc1.0-220710.tagger"
-tagger = Tagger.load(tagger_path)
-dict_path = "./czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict"
-morpho = Morpho.load(dict_path)
 
+cur_dir = osp.dirname(__file__)
+tagger_path = "czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-pdtc1.0-220710.tagger"
+tagger = Tagger.load(osp.join(cur_dir, tagger_path))
+dict_path = "./czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict"
+morpho = Morpho.load(osp.join(cur_dir, dict_path))
 if not tagger:
     print(f"Cannot load tagger from file {tagger_path}")
     sys.exit(1)

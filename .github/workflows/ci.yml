@@ -9,9 +9,6 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        bot: [grossmann, krampol, šimek]
     
     steps:
     - uses: actions/checkout@v4
@@ -26,17 +23,7 @@ jobs:
       run: uv python install 3.13
     
     - name: Install dependencies
-      working-directory: ./${{ matrix.bot }}
       run: uv sync --frozen
-    
-    - name: Run ruff check
-      working-directory: ./${{ matrix.bot }}
-      run: uv run ruff check
-    
-    - name: Run ruff format check
-      working-directory: ./${{ matrix.bot }}
-      run: uv run ruff format --check
-    
-    - name: Run tests
-      working-directory: ./${{ matrix.bot }}
-      run: uv run pytest -v
+
+    - name: Run tests, including ruff
+      run: uv run pytest
