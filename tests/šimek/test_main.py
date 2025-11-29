@@ -13,7 +13,7 @@ from šimek import main
 @pytest.fixture()
 def first_rand_answer() -> Generator[MagicMock, Any, None]:
     # Use the same mock object for both patches
-    with patch("random.choice") as mock_choice, patch("random.randint") as mock_randint:
+    with patch("random.choice") as mock_choice:
         mock_choice.side_effect = lambda x: x[0]  # force random to return first element
         yield mock_choice
 
