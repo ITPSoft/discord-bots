@@ -183,7 +183,7 @@ class DiscordGamingTestingRoles(str, Enum):
 
 # preload all useful stuff
 load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("GROSSMANN_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 
 
