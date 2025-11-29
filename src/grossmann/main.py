@@ -141,8 +141,6 @@ class GamingRoles(str, Enum):
                 return 1358445521227874424
             case GamingRoles.VALHEIM:
                 return 1356164640152883241
-            case GamingRoles.KAMEN_A_SUTR:
-                return 1107334623983312897
             case GamingRoles.ARC_RAIDERS:
                 return 1432779821183930401
             case GamingRoles.FRIENDSLOP:
