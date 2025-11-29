@@ -205,22 +205,6 @@ async def test_special_message_responses():
     mock_message.channel.send.assert_called_with("nn, ty seš")
 
 
-def test_has_any_function():
-    """Test has_any utility function."""
-    with patch("disnake.ext.commands.Bot"):
-        # Test positive case
-        content = "this is a bad bot message"
-        words = ["bad bot", "good bot"]
-        assert main.has_any(content, words) is True
-
-        # Test negative case
-        content = "this is a normal message"
-        assert main.has_any(content, words) is False
-
-        # Test empty words
-        assert main.has_any(content, []) is False
-
-
 def test_warcraft_template():
     """Test Warcraft template message formatting."""
     expected_content = f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"

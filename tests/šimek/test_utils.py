@@ -1,35 +1,6 @@
 import pytest
 
-from šimek.utils import find_who, find_self_reference, run_async, needs_help, Token
-
-
-@pytest.mark.parametrize(
-    "content, expected",
-    [
-        ("jsem programátor.", "programátor"),
-        ("jsem, programátor.", ""),
-        ("jsem velmi dobrý programátor.", "velmi dobrý programátor"),
-        ("jsemprogramátor.", ""),
-        ("jsem programátor", "programátor"),
-        ("jsem založen, a ty ne, lol", "založen"),
-        ("jsem založen! a ty ne, lol", "založen"),
-        ("jsem založen? a ty ne, lol", "založen"),
-        ("jsem založen. a ty ne, lol", "založen"),
-        ("jsem", ""),
-        ("Už jsem expert na prsteny :kekW:", "expert na prsteny :kekW:"),
-        ("a vymazal jsem si to poprvé", "si to poprvé"),
-        ("tohle jsou settings se kterýma jsem to rozjel", "to rozjel"),
-        (
-            "jsem naposledy měl pásku co měla base 200 díky tem monster itemům",
-            "naposledy měl pásku co měla base 200 díky tem monster itemům",
-        ),
-        ("Já jsem debil, zapomněl jsem doma klíče", "debil"),
-        ("Já jsem úplně v prdeli a nevím jak dál", "úplně v prdeli a nevím jak dál"),
-    ],
-)
-def test_dad_who(content, expected):
-    # already assumes lowercased text
-    assert find_who(content, "jsem") == expected
+from šimek.utils import find_self_reference, run_async, needs_help, Token
 
 
 @pytest.mark.parametrize(
@@ -95,11 +66,28 @@ def test_dad_who(content, expected):
         ("doběhl jsem maraton", (False, "maraton")),
     ],
 )
-def test_self_reference(content, expected_self_reference):
+def test_self_reference_vocative(content, expected_self_reference):
     # already assumes lowercased text
     result = find_self_reference(content, "jsem", True)
     assert result[:2] == expected_self_reference
 
+
+@pytest.mark.parametrize(
+    "content, expected_self_reference",
+    [
+        ("jsi panna", (True, "panna")),
+        ("dodělal jsi školu?", (False, "školu")),
+        ("by jsi už spal než bych dojel", (False, "už spal než bych dojel")),
+        ("Zklamal jsi me.", (False, "me")),
+        ("debilní dotaz, nezapomněl jsi tam dát prdopeč?", (False, "tam dát prdopeč")),
+        ("jak jsi to uhodl? podvádíš", (False, "to uhodl")),
+        ("Jsi borec", (True, "borec")),
+    ],
+)
+def test_self_reference_nominative(content, expected_self_reference):
+    # already assumes lowercased text
+    result = find_self_reference(content, "jsi", False)
+    assert result[:2] == expected_self_reference
 
 async def test_run_async():
     is_self_reference, who, _ = await run_async(find_self_reference, "jsem to ale čuník buník", "jsem", False)

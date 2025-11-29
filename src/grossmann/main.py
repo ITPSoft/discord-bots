@@ -14,6 +14,7 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
+from common.utils import has_any, prepare_http_response, ResponseType
 from grossmann import grossmanndict as decdi
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
@@ -540,28 +541,14 @@ async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, heig
     )
 
 
-async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
-    assert http_session is not None
-    try:
-        async with http_session.get(url) as api_call:
-            if api_call.status == 200:
-                match api_call.content_type:
-                    case "image/gif" | "image/jpeg" | "image/png":
-                        result = await api_call.content.read()
-                        bytes_io = io.BytesIO()
-                        bytes_io.write(result)
-                        bytes_io.seek(0)
-                        await respond(
-                            ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png"))
+async def send_http_response(ctx: ApplicationCommandInteraction, http_session: aiohttp.ClientSession | None, url: str, resp_key: str, error_message: str) -> None:
+    resp, resp_type = prepare_http_response(http_session=ctx.client.http_session, url=url, resp_key=resp_key, error_message=error_message)
+    match resp_type:
+        case ResponseType.EMBED:
+            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png"))
                         )
-                    case "application/json":
-                        result = (await api_call.json())[resp_key]
-                        await respond(ctx, content=result)
-            else:
-                await respond(ctx, content=error_message)
-    except Exception as exc:
-        print(f"Encountered exception:\n {exc}")
-        await respond(ctx, content="Oh nyo?!?! Something went ^w^ wwong!!")
+        case ResponseType.CONTENT:
+            await respond(ctx, content=error_message)
 
 
 async def respond(ctx: ApplicationCommandInteraction, **results):
@@ -599,10 +586,6 @@ async def xkcd(ctx: ApplicationCommandInteraction, xkcd_id: str | None = None):
     else:
         url = "https://xkcd.com/info.0.json"
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
-
-
-def has_any(content: str, words: Iterable) -> bool:
-    return any(word in content for word in words)
 
 
 async def bot_validate(content: str, m: Message):

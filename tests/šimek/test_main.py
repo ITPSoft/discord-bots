@@ -32,6 +32,20 @@ def mock_message():
     """Create a mock Message object."""
     message = AsyncMock()
     message.channel.id = 932301697836003358  # bot-testing
+    
+    # Mock channel.history() as an async generator
+    async def mock_history(*args, **kwargs):
+        # Return some sample messages for markov chain generation
+        mock_msg1 = AsyncMock()
+        mock_msg1.content = "hello world test"
+        mock_msg2 = AsyncMock()
+        mock_msg2.content = "world test again"
+        mock_msg3 = AsyncMock()
+        mock_msg3.content = "some other message"
+        for msg in [mock_msg1, mock_msg2, mock_msg3]:
+            yield msg
+    
+    message.channel.history = MagicMock(return_value=mock_history())
     return message
 
 
@@ -73,10 +87,13 @@ def test_markov_chain_insufficient_data():
         ("jsi negr", ["Tvoje máma je negr."]),
         ("nejsi negr", [":pensive:", ":+1:"]),
         ("jsi v cum zone", ["https://www.youtube.com/watch?v=j0lN0w5HVT8"]),
+        ("https://fxtwitter.com/litteralyme0/status/1994088426300232075", []),
+        ("https://cdn.discordapp.com/attachments/xyz/abc/ssstwitter.com_1764410721090.mp4", []),
     ],
 )
 async def test_maybe_respond(mock_message, user_message, expected_responses, first_rand_answer, always_answer):
     main.http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    main.COOLDOWN = -1  # to test all answers
     """Test special message responses."""
     mock_message.content = user_message
 
@@ -86,6 +103,7 @@ async def test_maybe_respond(mock_message, user_message, expected_responses, fir
 
 
 async def test_business(mock_message):
+    main.COOLDOWN = -1  # to test all answers
     mock_message.content = "Dobrý buisness"
     await main.manage_response(mock_message)
     mock_message.reply.assert_called_once()

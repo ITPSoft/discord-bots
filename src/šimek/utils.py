@@ -167,22 +167,6 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
     return toks, word_count, keyword_idx
 
 
-def find_who(content: str, verb: str) -> str:
-    do_konce_vety = content.split(verb)[1]
-    for interpunkce in [".", ",", "!", "?"]:
-        do_konce_vety = do_konce_vety.split(interpunkce)[0]
-    kdo = " ".join(do_konce_vety.split(" ")[1:])
-    return kdo
-
-
-def has_any(content: str, words: Iterable) -> bool:
-    return any(word in content for word in words)
-
-
-def has_all(content: str, words: Iterable) -> bool:
-    return all(word in content for word in words)
-
-
 def format_time_ago(time: dt.datetime) -> str:
     """Format a datetime as a relative time string (e.g., '2 hours, 15 minutes ago')."""
     now = dt.datetime.now()

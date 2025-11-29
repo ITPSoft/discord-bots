@@ -1,6 +1,7 @@
 import os
 import random
 import datetime as dt
+import re
 
 import disnake
 from disnake import Message
@@ -8,12 +9,14 @@ from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
+
+from common.utils import has_any, has_all
 from šimek import simekdict
 
 from dotenv import load_dotenv
 import pickle
 
-from šimek.utils import has_all, has_any, find_self_reference_a, format_time_ago
+from šimek.utils import find_self_reference_a, format_time_ago
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -59,6 +62,8 @@ ALLOW_CHANNELS = [
     941703477694955560,  # kouzelnici-general
 ]
 MARKOV_FILE = "markov_twogram.pkl"
+
+COOLDOWN = 30  # sekund
 
 # add intents for bot
 intents = disnake.Intents.all()
@@ -164,8 +169,6 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     # safeguard against all role tags
     if random.randint(1, chance) == 1:
-        import re
-
         reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
         if reaction:
             await m.add_reaction(reply)
@@ -186,7 +189,7 @@ async def manage_response(m: Message):
         return  # skip setting the time again at the end of the function
 
     last_time = last_reaction_time.get(m.channel.id)
-    if last_time and (seconds_diff := (now - last_time).total_seconds()) < 30:
+    if last_time and (seconds_diff := (now - last_time).total_seconds()) < COOLDOWN:
         print(f"too soon, last replied {seconds_diff} seconds ago")
         return
 
@@ -319,39 +322,42 @@ async def manage_response(m: Message):
             await do_response(random.choice(RECENZE), m, chance=1)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
-        case "twitter" | "twiter":
-            await do_response("preferuji #twitter-péro", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
-            if random.randint(1, 500) == 1:
-                messages = []
-                async for msg in m.channel.history(limit=50, before=m):
-                    if msg.content:
-                        messages.append(msg.content)
-                response += markov_chain(messages)
-                await m.reply(response)
+            without_links = re.sub(r'https?://\S+', '', mess)
+            match Substring(without_links):
+                case "twitter" | "twiter":
+                    await do_response("preferuji #twitter-péro", m, chance=1)
+                case _:
+                    if random.randint(1, 500) == 1:
+                        messages = []
+                        async for msg in m.channel.history(limit=50, before=m):
+                            if msg.content:
+                                messages.append(msg.content)
+                        response += markov_chain(messages)
+                        await m.reply(response)
 
-            await do_response(
-                f"{
-                random.choice(
-                    [
-                        'Mňau',
-                        'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                        'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                        'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                    ]
-                )
-                }",
-                m,
-                chance=50000,
-            )
-            await do_response(
-                f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
-                m,
-                reaction=True,
-                chance=1000,
-            )
+                    await do_response(
+                        f"{
+                        random.choice(
+                            [
+                                'Mňau',
+                                'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                                'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                                'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                            ]
+                        )
+                        }",
+                        m,
+                        chance=50000,
+                    )
+                    await do_response(
+                        f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
+                        m,
+                        reaction=True,
+                        chance=1000,
+                    )
     last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
