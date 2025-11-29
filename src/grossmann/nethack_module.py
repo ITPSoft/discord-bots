@@ -142,7 +142,7 @@ async def send_key(key: str, modifier: str):
     global nethack_proc
     if nethack_proc is None:
         return "NetHack is not running. Use /nethack start."
-
+    assert nethack_stream is not None
     async with nethack_lock:
         try:
             if modifier == "CTRL":

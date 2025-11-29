@@ -64,7 +64,7 @@ MARKOV_FILE = "markov_twogram.pkl"
 intents = disnake.Intents.all()
 client = InteractionBot(intents=intents)  # so we can have debug commands
 
-last_reaction_time = {}
+last_reaction_time: dict[int, dt.datetime] = {}
 
 
 @client.slash_command(description="Show last reaction times")

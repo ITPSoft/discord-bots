@@ -37,13 +37,16 @@ ignore_missing_imports = true
 module = "disnake.*"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = ["ufal.morphodita.*"]
-disable_error_code = ["abstract"]
+# not working for some reason
+#[[tool.mypy.overrides]]
+#module = ["ufal.morphodita.*", "ufal.morphodita"]
+#follow_imports = "skip"
+#ignore_errors = true
 
-# krampol is not actively used
 [[tool.mypy.overrides]]
-module = ["src.krampol.*"]
+module = [
+    "src.krampol.*", # krampol is not actively used
+]
 ignore_errors = true
 
 [tool.poe.tasks]

@@ -72,7 +72,7 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    lemmas_forms = TaggedLemmasForms()
+    lemmas_forms = TaggedLemmasForms()  # type: ignore[abstract]
     toks, word_count = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
     singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
@@ -118,12 +118,12 @@ def needs_help(text: str) -> bool:
 def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int]:
     text = truncate_emojis(text.lower())
     word_count = 0
-    forms = Forms()
-    lemmas = TaggedLemmas()
-    tokens = TokenRanges()
+    forms = Forms()  # type: ignore[abstract]
+    lemmas = TaggedLemmas()  # type: ignore[abstract]
+    tokens = TokenRanges()  # type: ignore[abstract]
     # Tag
     tokenizer.setText(text)
-    toks = []
+    toks: list[Token] = []
     t_iter = 0
     while tokenizer.nextSentence(forms, tokens):
         has_word = False

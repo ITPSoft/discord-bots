@@ -293,9 +293,9 @@ async def poll(
     question: str,
     option1: str,
     option2: str,
-    option3: str = None,
-    option4: str = None,
-    option5: str = None,
+    option3: str | None = None,
+    option4: str | None = None,
+    option5: str | None = None,
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
@@ -336,6 +336,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
     twitterpero = client.get_channel(decdi.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
+    assert http_session is not None
 
     if anonym:
         random_city = "Void"
@@ -393,9 +394,9 @@ async def yesorno(ctx: ApplicationCommandInteraction):
 @client.slash_command(
     name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
 )
-async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
+async def warcraft(ctx: ApplicationCommandInteraction, start_time: str | None = None):
     # send z templaty
-    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}" if time else "")
+    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {start_time}" if start_time else "")
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
@@ -526,7 +527,7 @@ async def listener(ctx: disnake.MessageInteraction):
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=decdi.GIDS)
-async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int = None):
+async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, height: int | None = None):
     if width and height:
         w = width
         h = height
@@ -592,9 +593,9 @@ async def waifu(
 @client.slash_command(
     name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
 )
-async def xkcd(ctx: ApplicationCommandInteraction, id: str = None):
-    if id:
-        url = f"https://xkcd.com/{id}/info.0.json"
+async def xkcd(ctx: ApplicationCommandInteraction, xkcd_id: str | None = None):
+    if xkcd_id:
+        url = f"https://xkcd.com/{xkcd_id}/info.0.json"
     else:
         url = "https://xkcd.com/info.0.json"
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")

@@ -131,5 +131,5 @@ def test_needs_help(content, expected):
         (Token("", "být", "VB-S---1P-AAI--", "jsem"), "NN*S", False),
     ],
 )
-def test_token(token: Token, tag: str, expected: True):
+def test_token(token: Token, tag: str, expected: bool):
     assert token.tag_matches(tag) == expected
