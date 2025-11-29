@@ -6,7 +6,12 @@ from unittest.mock import AsyncMock, patch, Mock
 
 import grossmann.grossmanndict as decdi
 from grossmann import main
-from tests.grossmann.conftest import TEST_WARCRAFT_ROLE_ID, TEST_CLEN_ROLE_ID, TEST_GMOD_ROLE_ID, TEST_ROLE_SELECTION_CHANNEL_ID
+from tests.grossmann.conftest import (
+    TEST_WARCRAFT_ROLE_ID,
+    TEST_CLEN_ROLE_ID,
+    TEST_GMOD_ROLE_ID,
+    TEST_ROLE_SELECTION_CHANNEL_ID,
+)
 
 
 async def test_batch_react_function():

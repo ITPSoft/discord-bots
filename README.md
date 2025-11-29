@@ -15,6 +15,16 @@ A schizo impersonation bot.
 
 The funny one.
 
+### [Grossmann](src/grossmann)
+
+Spiritual successor of [DecimBOT](https://github.com/Skavenlord58/DecimBot2).
+
+### [Krampol](src/krampol)
+
+An automation bot for Discord.
+
+This bot will be used to automate Šimek&Grossmann's tasks in order to reduce overhead in the messy script I wrote for him.
+
 
 ## Setup and Environment
 
@@ -37,36 +47,25 @@ We use [uv](https://docs.astral.sh/uv/) for package and Python version managemen
       uv run src/grossmann/main.py
       ```
 
-Make .env file following [.env.sample](.env.sample) in all directories:
-- src/grossmann
-- src/šimek
+Make .env file following .env.sample in all directories:
+- [src/grossmann](src/grossmann/.env.sample))
+- [src/šimek](src/šimek/.env.sample))
 
 ## Deployment
 
-Currently no bot runs in Docker, but on bare metal.
+Currently, no bot runs in Docker but on bare metal.
 
 ## Development
 
 ### Checks
 
-Run linting:
+Run linting and formatting:
 ```shell
-uv run ruff check --fix
+uv run poe format-code
 ```
-
-Run formatting:
+or if you activated the `.venv`
 ```shell
-uv run ruff format
-```
-
-Check the formatting
-```shell
-uv run ruff check
-```
-
-Or run all linting and formatting at once
-```
-format-and-lint.ps1
+poe format-code
 ```
 
 ### Tests
@@ -75,18 +74,12 @@ run
 ```shell
 uv run pytest
 ```
-
-or individual file
-```bash
-# Main bot functionality
-uv run pytest tests/simek/test_main.py
-
-# NetHack module tests
-uv run pytest tests/grossmann/test_nethack.py
-
-# Integration scenarios
-uv run pytest tests/grossmann/test_integration.py
+or if you activated the `.venv`, just
+```shell
+pytest
 ```
+
+See [development.md](development.md) for more information.
 
 ### Adding packages
 
@@ -99,9 +92,4 @@ See the [documentation](https://docs.astral.sh/uv/concepts/projects/dependencies
 
 ## Troubleshooting
 
-Check the Guild IDs when getting errors like
-```
-SyncWarning: Failed to overwrite commands in <Guild id=276720867344646144> due to 403 Forbidden (error code: 50001): Missing Access
-```
-
-that can be caused by using `guild_ids` of servers where the bot is not a member.
+See [troubleshooting.md](troubleshooting.md) for more information.

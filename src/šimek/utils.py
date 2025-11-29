@@ -1,5 +1,4 @@
 import asyncio
-import os
 import os.path as osp
 import re
 import sys
