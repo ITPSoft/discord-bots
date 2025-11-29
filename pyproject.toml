@@ -37,6 +37,15 @@ ignore_missing_imports = true
 module = "disnake.*"
 follow_imports = "skip"
 
+[[tool.mypy.overrides]]
+module = ["ufal.morphodita.*"]
+disable_error_code = ["abstract"]
+
+# krampol is not actively used
+[[tool.mypy.overrides]]
+module = ["src.krampol.*"]
+ignore_errors = true
+
 [tool.poe.tasks]
 # Separate import sorting until #8232 is merged
 _ruff_lint = "ruff check --fix ."
