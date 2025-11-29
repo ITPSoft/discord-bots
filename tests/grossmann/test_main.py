@@ -4,8 +4,8 @@ import random
 from unittest.mock import AsyncMock, patch, Mock
 
 
-import grossmanndict as decdi
-import main
+import grossmann.grossmanndict as decdi
+from grossmann import main
 from conftest import TEST_WARCRAFT_ROLE_ID, TEST_CLEN_ROLE_ID, TEST_GMOD_ROLE_ID, TEST_ROLE_SELECTION_CHANNEL_ID
 
 
