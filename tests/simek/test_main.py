@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch, MagicMock, call
 import aiohttp
 import pytest
 
-from src.simek import main
+from simek import main
 
 
 @pytest.fixture()

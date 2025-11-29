@@ -52,11 +52,6 @@ Check the formatting
 uv run ruff check
 ```
 
-Run tests:
-```shell
-uv run pytest
-```
-
 Or run all linting and formatting at once
 ```
 format-and-lint.ps1
@@ -64,7 +59,7 @@ format-and-lint.ps1
 
 ### Tests
 
-inside the given folder, run
+run
 ```shell
 uv run pytest
 ```
@@ -72,13 +67,13 @@ uv run pytest
 or individual file
 ```bash
 # Main bot functionality
-uv run pytest tests/test_main.py -v
+uv run pytest tests/simek/test_main.py
 
 # NetHack module tests
-uv run pytest tests/test_nethack.py -v
+uv run pytest tests/grossmann/test_nethack.py
 
 # Integration scenarios
-uv run pytest tests/test_integration.py -v
+uv run pytest tests/grossmann/test_integration.py
 ```
 
 ### Adding packages

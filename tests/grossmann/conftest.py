@@ -50,8 +50,8 @@ def mock_ctx_with_message(mock_ctx, mock_message):
 @pytest.fixture
 def patched_main():
     """Patch main.client to avoid bot instantiation issues."""
-    with patch("src.grossmann.main.client"):
-        import src.grossmann.main as main
+    with patch("grossmann.main.client"):
+        from grossmann import main
 
         yield main
 
