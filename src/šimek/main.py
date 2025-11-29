@@ -252,7 +252,7 @@ async def manage_response(m: Message):
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
-        case "drž hubu":
+        case "drž hubu" if m.reference and m.reference.resolved and m.reference.resolved.author == client.user:
             await do_response("ok", m, chance=1)
             last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
                 minutes=5
