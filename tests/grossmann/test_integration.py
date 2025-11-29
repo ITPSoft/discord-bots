@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import patch, AsyncMock
 
 # Import modules to test
-import grossmanndict as decdi
-from conftest import assert_reactions_added, TEST_WARCRAFT_ROLE_ID
+import src.grossmann.grossmanndict as decdi
+from .conftest import assert_reactions_added, TEST_WARCRAFT_ROLE_ID
 
 
 async def test_warcraft_ping_command_integration(patched_main, mock_ctx_with_message, gaming_reactions):

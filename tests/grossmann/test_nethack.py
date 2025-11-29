@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 from disnake.ext import commands
 
-from grossmann import nethack_module
+from src.grossmann import nethack_module
 from conftest import TEST_ADMIN_ROLE_ID, TEST_ALLOWED_CHANNEL_ID
 
 

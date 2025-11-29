@@ -7,6 +7,8 @@ this time developed as a community project in a monorepo.
 - [Grossmann](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Grossmann) is the successor to DecimBOT
 - [Krampol](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Krampol) is the successor to [DecimAutomation](https://github.com/Skavenlord58/DecimAutomation)
 
+Unfortunately `Šimek` is not a valid python module name, using `simek` instead.
+
 ## Setup and Environment
 
 We use [uv](https://docs.astral.sh/uv/) for package and Python version management.
