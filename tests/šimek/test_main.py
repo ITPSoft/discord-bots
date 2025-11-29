@@ -32,7 +32,7 @@ def mock_message():
     """Create a mock Message object."""
     message = AsyncMock()
     message.channel.id = 932301697836003358  # bot-testing
-    
+
     # Mock channel.history() as an async generator
     async def mock_history(*args, **kwargs):
         # Return some sample messages for markov chain generation
@@ -44,7 +44,7 @@ def mock_message():
         mock_msg3.content = "some other message"
         for msg in [mock_msg1, mock_msg2, mock_msg3]:
             yield msg
-    
+
     message.channel.history = MagicMock(return_value=mock_history())
     return message
 

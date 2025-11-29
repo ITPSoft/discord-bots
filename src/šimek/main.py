@@ -325,7 +325,7 @@ async def manage_response(m: Message):
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
-            without_links = re.sub(r'https?://\S+', '', mess)
+            without_links = re.sub(r"https?://\S+", "", mess)
             match Substring(without_links):
                 case "twitter" | "twiter":
                     await do_response("preferuji #twitter-péro", m, chance=1)
@@ -340,14 +340,14 @@ async def manage_response(m: Message):
 
                     await do_response(
                         f"{
-                        random.choice(
-                            [
-                                'Mňau',
-                                'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                                'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                                'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                            ]
-                        )
+                            random.choice(
+                                [
+                                    'Mňau',
+                                    'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                                    'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                                    'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                                ]
+                            )
                         }",
                         m,
                         chance=50000,

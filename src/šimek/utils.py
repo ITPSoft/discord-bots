@@ -5,7 +5,7 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Iterable, Any, Callable
+from typing import Any, Callable
 
 from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 
@@ -174,12 +174,12 @@ def format_time_ago(time: dt.datetime) -> str:
     total_seconds = int(delta.total_seconds())
     is_future = total_seconds < 0
     total_seconds = abs(total_seconds)
-    
+
     days = total_seconds // 86400
     hours = (total_seconds % 86400) // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
-    
+
     parts = []
     if days > 0:
         parts.append(f"{days} day{'s' if days != 1 else ''}")
@@ -189,7 +189,7 @@ def format_time_ago(time: dt.datetime) -> str:
         parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
     if seconds > 0 or not parts:
         parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
-    
+
     time_ago = ", ".join(parts)
     if is_future:
         return f"in {time_ago}"

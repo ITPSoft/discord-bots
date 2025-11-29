@@ -89,6 +89,7 @@ def test_self_reference_nominative(content, expected_self_reference):
     result = find_self_reference(content, "jsi", False)
     assert result[:2] == expected_self_reference
 
+
 async def test_run_async():
     is_self_reference, who, _ = await run_async(find_self_reference, "jsem to ale čuník buník", "jsem", False)
     assert is_self_reference, who == (True, "to ale čuník buník")

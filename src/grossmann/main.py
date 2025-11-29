@@ -1,9 +1,7 @@
-import io
 import logging
 import os
 import random
 import time
-from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 
@@ -541,12 +539,19 @@ async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, heig
     )
 
 
-async def send_http_response(ctx: ApplicationCommandInteraction, http_session: aiohttp.ClientSession | None, url: str, resp_key: str, error_message: str) -> None:
-    resp, resp_type = prepare_http_response(http_session=ctx.client.http_session, url=url, resp_key=resp_key, error_message=error_message)
+async def send_http_response(
+    ctx: ApplicationCommandInteraction,
+    http_session: aiohttp.ClientSession | None,
+    url: str,
+    resp_key: str,
+    error_message: str,
+) -> None:
+    resp, resp_type = prepare_http_response(
+        http_session=ctx.client.http_session, url=url, resp_key=resp_key, error_message=error_message
+    )
     match resp_type:
         case ResponseType.EMBED:
-            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png"))
-                        )
+            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png")))
         case ResponseType.CONTENT:
             await respond(ctx, content=error_message)
 
