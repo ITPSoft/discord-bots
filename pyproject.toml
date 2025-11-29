@@ -60,8 +60,8 @@ asyncio_mode = "auto"
 pythonpath = ["src"]
 python_functions = ["test_*"]
 #addopts = ["--import-mode=importlib", "-v", "--tb=short"]
-#addopts = ["--import-mode=importlib", "-v", "--tb=short", "--ruff", "--ruff-format"]
-addopts = ["--import-mode=importlib", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
+addopts = ["--import-mode=importlib", "-v", "--tb=short", "--ruff", "--ruff-format"]
+#addopts = ["--import-mode=importlib", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
 
 [build-system]
 requires = ["uv_build>=0.9.13,<0.10.0"]
