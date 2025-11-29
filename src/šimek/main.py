@@ -8,12 +8,12 @@ from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
-from simek import simekdict
+from šimek import simekdict
 
 from dotenv import load_dotenv
 import pickle
 
-from simek.utils import has_all, has_any, find_self_reference_a
+from šimek.utils import has_all, has_any, find_self_reference_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None

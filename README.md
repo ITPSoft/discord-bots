@@ -7,7 +7,14 @@ this time developed as a community project in a monorepo.
 - [Grossmann](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Grossmann) is the successor to DecimBOT
 - [Krampol](https://cs.wikipedia.org/wiki/Ji%C5%99%C3%AD_Krampol) is the successor to [DecimAutomation](https://github.com/Skavenlord58/DecimAutomation)
 
-Unfortunately `Šimek` is not a valid python module name, using `simek` instead.
+## Individual bots
+
+### [Šimek](src/šimek)
+
+A schizo impersonation bot.
+
+The funny one.
+
 
 ## Setup and Environment
 
@@ -20,20 +27,25 @@ We use [uv](https://docs.astral.sh/uv/) for package and Python version managemen
     ```
   this installs everything needed into the `.venv` folder
 
-- Local execution
-  - ```shell
-    uv run main.py
-    ```
+- Local run
+  - šimek
+    - ```shell
+      uv run src/šimek/main.py
+      ```
+  - grossmann
+    - ```shell
+      uv run src/grossmann/main.py
+      ```
 
-- Environment locking after updating dependencies
-  - ```shell
-    uv lock
-    ```
+Make .env file following [.env.sample](.env.sample) in all directories:
+- src/grossmann
+- src/šimek
 
-See the 
 ## Deployment
 
 Currently no bot runs in Docker, but on bare metal.
+
+## Development
 
 ### Checks
 
@@ -79,6 +91,11 @@ uv run pytest tests/grossmann/test_integration.py
 ### Adding packages
 
 See the [documentation](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies).
+
+- Environment locking after updating dependencies
+  - ```shell
+    uv lock
+    ```
 
 ## Troubleshooting
 

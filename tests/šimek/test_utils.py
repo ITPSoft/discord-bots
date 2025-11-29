@@ -1,6 +1,6 @@
 import pytest
 
-from simek.utils import find_who, find_self_reference, run_async, needs_help, Token
+from šimek.utils import find_who, find_self_reference, run_async, needs_help, Token
 
 
 @pytest.mark.parametrize(
