@@ -1,39 +1,10 @@
 import pytest
 
-from šimek.utils import find_who, find_self_reference, run_async, needs_help, Token
+from šimek.utils import find_self_reference, run_async, needs_help, Token
 
 
 @pytest.mark.parametrize(
-    "content, expected",
-    [
-        ("jsem programátor.", "programátor"),
-        ("jsem, programátor.", ""),
-        ("jsem velmi dobrý programátor.", "velmi dobrý programátor"),
-        ("jsemprogramátor.", ""),
-        ("jsem programátor", "programátor"),
-        ("jsem založen, a ty ne, lol", "založen"),
-        ("jsem založen! a ty ne, lol", "založen"),
-        ("jsem založen? a ty ne, lol", "založen"),
-        ("jsem založen. a ty ne, lol", "založen"),
-        ("jsem", ""),
-        ("Už jsem expert na prsteny :kekW:", "expert na prsteny :kekW:"),
-        ("a vymazal jsem si to poprvé", "si to poprvé"),
-        ("tohle jsou settings se kterýma jsem to rozjel", "to rozjel"),
-        (
-            "jsem naposledy měl pásku co měla base 200 díky tem monster itemům",
-            "naposledy měl pásku co měla base 200 díky tem monster itemům",
-        ),
-        ("Já jsem debil, zapomněl jsem doma klíče", "debil"),
-        ("Já jsem úplně v prdeli a nevím jak dál", "úplně v prdeli a nevím jak dál"),
-    ],
-)
-def test_dad_who(content, expected):
-    # already assumes lowercased text
-    assert find_who(content, "jsem") == expected
-
-
-@pytest.mark.parametrize(
-    "content, expected",
+    "content, expected_self_reference",
     [
         ("jsem programátor.", (True, "programátore")),
         ("jsem, programátor.", (False, "")),
@@ -91,12 +62,32 @@ def test_dad_who(content, expected):
         ("jsem expert na prsteny a trouba", (True, "experte na prsteny a troubo")),
         ("jsem trouba a expert na prsteny", (True, "troubo a experte na prsteny")),
         ("jsem :kekW:", (False, "")),
+        # ("dohledal jsem rarran video kde prošel všechny championships, cool kontext", (False, "dohledal jsem rarran video kde prošel všechny championships")),
+        ("doběhl jsem maraton", (False, "maraton")),
     ],
 )
-def test_self_reference(content, expected):
+def test_self_reference_vocative(content, expected_self_reference):
     # already assumes lowercased text
     result = find_self_reference(content, "jsem", True)
-    assert result[:2] == expected
+    assert result[:2] == expected_self_reference
+
+
+@pytest.mark.parametrize(
+    "content, expected_self_reference",
+    [
+        ("jsi panna", (True, "panna")),
+        ("dodělal jsi školu?", (False, "školu")),
+        ("by jsi už spal než bych dojel", (False, "už spal než bych dojel")),
+        ("Zklamal jsi me.", (False, "me")),
+        ("debilní dotaz, nezapomněl jsi tam dát prdopeč?", (False, "tam dát prdopeč")),
+        ("jak jsi to uhodl? podvádíš", (False, "to uhodl")),
+        ("Jsi borec", (True, "borec")),
+    ],
+)
+def test_self_reference_nominative(content, expected_self_reference):
+    # already assumes lowercased text
+    result = find_self_reference(content, "jsi", False)
+    assert result[:2] == expected_self_reference
 
 
 async def test_run_async():
@@ -131,5 +122,5 @@ def test_needs_help(content, expected):
         (Token("", "být", "VB-S---1P-AAI--", "jsem"), "NN*S", False),
     ],
 )
-def test_token(token: Token, tag: str, expected: True):
+def test_token(token: Token, tag: str, expected: bool):
     assert token.tag_matches(tag) == expected

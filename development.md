@@ -46,4 +46,16 @@ Uncomment the
 ```toml
 addopts = ["--import-mode=importlib", "-v", "--tb=short"]
 ```
-in [pyproject.toml](pyproject.toml) 
+in [pyproject.toml](pyproject.toml)
+
+## Mypy
+
+We don't enforce mypy, you can run it locally by uncommenting the `mypy` section in [pyproject.toml](pyproject.toml)
+```toml
+addopts = ["--import-mode=importlib", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
+```
+
+or by running 
+```shell
+mypy .
+```

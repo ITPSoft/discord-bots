@@ -1,9 +1,7 @@
-import io
 import logging
 import os
 import random
 import time
-from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 
@@ -14,7 +12,9 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-from grossmann import grossmanndict as decdi
+from common.constants import GIDS, TWITTERPERO, WELCOMEPERO
+from common.utils import has_any, prepare_http_response, ResponseType
+from grossmann import grossmanndict as grossdi
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 
@@ -141,8 +141,6 @@ class GamingRoles(str, Enum):
                 return 1358445521227874424
             case GamingRoles.VALHEIM:
                 return 1356164640152883241
-            case GamingRoles.KAMEN_A_SUTR:
-                return 1107334623983312897
             case GamingRoles.ARC_RAIDERS:
                 return 1432779821183930401
             case GamingRoles.FRIENDSLOP:
@@ -239,8 +237,8 @@ async def on_ready():
 
 # constants
 # TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
-HELP = decdi.HELP
-WARCRAFTY_CZ = decdi.WARCRAFTY_CZ
+HELP = grossdi.HELP
+WARCRAFTY_CZ = grossdi.WARCRAFTY_CZ
 
 
 # useful functions/methods
@@ -253,7 +251,7 @@ async def batch_react(m: Message, reactions: list):
 # on_member_join - happens when a new member joins guild
 @client.event
 async def on_member_join(member: disnake.Member):
-    welcome_channel = client.get_channel(decdi.WELCOMEPERO)
+    welcome_channel = client.get_channel(WELCOMEPERO)
     await welcome_channel.send(f"""
 Vítej, {member.mention}!
 Prosím, přesuň se do <#1314388851304955904> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
@@ -265,12 +263,12 @@ Please, go to the <#1314388851304955904> channel and select your roles. Don't fo
 
 ## Commands here ->
 # Show all available commands
-@client.slash_command(description="Show all available commands", guild_ids=decdi.GIDS)
+@client.slash_command(description="Show all available commands", guild_ids=GIDS)
 async def decimhelp(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(HELP, ephemeral=True, delete_after=60)
 
 
-@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=decdi.GIDS)
+@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=GIDS)
 async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
     response = "Last messages forwarded to hall of fame ids and times:\n"
     for message_id, sent_time in hall_of_fame_message_ids.items():
@@ -279,7 +277,7 @@ async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
 
 
 # debug command/trolling
-@client.slash_command(description="Say something as the bot (admin only)", guild_ids=decdi.GIDS)
+@client.slash_command(description="Say something as the bot (admin only)", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def say(ctx: ApplicationCommandInteraction, message: str):
     await ctx.response.send_message("Message sent!")
@@ -289,15 +287,15 @@ async def say(ctx: ApplicationCommandInteraction, message: str):
 # poll creation, takes up to five arguments
 # TODO check as slash command, probably make as embed?
 # TODO add anonymity voting option (better in embed)
-@client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=decdi.GIDS)
+@client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=GIDS)
 async def poll(
     ctx: ApplicationCommandInteraction,
     question: str,
     option1: str,
     option2: str,
-    option3: str = None,
-    option4: str = None,
-    option5: str = None,
+    option3: str | None = None,
+    option4: str | None = None,
+    option5: str | None = None,
 ):
     options = [option for option in [option1, option2, option3, option4, option5] if option]
     if len(options) < 2:
@@ -314,7 +312,7 @@ async def poll(
 
 
 # rolls a dice
-@client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=decdi.GIDS)
+@client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
 async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
     range = None
     try:
@@ -334,10 +332,11 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 
 # "twitter" functionality
 # works as intended, tested troughly
-@client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=decdi.GIDS)
+@client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=GIDS)
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(decdi.TWITTERPERO)
+    twitterpero = client.get_channel(TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
+    assert http_session is not None
 
     if anonym:
         random_city = "Void"
@@ -380,24 +379,22 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
     await batch_react(m, ["💜", "🔁", "⬇️", "💭", "🔗"])
 
 
-@client.slash_command(name="pingdecim", description="check decim latency", guild_ids=decdi.GIDS)
+@client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
 
-@client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=decdi.GIDS)
+@client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=GIDS)
 async def yesorno(ctx: ApplicationCommandInteraction):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
 
-@client.slash_command(
-    name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=decdi.GIDS
-)
-async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
+@client.slash_command(name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS)
+async def warcraft(ctx: ApplicationCommandInteraction, start_time: str | None = None):
     # send z templaty
-    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {time}" if time else "")
+    message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {start_time}" if start_time else "")
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
@@ -405,7 +402,7 @@ async def warcraft(ctx: ApplicationCommandInteraction, time: str = None):
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
 
 
-@client.slash_command(name="game_ping", description="Pings any game", guild_ids=decdi.GIDS)
+@client.slash_command(name="game_ping", description="Pings any game", guild_ids=GIDS)
 async def game_ping(
     ctx: ApplicationCommandInteraction,
     # role: DiscordGamingRoles,
@@ -414,7 +411,7 @@ async def game_ping(
     note: str = "",
 ):
     # send z templaty
-    message_content = decdi.GAME_EN
+    message_content = grossdi.GAME_EN
     # role_id = str(DiscordGamingRoles(role).role_id)
     role = DiscordGamingTestingRoles(game)
     message_content = message_content.replace("{0}", str(role.role_id))
@@ -429,7 +426,7 @@ async def game_ping(
 
 
 # TODO is this even used?
-@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=decdi.GIDS)
+@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def fetchrole(ctx: ApplicationCommandInteraction):
     roles = await ctx.guild.fetch_roles()
@@ -438,7 +435,7 @@ async def fetchrole(ctx: ApplicationCommandInteraction):
 
 
 # TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
-@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=decdi.GIDS)
+@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def command(ctx):
     embed = disnake.Embed(
@@ -527,8 +524,8 @@ async def listener(ctx: disnake.MessageInteraction):
 # todo: role by měly svítit podle toho, jestli je uživatel má nebo nemá, pokud by to šlo
 
 
-@client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=decdi.GIDS)
-async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int = None):
+@client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=GIDS)
+async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, height: int | None = None):
     if width and height:
         w = width
         h = height
@@ -541,28 +538,21 @@ async def cat(ctx: ApplicationCommandInteraction, width: int = None, height: int
     )
 
 
-async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
-    assert http_session is not None
-    try:
-        async with http_session.get(url) as api_call:
-            if api_call.status == 200:
-                match api_call.content_type:
-                    case "image/gif" | "image/jpeg" | "image/png":
-                        result = await api_call.content.read()
-                        bytes_io = io.BytesIO()
-                        bytes_io.write(result)
-                        bytes_io.seek(0)
-                        await respond(
-                            ctx, embed=Embed().set_image(file=disnake.File(fp=bytes_io, filename="image.png"))
-                        )
-                    case "application/json":
-                        result = (await api_call.json())[resp_key]
-                        await respond(ctx, content=result)
-            else:
-                await respond(ctx, content=error_message)
-    except Exception as exc:
-        print(f"Encountered exception:\n {exc}")
-        await respond(ctx, content="Oh nyo?!?! Something went ^w^ wwong!!")
+async def send_http_response(
+    ctx: ApplicationCommandInteraction,
+    http_session: aiohttp.ClientSession | None,
+    url: str,
+    resp_key: str,
+    error_message: str,
+) -> None:
+    resp, resp_type = prepare_http_response(
+        http_session=ctx.client.http_session, url=url, resp_key=resp_key, error_message=error_message
+    )
+    match resp_type:
+        case ResponseType.EMBED:
+            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png")))
+        case ResponseType.CONTENT:
+            await respond(ctx, content=error_message)
 
 
 async def respond(ctx: ApplicationCommandInteraction, **results):
@@ -573,14 +563,14 @@ async def respond(ctx: ApplicationCommandInteraction, **results):
         await ctx.response.send_message(**results)
 
 
-@client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=decdi.GIDS)
+@client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=GIDS)
 async def fox(ctx: ApplicationCommandInteraction):
     await send_http_response(
         ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
     )
 
 
-@client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=decdi.GIDS)
+@client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=GIDS)
 async def waifu(
     ctx: ApplicationCommandInteraction,
     content_type: str = Param(choices=["sfw", "nsfw"], default="sfw"),
@@ -592,18 +582,14 @@ async def waifu(
 
 # sends an xkcd comic
 @client.slash_command(
-    name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=decdi.GIDS
+    name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=GIDS
 )
-async def xkcd(ctx: ApplicationCommandInteraction, id: str = None):
-    if id:
-        url = f"https://xkcd.com/{id}/info.0.json"
+async def xkcd(ctx: ApplicationCommandInteraction, xkcd_id: str | None = None):
+    if xkcd_id:
+        url = f"https://xkcd.com/{xkcd_id}/info.0.json"
     else:
         url = "https://xkcd.com/info.0.json"
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
-
-
-def has_any(content: str, words: Iterable) -> bool:
-    return any(word in content for word in words)
 
 
 async def bot_validate(content: str, m: Message):
@@ -617,9 +603,9 @@ async def bot_validate(content: str, m: Message):
 @client.event
 async def on_message(m: Message):
     content = m.content.lower()
-    if not m.content:
+    if not content:
         pass
-    elif str(m.author) != "DecimBOT 2.0#8467":  # todo: načíst si aám sebe
+    elif str(m.author) != "grossmann#1086":
         await bot_validate(content, m)
 
 

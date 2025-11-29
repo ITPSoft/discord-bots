@@ -4,9 +4,8 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 # Mock the automaton module
 mock_automaton = MagicMock()
-with patch.dict("sys.modules", {"automaton": mock_automaton}):
-    with patch("disnake.ext.commands.Bot"):
-        import krampol.main as main
+with patch.dict("sys.modules", {"automaton": mock_automaton}), patch("disnake.ext.commands.Bot"):
+    import krampol.main as main
 
 
 async def test_work_loop_empty():

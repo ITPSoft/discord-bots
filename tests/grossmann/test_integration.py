@@ -100,21 +100,6 @@ async def test_batch_react_integration(patched_main, mock_message):
 
 
 @pytest.mark.parametrize(
-    "content,words,expected",
-    [
-        ("this contains bad bot text", ["bad bot", "good bot"], True),
-        ("this is normal text", ["bad bot", "good bot"], False),
-        ("any text", [], False),
-        ("good bot here", ["good bot"], True),
-        ("no match here", ["xyz", "abc"], False),
-    ],
-)
-def test_has_any_utility_integration(patched_main, content, words, expected):
-    """Test has_any utility function from main.py."""
-    assert patched_main.has_any(content, words) is expected
-
-
-@pytest.mark.parametrize(
     "template,replacement,expected_content",
     [
         (decdi.WARCRAFTY_CZ, " v cca 20:00", f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"),

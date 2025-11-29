@@ -1,10 +1,11 @@
 import asyncio
+import datetime as dt
 import os.path as osp
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Iterable, Any, Callable
+from typing import Any, Callable
 
 from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 
@@ -72,8 +73,9 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    lemmas_forms = TaggedLemmasForms()
-    toks, word_count = parse_sentence_with_keyword(text, keyword, True)
+    lemmas_forms = TaggedLemmasForms()  # type: ignore[abstract]
+    # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, False)
+    toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
     singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
     # pokud je tam další sloveso, je to špatně
@@ -82,6 +84,7 @@ def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bo
     # správné skloňování
     if use_vocative:
         nouns2vocative(lemmas_forms, toks)
+    # result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
     result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks)])
     return valid_me, result, word_count
 
@@ -100,7 +103,7 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
 
 
 def needs_help(text: str) -> bool:
-    toks, word_count = parse_sentence_with_keyword(text, "pomoc", False)
+    toks, word_count, _ = parse_sentence_with_keyword(text, "pomoc", False)
     if any(tok.tag_matches("NN*S") and tok.lemma == "pomoc" for tok in toks) or any(
         tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks
     ):
@@ -115,15 +118,16 @@ def needs_help(text: str) -> bool:
     return False
 
 
-def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int]:
+def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int, int]:
     text = truncate_emojis(text.lower())
     word_count = 0
-    forms = Forms()
-    lemmas = TaggedLemmas()
-    tokens = TokenRanges()
+    keyword_idx = 0
+    forms = Forms()  # type: ignore[abstract]
+    lemmas = TaggedLemmas()  # type: ignore[abstract]
+    tokens = TokenRanges()  # type: ignore[abstract]
     # Tag
     tokenizer.setText(text)
-    toks = []
+    toks: list[Token] = []
     t_iter = 0
     while tokenizer.nextSentence(forms, tokens):
         has_word = False
@@ -157,22 +161,37 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
             # jsem
             if tok.text == keyword:
                 has_word = True
+                keyword_idx = len(toks)
         if has_word and sentence_end:
             break
-    return toks, word_count
+    return toks, word_count, keyword_idx
 
 
-def find_who(content: str, verb: str) -> str:
-    do_konce_vety = content.split(verb)[1]
-    for interpunkce in [".", ",", "!", "?"]:
-        do_konce_vety = do_konce_vety.split(interpunkce)[0]
-    kdo = " ".join(do_konce_vety.split(" ")[1:])
-    return kdo
+def format_time_ago(time: dt.datetime) -> str:
+    """Format a datetime as a relative time string (e.g., '2 hours, 15 minutes ago')."""
+    now = dt.datetime.now()
+    delta = now - time
+    total_seconds = int(delta.total_seconds())
+    is_future = total_seconds < 0
+    total_seconds = abs(total_seconds)
 
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
 
-def has_any(content: str, words: Iterable) -> bool:
-    return any(word in content for word in words)
+    parts = []
+    if days > 0:
+        parts.append(f"{days} day{'s' if days != 1 else ''}")
+    if hours > 0:
+        parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+    if minutes > 0:
+        parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
 
-
-def has_all(content: str, words: Iterable) -> bool:
-    return all(word in content for word in words)
+    time_ago = ", ".join(parts)
+    if is_future:
+        return f"in {time_ago}"
+    else:
+        return f"{time_ago} ago"

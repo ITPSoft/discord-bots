@@ -1,19 +1,23 @@
 import os
 import random
 import datetime as dt
+import re
 
 import disnake
-from disnake import Message
+from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
-from šimek import simekdict
+
+from common.constants import GIDS
+from common.utils import has_any, has_all
+from šimek import šimekdict
 
 from dotenv import load_dotenv
 import pickle
 
-from šimek.utils import has_all, has_any, find_self_reference_a
+from šimek.utils import find_self_reference_a, format_time_ago
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -37,9 +41,9 @@ REPLIES = (
     "nemám tušení",
 )  # repeat ano/ne/perhaps to give it more common occurence
 
-MOT_HLASKY = simekdict.MOT_HLASKY
-LINUX_COPYPASTA = simekdict.LINUX_COPYPASTA
-RECENZE = simekdict.RECENZE
+MOT_HLASKY = šimekdict.MOT_HLASKY
+LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
+RECENZE = šimekdict.RECENZE
 ALLOW_CHANNELS = [
     1420168841501216873,  # bot debug server - general
     1000800481397973052,  # general
@@ -60,22 +64,31 @@ ALLOW_CHANNELS = [
 ]
 MARKOV_FILE = "markov_twogram.pkl"
 
+COOLDOWN = 30  # sekund
+
 # add intents for bot
 intents = disnake.Intents.all()
 client = InteractionBot(intents=intents)  # so we can have debug commands
 
-last_reaction_time = {}
+last_reaction_time: dict[int, dt.datetime] = {}
 
 
 @client.slash_command(description="Show last reaction times")
 @default_member_permissions(administrator=True)
-async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction):
+async def show_last_reaction_times(inter: ApplicationCommandInteraction):
     response = "Last reaction times per channel:\n"
     for channel_id, time in last_reaction_time.items():
         channel = client.get_channel(channel_id)
         if channel:
-            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            time_ago = format_time_ago(time)
+            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')} ({time_ago})\n"
     await inter.response.send_message(response)
+
+
+@client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def ping(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -163,8 +176,6 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     # safeguard against all role tags
     if random.randint(1, chance) == 1:
-        import re
-
         reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
         if reaction:
             await m.add_reaction(reply)
@@ -176,6 +187,19 @@ async def manage_response(m: Message):
     # grok feature is above all other and will trigger anywhere
     response = ""
     mess = m.content.lower()
+
+    now = dt.datetime.now()
+    # higher priority than rest
+    if "drž hubu" in mess and m.reference and m.reference.resolved and m.reference.resolved.author == client.user:
+        await do_response("ok", m, chance=1)
+        last_reaction_time[m.channel.id] = now + dt.timedelta(minutes=5)  # 5 minute timeout after being told to shut up
+        return  # skip setting the time again at the end of the function
+
+    last_time = last_reaction_time.get(m.channel.id)
+    if last_time and (seconds_diff := (now - last_time).total_seconds()) < COOLDOWN:
+        print(f"too soon, last replied {seconds_diff} seconds ago")
+        return
+
     if Substring(mess) in [
         "@grok",
         "@schizo",
@@ -252,12 +276,6 @@ async def manage_response(m: Message):
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
-        case "drž hubu":
-            await do_response("ok", m, chance=1)
-            last_reaction_time[m.channel.id] = dt.datetime.now() + dt.timedelta(
-                minutes=5
-            )  # 5 minute timeout after being told to shut up
-            return  # skip setting the time again at the end of the function
         case "jsem" if jsem_is_ref:
             await do_response(f"Ahoj, {jsem_who}. Já jsem táta.", m, chance=5)
         case "schizo":
@@ -311,39 +329,42 @@ async def manage_response(m: Message):
             await do_response(random.choice(RECENZE), m, chance=1)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
-        case "twitter" | "twiter":
-            await do_response("preferuji #twitter-péro", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
-            if random.randint(1, 500) == 1:
-                messages = []
-                async for msg in m.channel.history(limit=50, before=m):
-                    if msg.content:
-                        messages.append(msg.content)
-                response += markov_chain(messages)
-                await m.reply(response)
+            without_links = re.sub(r"https?://\S+", "", mess)
+            match Substring(without_links):
+                case "twitter" | "twiter":
+                    await do_response("preferuji #twitter-péro", m, chance=1)
+                case _:
+                    if random.randint(1, 500) == 1:
+                        messages = []
+                        async for msg in m.channel.history(limit=50, before=m):
+                            if msg.content:
+                                messages.append(msg.content)
+                        response += markov_chain(messages)
+                        await m.reply(response)
 
-            await do_response(
-                f"{
-                    random.choice(
-                        [
-                            'Mňau',
-                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                        ]
+                    await do_response(
+                        f"{
+                            random.choice(
+                                [
+                                    'Mňau',
+                                    'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                                    'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                                    'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                                ]
+                            )
+                        }",
+                        m,
+                        chance=50000,
                     )
-                }",
-                m,
-                chance=50000,
-            )
-            await do_response(
-                f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
-                m,
-                reaction=True,
-                chance=1000,
-            )
+                    await do_response(
+                        f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
+                        m,
+                        reaction=True,
+                        chance=1000,
+                    )
     last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
@@ -355,10 +376,6 @@ async def on_message(m: Message):
     if not m.content:
         return
     if str(m.author) == "šimek#3885":
-        return
-    now = dt.datetime.now()
-    last_time = last_reaction_time.get(m.channel.id)
-    if last_time and (now - last_time).total_seconds() < 30:
         return
     await manage_response(m)
 
