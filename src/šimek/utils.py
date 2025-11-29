@@ -1,4 +1,5 @@
 import asyncio
+import datetime as dt
 import os.path as osp
 import re
 import sys
@@ -176,3 +177,33 @@ def has_any(content: str, words: Iterable) -> bool:
 
 def has_all(content: str, words: Iterable) -> bool:
     return all(word in content for word in words)
+
+
+def format_time_ago(time: dt.datetime) -> str:
+    """Format a datetime as a relative time string (e.g., '2 hours, 15 minutes ago')."""
+    now = dt.datetime.now()
+    delta = now - time
+    total_seconds = int(delta.total_seconds())
+    is_future = total_seconds < 0
+    total_seconds = abs(total_seconds)
+    
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    
+    parts = []
+    if days > 0:
+        parts.append(f"{days} day{'s' if days != 1 else ''}")
+    if hours > 0:
+        parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+    if minutes > 0:
+        parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
+    
+    time_ago = ", ".join(parts)
+    if is_future:
+        return f"in {time_ago}"
+    else:
+        return f"{time_ago} ago"

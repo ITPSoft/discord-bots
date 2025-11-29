@@ -13,7 +13,7 @@ from šimek import simekdict
 from dotenv import load_dotenv
 import pickle
 
-from šimek.utils import has_all, has_any, find_self_reference_a
+from šimek.utils import has_all, has_any, find_self_reference_a, format_time_ago
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -74,7 +74,8 @@ async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction)
     for channel_id, time in last_reaction_time.items():
         channel = client.get_channel(channel_id)
         if channel:
-            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            time_ago = format_time_ago(time)
+            response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')} ({time_ago})\n"
     await inter.response.send_message(response)
 
 
