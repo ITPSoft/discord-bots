@@ -391,9 +391,7 @@ async def yesorno(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(f"{random.choice(answers)}")
 
 
-@client.slash_command(
-    name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS
-)
+@client.slash_command(name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS)
 async def warcraft(ctx: ApplicationCommandInteraction, start_time: str | None = None):
     # send z templaty
     message_content = WARCRAFTY_CZ.replace("{0}", f" v cca {start_time}" if start_time else "")
