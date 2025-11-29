@@ -4,14 +4,15 @@ import datetime as dt
 import re
 
 import disnake
-from disnake import Message
+from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, default_member_permissions
 from collections import defaultdict, Counter
 
 import aiohttp
 
+from common.constants import GIDS
 from common.utils import has_any, has_all
-from šimek import simekdict
+from šimek import šimekdict
 
 from dotenv import load_dotenv
 import pickle
@@ -40,9 +41,9 @@ REPLIES = (
     "nemám tušení",
 )  # repeat ano/ne/perhaps to give it more common occurence
 
-MOT_HLASKY = simekdict.MOT_HLASKY
-LINUX_COPYPASTA = simekdict.LINUX_COPYPASTA
-RECENZE = simekdict.RECENZE
+MOT_HLASKY = šimekdict.MOT_HLASKY
+LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
+RECENZE = šimekdict.RECENZE
 ALLOW_CHANNELS = [
     1420168841501216873,  # bot debug server - general
     1000800481397973052,  # general
@@ -74,7 +75,7 @@ last_reaction_time: dict[int, dt.datetime] = {}
 
 @client.slash_command(description="Show last reaction times")
 @default_member_permissions(administrator=True)
-async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction):
+async def show_last_reaction_times(inter: ApplicationCommandInteraction):
     response = "Last reaction times per channel:\n"
     for channel_id, time in last_reaction_time.items():
         channel = client.get_channel(channel_id)
@@ -82,6 +83,12 @@ async def show_last_reaction_times(inter: disnake.ApplicationCommandInteraction)
             time_ago = format_time_ago(time)
             response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')} ({time_ago})\n"
     await inter.response.send_message(response)
+
+
+@client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def ping(ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
 
 
 # on_ready event - happens when bot connects to Discord API

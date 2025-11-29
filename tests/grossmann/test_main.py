@@ -222,14 +222,6 @@ def test_help_template():
     assert "_gmod_" in help_text
 
 
-def test_guild_and_channel_constants():
-    """Test that constants are properly defined."""
-    assert isinstance(decdi.GIDS, list)
-    assert len(decdi.GIDS) > 0
-    assert isinstance(decdi.TWITTERPERO, int)
-    assert isinstance(decdi.WELCOMEPERO, int)
-
-
 async def test_role_button_logic():
     """Test role button interaction logic."""
     mock_ctx = AsyncMock()
