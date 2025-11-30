@@ -51,7 +51,36 @@ Make .env file following [.env.sample](.env.sample) and fill there the required 
 
 ## Deployment
 
-Currently, no bot runs in Docker but on bare metal.
+### Docker
+
+Docker images are automatically built and pushed to GitHub Container Registry (GHCR) on every push to main and on version tags.
+
+**Pull and run a bot:**
+
+```shell
+# Pull the latest image
+docker pull ghcr.io/<owner>/discord-bots:latest
+
+# Run Grossmann (default)
+docker run -d --env-file .env ghcr.io/<owner>/discord-bots:latest
+
+# Run Šimek
+docker run -d --env-file .env -e BOT_NAME=šimek ghcr.io/<owner>/discord-bots:latest
+
+# Run Krampol
+docker run -d --env-file .env -e BOT_NAME=krampol ghcr.io/<owner>/discord-bots:latest
+```
+
+**Build locally:**
+
+```shell
+docker build -t discord-bots .
+docker run --env-file .env discord-bots
+```
+
+### Bare Metal
+
+Currently deployed on bare metal (see historical deployment in `src/krampol/systemd files/`).
 
 ## Development
 
