@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Environment
+.env
+.env.*
+
+# Tests
+tests/
+**/test_*.py
+
+# Documentation (keep README.md as it's needed for package build)
+AGENTS.md
+development.md
+troubleshooting.md
+notes.md
+BUILD_GUIDE.md
+LICENSE
+
+# Images
+*.png
+
+# Lock files (we copy these explicitly)
+# uv.lock - needed
+
+# Misc
+.DS_Store
+*.pkl
+markov_twogram.pkl
+scripts/
+

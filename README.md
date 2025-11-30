@@ -51,7 +51,53 @@ Make .env file following [.env.sample](.env.sample) and fill there the required 
 
 ## Deployment
 
-Currently, no bot runs in Docker but on bare metal.
+### Docker
+
+Docker images are automatically built and pushed to GitHub Container Registry (GHCR) on every push to main and on version tags.
+
+**Pull and run a bot:**
+
+```shell
+# Pull the latest image
+docker pull ghcr.io/itpsoft/discord-bots:latest
+
+# Run Grossmann (default)
+docker run -d --name grossmann --env-file .env ghcr.io/itpsoft/discord-bots:latest
+
+# Run Šimek
+docker run -d --name simek --env-file .env -e BOT_NAME=šimek ghcr.io/itpsoft/discord-bots:latest
+
+# Run Krampol
+docker run -d --name krampol --env-file .env -e BOT_NAME=krampol ghcr.io/itpsoft/discord-bots:latest
+```
+
+**Build and run locally:**
+
+Using Docker Compose (recommended):
+```shell
+# Build the image
+docker compose build
+
+# Run specific bot(s)
+docker compose up grossmann  # or simek, or krampol
+docker compose up -d grossmann  # run in background
+
+# Run all bots
+docker compose --profile all up -d
+
+# Stop bots
+docker compose down
+```
+
+Using Docker directly:
+```shell
+docker build -t discord-bots .
+docker run --env-file .env discord-bots
+```
+
+### Bare Metal
+
+Currently deployed on bare metal (see historical deployment in `src/krampol/systemd files/`).
 
 ## Development
 
