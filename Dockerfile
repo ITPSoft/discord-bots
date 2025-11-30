@@ -43,5 +43,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 USER app
 WORKDIR /app
-#
-#CMD ["python", "-m", "your_app"]
+
+# Default bot to run (can be overridden)
+ENV BOT_NAME=grossmann
+
+# Run the bot
+CMD python -u src/${BOT_NAME}/main.py

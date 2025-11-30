@@ -59,16 +59,16 @@ Docker images are automatically built and pushed to GitHub Container Registry (G
 
 ```shell
 # Pull the latest image
-docker pull ghcr.io/<owner>/discord-bots:latest
+docker pull ghcr.io/itpsoft/discord-bots:latest
 
 # Run Grossmann (default)
-docker run -d --env-file .env ghcr.io/<owner>/discord-bots:latest
+docker run -d --name grossmann --env-file .env ghcr.io/itpsoft/discord-bots:latest
 
 # Run Šimek
-docker run -d --env-file .env -e BOT_NAME=šimek ghcr.io/<owner>/discord-bots:latest
+docker run -d --name simek --env-file .env -e BOT_NAME=šimek ghcr.io/itpsoft/discord-bots:latest
 
 # Run Krampol
-docker run -d --env-file .env -e BOT_NAME=krampol ghcr.io/<owner>/discord-bots:latest
+docker run -d --name krampol --env-file .env -e BOT_NAME=krampol ghcr.io/itpsoft/discord-bots:latest
 ```
 
 **Build locally:**
