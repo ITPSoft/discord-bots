@@ -28,12 +28,12 @@ venv
 tests/
 **/test_*.py
 
-# Documentation
-*.md
+# Documentation (keep README.md as it's needed for package build)
 AGENTS.md
 development.md
 troubleshooting.md
 notes.md
+BUILD_GUIDE.md
 LICENSE
 
 # Images

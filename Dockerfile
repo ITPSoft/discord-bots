@@ -18,14 +18,14 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev
 
 # Copy application code (changes frequently, layer invalidated often)
 COPY . .
 
 # Install project itself (quick since deps are cached)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --frozen --no-dev
 
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
@@ -46,6 +46,5 @@ WORKDIR /app
 
 # Default bot to run (can be overridden)
 ENV BOT_NAME=grossmann
-
-# Run the bot
-CMD python -u src/${BOT_NAME}/main.py
+# Run the bot using array format
+CMD ["python", "-u", "src/${BOT_NAME}/main.py"]

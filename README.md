@@ -71,8 +71,25 @@ docker run -d --name simek --env-file .env -e BOT_NAME=šimek ghcr.io/itpsoft/di
 docker run -d --name krampol --env-file .env -e BOT_NAME=krampol ghcr.io/itpsoft/discord-bots:latest
 ```
 
-**Build locally:**
+**Build and run locally:**
 
+Using Docker Compose (recommended):
+```shell
+# Build the image
+docker compose build
+
+# Run specific bot(s)
+docker compose up grossmann  # or simek, or krampol
+docker compose up -d grossmann  # run in background
+
+# Run all bots
+docker compose --profile all up -d
+
+# Stop bots
+docker compose down
+```
+
+Using Docker directly:
 ```shell
 docker build -t discord-bots .
 docker run --env-file .env discord-bots
