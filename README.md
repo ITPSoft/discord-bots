@@ -97,7 +97,8 @@ docker run --env-file .env discord-bots
 
 ** Deploying to Portainer **
 
-[docker-compose.prod.yaml](docker-compose.yaml) contains the configuration for deploying the bot to Portainer, just copy-paste it.
+[docker-compose.portainer.yaml](docker-compose.portainer.yaml) contains the configuration for deploying the bot to Portainer,
+and it's automatically being pulled.
 
 ### Bare Metal
 
