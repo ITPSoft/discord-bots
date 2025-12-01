@@ -1,0 +1,35 @@
+services:
+  grossmann:
+    build: .
+    image: discord-bots:latest
+    container_name: grossmann
+    command:
+      - python
+      - -u
+      - src/grossmann/main.py
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  simek:  # š is not allowed :(
+    build: .
+    image: discord-bots:latest
+    container_name: simek # š is not allowed :(
+    command:
+      - python
+      - -u
+      - src/šimek/main.py
+    env_file:
+      - .env
+    restart: unless-stopped
+#
+#  krampol:
+#    build: .
+#    image: discord-bots:latest
+#    container_name: krampol
+#    command:
+#      - python -u src/krampol/main.py
+#    env_file:
+#      - .env
+#    restart: unless-stopped
+#
