@@ -10,6 +10,8 @@ services:
       - -u
       - src/grossmann/main.py
     restart: unless-stopped
+    environment:
+      GROSSMANN_DISCORD_TOKEN: ${GROSSMANN_DISCORD_TOKEN}
     labels:
       - "com.centurylinklabs.watchtower.enable=true" # white-list for watchtower update
 
@@ -21,6 +23,8 @@ services:
       - -u
       - src/šimek/main.py
     restart: unless-stopped
+    environment:
+      ŠIMEK_DISCORD_TOKEN: ${ŠIMEK_DISCORD_TOKEN}
     labels:
       - "com.centurylinklabs.watchtower.enable=true" # white-list for watchtower update
 #
