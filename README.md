@@ -79,11 +79,11 @@ Using Docker Compose (recommended):
 docker compose build
 
 # Run specific bot(s)
-docker compose up grossmann  # or simek, or krampol
-docker compose up -d grossmann  # run in background
+docker compose up kouzelnici-grossmann  # or simek, or krampol
+docker compose up -d kouzelnici-grossmann  # run in background
 
 # Run all bots
-docker compose --profile all up -d
+docker compose up -d
 
 # Stop bots
 docker compose down
@@ -94,6 +94,10 @@ Using Docker directly:
 docker build -t discord-bots .
 docker run --env-file .env discord-bots
 ```
+
+** Deploying to Portainer **
+
+[docker-compose.prod.yaml](docker-compose.yaml) contains the configuration for deploying the bot to Portainer, just copy-paste it.
 
 ### Bare Metal
 
