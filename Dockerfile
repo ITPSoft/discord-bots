@@ -35,11 +35,19 @@ FROM python:3.13-slim AS runtime
 # Create non-root user for security
 RUN groupadd -r app && useradd -r -d /app -g app -N app
 
-# Copy pre-built virtualenv from build stage
-COPY --from=build --chown=app:app /app /app
+WORKDIR /app
+
+# copy morphodita, which doesn't change often
+COPY ./src/šimek/czech-morfflex2.0-pdtc1.0-220710 /app/
+
+# Copy virtualenv with all dependencies (cached unless dependencies change)
+COPY --from=build --chown=app:app /app/.venv /app/.venv
+
+# Copy source code (invalidated on every code change)
+COPY --from=build --chown=app:app /app/src /app/src
+COPY --from=build --chown=app:app /app/pyproject.toml /app/uv.lock /app/
 
 # Activate virtualenv by adding to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER app
-WORKDIR /app

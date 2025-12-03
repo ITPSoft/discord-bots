@@ -9,6 +9,8 @@ TARGETS = {
     "basedschizo": 1044650088494010478,
 }
 
+
+
 INTERVALS = {
     "@minutely": 60,
     "@five": 300,

@@ -48,3 +48,5 @@ LICENSE
 markov_twogram.pkl
 scripts/
 
+# deliberately, this is set in docker image and we don't want 2 python versions there
+.python-version
