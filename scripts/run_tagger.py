@@ -28,9 +28,9 @@ if not tagger:
     sys.exit(1)
 sys.stderr.write("done\n")
 
-forms = Forms()  # type: ignore[abstract]
-lemmas = TaggedLemmas()  # type: ignore[abstract]
-tokens = TokenRanges()  # type: ignore[abstract]
+forms = Forms()
+lemmas = TaggedLemmas()
+tokens = TokenRanges()
 tokenizer = tagger.newTokenizer()
 if tokenizer is None:
     sys.stderr.write("No tokenizer is defined for the supplied model!")

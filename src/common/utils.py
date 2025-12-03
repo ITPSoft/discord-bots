@@ -40,7 +40,8 @@ async def prepare_http_response(
                 return error_message, ResponseType.CONTENT
     except Exception as exc:
         print(f"Encountered exception:\n {exc}")
-        return "Oh nyo?!?! Something went ^w^ wwong!!", ResponseType.CONTENT
+        return "Something crashed", ResponseType.CONTENT
+    return "Something crashed relly bad", ResponseType.CONTENT
 
 
 def is_url(string):

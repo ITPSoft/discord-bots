@@ -22,8 +22,8 @@ if not morpho:
     sys.exit(1)
 sys.stderr.write("done\n")
 
-lemmas = TaggedLemmas()  # type: ignore[abstract]
-lemmas_forms = TaggedLemmasForms()  # type: ignore[abstract]
+lemmas = TaggedLemmas()
+lemmas_forms = TaggedLemmasForms()
 line = sys.stdin.readline()
 while line:
     tokens = line.rstrip("\r\n").split("\t")
