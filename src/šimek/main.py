@@ -329,7 +329,7 @@ async def manage_response(m: Message):
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
-            await do_response(random.choice(RECENZE), m, chance=1)
+            await do_response(random.choice(RECENZE), m, chance=2)    # není to tak vtipné, když je to pokaždé
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
