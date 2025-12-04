@@ -374,7 +374,6 @@ async def manage_response(m: Message):
             )
 
 
-
 @client.event
 async def on_message(m: Message):
     print(
