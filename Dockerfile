@@ -34,6 +34,8 @@ COPY pyproject.toml uv.lock README.md /app/
 
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
+# Do not change the build process unless you manually
+# check the hashes of individual layers using https://github.com/wagoodman/dive
 # ============================================
 FROM python:3.13-slim AS runtime
 
