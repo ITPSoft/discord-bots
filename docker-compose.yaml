@@ -1,7 +1,7 @@
 services:
   grossmann:
     build: .
-    image: discord-bots:latest-2
+    image: discord-bots:latest
     container_name: grossmann
     command:
       - python
@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
 
   simek:  # š is not allowed :(
-    image: discord-bots:latest-1
+    image: discord-bots:latest
     container_name: simek # š is not allowed :(
     command:
       - python
