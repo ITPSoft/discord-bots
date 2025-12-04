@@ -20,26 +20,37 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
 
-# Copy application code (changes frequently, layer invalidated often)
-COPY . .
-
-# Install project itself (quick since deps are cached)
+# Install project itself using bind mounts (avoids copying tests, docs, etc.)
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=README.md,target=README.md \
+    --mount=type=bind,source=src,target=src \
     uv sync --frozen --no-dev
+
+# Copy only what's needed for runtime and build
+COPY src /app/src
+COPY pyproject.toml uv.lock README.md /app/
 
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
+# Do not change the build process unless you manually
+# check the hashes of individual layers using https://github.com/wagoodman/dive
 # ============================================
 FROM python:3.13-slim AS runtime
 
 # Create non-root user for security
 RUN groupadd -r app && useradd -r -d /app -g app -N app
 
-# Copy pre-built virtualenv from build stage
-COPY --from=build --chown=app:app /app /app
+WORKDIR /app
+
+# separate copying for better layer caching, saves easily 99% of disk space on target server
+COPY --from=build --chown=app:app /app/src/šimek/czech-morfflex2.0-pdtc1.0-220710 /app/src/šimek/czech-morfflex2.0-pdtc1.0-220710
+COPY --from=build --chown=app:app /app/.venv /app/.venv
+COPY --from=build --chown=app:app /app/src /app/src
+COPY --from=build --chown=app:app /app/pyproject.toml /app/uv.lock /app/README.md /app/
 
 # Activate virtualenv by adding to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER app
-WORKDIR /app

@@ -73,7 +73,7 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    lemmas_forms = TaggedLemmasForms()  # type: ignore[abstract]
+    lemmas_forms = TaggedLemmasForms()
     # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, False)
     toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
@@ -122,9 +122,9 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
     text = truncate_emojis(text.lower())
     word_count = 0
     keyword_idx = 0
-    forms = Forms()  # type: ignore[abstract]
-    lemmas = TaggedLemmas()  # type: ignore[abstract]
-    tokens = TokenRanges()  # type: ignore[abstract]
+    forms = Forms()
+    lemmas = TaggedLemmas()
+    tokens = TokenRanges()
     # Tag
     tokenizer.setText(text)
     toks: list[Token] = []

@@ -534,7 +534,7 @@ async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, heig
         h = random.randint(64, 640)
 
     await send_http_response(
-        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
+        ctx, http_session, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
     )
 
 
@@ -566,7 +566,7 @@ async def respond(ctx: ApplicationCommandInteraction, **results):
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=GIDS)
 async def fox(ctx: ApplicationCommandInteraction):
     await send_http_response(
-        ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
+        ctx, http_session, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
     )
 
 
@@ -577,7 +577,7 @@ async def waifu(
     category: str = Param(default="neko"),
 ):
     url = f"https://api.waifu.pics/{content_type}/{category}"
-    await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
+    await send_http_response(ctx, http_session, url, "url", "Server connection error :( No waifu image for you.")
 
 
 # sends an xkcd comic
@@ -589,7 +589,7 @@ async def xkcd(ctx: ApplicationCommandInteraction, xkcd_id: str | None = None):
         url = f"https://xkcd.com/{xkcd_id}/info.0.json"
     else:
         url = "https://xkcd.com/info.0.json"
-    await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
+    await send_http_response(ctx, http_session, url, "img", "No such xkcd comics with this ID found.")
 
 
 async def bot_validate(content: str, m: Message):

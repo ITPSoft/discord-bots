@@ -181,6 +181,7 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
             await m.add_reaction(reply)
         else:
             await m.reply(reply)
+        last_reaction_time[m.channel.id] = dt.datetime.now()
 
 
 async def manage_response(m: Message):
@@ -247,6 +248,8 @@ async def manage_response(m: Message):
         jsi_is_ref, jsi_who, _ = await find_self_reference_a(mess, "jsi", False)
     if "jsem" in mess:
         jsem_is_ref, jsem_who, _ = await find_self_reference_a(mess, "jsem", True)
+
+    matched = True
 
     match Substring(mess):
         case "hodný bot":
@@ -332,40 +335,43 @@ async def manage_response(m: Message):
         case "podle mě" | "myslím si" | "myslim si":
             await do_response(f"{random.choice(['souhlasím', 'nesouhlasím', ''])}", m, chance=10)
         case _:
-            without_links = re.sub(r"https?://\S+", "", mess)
-            match Substring(without_links):
-                case "twitter" | "twiter":
-                    await do_response("preferuji #twitter-péro", m, chance=1)
-                case _:
-                    if random.randint(1, 500) == 1:
-                        messages = []
-                        async for msg in m.channel.history(limit=50, before=m):
-                            if msg.content:
-                                messages.append(msg.content)
-                        response += markov_chain(messages)
-                        await m.reply(response)
+            matched = False
+    if matched:
+        return
 
-                    await do_response(
-                        f"{
-                            random.choice(
-                                [
-                                    'Mňau',
-                                    'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                                    'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
-                                    'https://www.youtube.com/watch?v=kyg1uxOsAUY',
-                                ]
-                            )
-                        }",
-                        m,
-                        chance=50000,
+    without_links = re.sub(r"https?://\S+", "", mess)
+    match Substring(without_links):
+        case "twitter" | "twiter":
+            await do_response("preferuji #twitter-péro", m, chance=1)
+        case _:
+            if random.randint(1, 500) == 1:
+                messages = []
+                async for msg in m.channel.history(limit=50, before=m):
+                    if msg.content:
+                        messages.append(msg.content)
+                response += markov_chain(messages)
+                await m.reply(response)
+
+            await do_response(
+                f"{
+                    random.choice(
+                        [
+                            'Mňau',
+                            'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
+                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                            'https://www.youtube.com/watch?v=kyg1uxOsAUY',
+                        ]
                     )
-                    await do_response(
-                        f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
-                        m,
-                        reaction=True,
-                        chance=1000,
-                    )
-    last_reaction_time[m.channel.id] = dt.datetime.now()
+                }",
+                m,
+                chance=50000,
+            )
+            await do_response(
+                f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
+                m,
+                reaction=True,
+                chance=1000,
+            )
 
 
 @client.event

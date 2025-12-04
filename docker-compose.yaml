@@ -12,7 +12,6 @@ services:
     restart: unless-stopped
 
   simek:  # š is not allowed :(
-    build: .
     image: discord-bots:latest
     container_name: simek # š is not allowed :(
     command:
