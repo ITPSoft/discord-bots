@@ -10,7 +10,7 @@ from collections import defaultdict, Counter
 
 import aiohttp
 
-from common.constants import GIDS
+from common.constants import GIDS, ŠimekChannel as Channel
 from common.utils import has_any, has_all
 from šimek import šimekdict
 
@@ -44,24 +44,8 @@ REPLIES = (
 MOT_HLASKY = šimekdict.MOT_HLASKY
 LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
 RECENZE = šimekdict.RECENZE
-ALLOW_CHANNELS = [
-    1420168841501216873,  # bot debug server - general
-    1000800481397973052,  # general
-    324970596360257548,  # memes-shitposting
-    932301697836003358,  # bot testing
-    959137743412269187,  # gaming-general
-    996357109727891456,  # deskovky-general
-    1370041352846573630,  # magic-the-gathering-general
-    786608717411647488,  # phase-connect-channel (Vtubers)
-    276720867344646144,  # minecraft-general
-    438037897023848448,  # warcraft3-general
-    979875595896901682,  # gacha
-    786625189038915625,  # it-pero
-    786643519430459423,  # dymkopero
-    990724186550972477,  # jidlopero
-    998556012086829126,  # schizopero
-    941703477694955560,  # kouzelnici-general
-]
+
+ALLOW_CHANNELS = [c for c in Channel if c != Channel.ECONPOLIPERO]
 MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund
@@ -226,7 +210,7 @@ async def manage_response(m: Message):
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
-    if m.channel.id == 786626221856391199:
+    if m.channel.id == Channel.ECONPOLIPERO:
         if has_any(mess, [":KekWR:", ":KekW:"]):
             await do_response(
                 "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",

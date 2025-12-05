@@ -12,7 +12,7 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-from common.constants import GIDS, TWITTERPERO, WELCOMEPERO
+from common.constants import GIDS, TWITTERPERO, WELCOMEPERO, GrossmannChannel as Channel
 from common.utils import has_any, prepare_http_response, ResponseType
 from grossmann import grossmanndict as grossdi
 
@@ -174,7 +174,7 @@ async def on_ready():
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     # Preload last 50 message IDs from hall of fame channel
-    hall_of_fame_channel = client.get_channel(1276805111506796605)
+    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     if hall_of_fame_channel:
         current_time = datetime.now()
         async for msg in hall_of_fame_channel.history(limit=50):
@@ -211,9 +211,9 @@ async def on_member_join(member: disnake.Member):
     welcome_channel = client.get_channel(WELCOMEPERO)
     await welcome_channel.send(f"""
 Vítej, {member.mention}!
-Prosím, přesuň se do <#1314388851304955904> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
+Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
 ---
-Please, go to the <#1314388851304955904> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
+Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
                         """)
     pass
 
@@ -570,7 +570,7 @@ async def on_message(m: Message):
 @client.event
 async def on_reaction_add(reaction, user):
     global hall_of_fame_message_ids
-    hall_of_fame_channel = client.get_channel(1276805111506796605)  # antispiral halloffame channel
+    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     message = reaction.message
     # Ensure the message is on server (not a DM)
     if not message.guild:
