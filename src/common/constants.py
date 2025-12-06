@@ -39,7 +39,7 @@ class Channel(IntEnum):
     NETHACK = 1381296005441523885
 
 
-SIMEK_ALLOW_CHANNELS = [
+ŠIMEK_ALLOW_CHANNELS = [
     Channel.BOT_DEBUG_GENERAL,
     Channel.GENERAL,
     Channel.MEMES_SHITPOSTING,
@@ -57,7 +57,3 @@ SIMEK_ALLOW_CHANNELS = [
     Channel.SCHIZOPERO,
     Channel.KOUZELNICI_GENERAL,
 ]
-
-# Backwards compatibility aliases
-TWITTERPERO = Channel.TWITTERPERO
-WELCOMEPERO = Channel.WELCOMEPERO

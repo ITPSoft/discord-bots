@@ -3,7 +3,6 @@ import os
 import random
 import time
 from datetime import datetime
-from enum import Enum
 
 import aiohttp
 import disnake
@@ -12,8 +11,8 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-from common.constants import GIDS, TWITTERPERO, WELCOMEPERO, Channel
-from common.utils import has_any, prepare_http_response, ResponseType
+from common.constants import GIDS, Channel
+from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum
 from grossmann import grossmanndict as grossdi
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
@@ -29,10 +28,10 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(nam
 # aby člověk commandem mohl přidat herní nebo městskou roli
 
 
-class SelfServiceRoles(str, Enum):
+
+class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 
-    # (display_name, role_id)
     CLEN = ("Člen", 804431648959627294)
     OSTRAVAK = ("Ostravák", 988431391807131690)
     PRAZAK = ("Pražák", 998636130511630386)
@@ -40,31 +39,10 @@ class SelfServiceRoles(str, Enum):
     MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797)
     CARFAG = ("carfag", 1057281159509319800)
 
-    def __new__(cls, name: str, role_id: int):
-        obj = str.__new__(cls, name)
-        obj._value_ = name
-        obj._role_id = role_id
-        return obj
 
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        return self._role_id
+class GamingRoles(BaseRoleEnum):
+    """Seznam herních rolí pro tagy"""
 
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
-
-
-class GamingRoles(str, Enum):
-    """Seznam rolí, co si lidi sami můžou naklikat"""
-
-    # (display_name, role_id)
     WARCRAFT = ("warcraft", 871817685439234108)
     GMOD = ("gmod", 951457356221394975)
     VALORANT = ("valorant", 991026818054225931)
@@ -89,53 +67,12 @@ class GamingRoles(str, Enum):
     ARC_RAIDERS = ("ArcRaiders", 1432779821183930401)
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
 
-    def __new__(cls, name: str, role_id: int):
-        obj = str.__new__(cls, name)
-        obj._value_ = name
-        obj._role_id = role_id
-        return obj
 
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        return self._role_id
+class DiscordGamingTestingRoles(BaseRoleEnum):
+    """Testing role enum for game pings"""
 
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
-
-
-class DiscordGamingTestingRoles(str, Enum):
-    """Seznam rolí, co si lidi sami můžou naklikat"""
-
-    # (display_name, role_id)
     WARCRAFT = ("warcraft", 1422634691969945830)
     VALORANT = ("valorant", 1422634814095228928)
-
-    def __new__(cls, name: str, role_id: int):
-        obj = str.__new__(cls, name)
-        obj._value_ = name
-        obj._role_id = role_id
-        return obj
-
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        return self._role_id
-
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
 
 
 # preload all useful stuff
@@ -192,8 +129,6 @@ async def on_ready():
     print(f"{client.user} has connected to Discord!")
 
 
-# constants
-# TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = grossdi.HELP
 WARCRAFTY_CZ = grossdi.WARCRAFTY_CZ
 
@@ -208,7 +143,7 @@ async def batch_react(m: Message, reactions: list):
 # on_member_join - happens when a new member joins guild
 @client.event
 async def on_member_join(member: disnake.Member):
-    welcome_channel = client.get_channel(WELCOMEPERO)
+    welcome_channel = client.get_channel(Channel.WELCOMEPERO)
     await welcome_channel.send(f"""
 Vítej, {member.mention}!
 Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
@@ -271,18 +206,18 @@ async def poll(
 # rolls a dice
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
 async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
-    range = None
+    roll_range = None
     try:
-        range = int(arg_range)
+        roll_range = int(arg_range)
     except Exception:
         pass
 
     if arg_range == "joint":
         await ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
-    elif not range:
+    elif not roll_range:
         await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 6d.)")
-    elif type(range) is int and range > 0:
-        await ctx.response.send_message(f"{random.randint(0, int(range))} (Used d{range}.)")
+    elif type(roll_range) is int and roll_range > 0:
+        await ctx.response.send_message(f"{random.randint(0, int(roll_range))} (Used d{roll_range}.)")
     else:
         await ctx.response.send_message("Something's wrong. Check your syntax.")
 
@@ -291,7 +226,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=GIDS)
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(TWITTERPERO)
+    twitterpero = client.get_channel(Channel.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
     assert http_session is not None
 
