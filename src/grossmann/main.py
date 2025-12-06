@@ -3,7 +3,6 @@ import os
 import random
 import time
 from datetime import datetime
-from enum import Enum
 
 import aiohttp
 import disnake
@@ -12,8 +11,8 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-from common.constants import GIDS, TWITTERPERO, WELCOMEPERO
-from common.utils import has_any, prepare_http_response, ResponseType
+from common.constants import GIDS, Channel
+from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum
 from grossmann import grossmanndict as grossdi
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
@@ -29,156 +28,50 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(nam
 # aby člověk commandem mohl přidat herní nebo městskou roli
 
 
-# todo: figure out how to make it a subclass
-class SelfServiceRoles(str, Enum):
+class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 
-    CLEN = "Člen"
-    OSTRAVAK = "Ostravák"
-    PRAZAK = "Pražák"
-    BRNAK = "brnak"
-    MAGIC_THE_GATHERING = "magicTheGathering"
-    CARFAG = "carfag"
-
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        match self:
-            case SelfServiceRoles.CLEN:
-                return 804431648959627294
-            case SelfServiceRoles.OSTRAVAK:
-                return 988431391807131690
-            case SelfServiceRoles.PRAZAK:
-                return 998636130511630386
-            case SelfServiceRoles.BRNAK:
-                return 1105227159712309391
-            case SelfServiceRoles.MAGIC_THE_GATHERING:
-                return 1327396658605981797
-            case SelfServiceRoles.CARFAG:
-                return 1057281159509319800
-
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
+    CLEN = ("Člen", 804431648959627294)
+    OSTRAVAK = ("Ostravák", 988431391807131690)
+    PRAZAK = ("Pražák", 998636130511630386)
+    BRNAK = ("brnak", 1105227159712309391)
+    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797)
+    CARFAG = ("carfag", 1057281159509319800)
 
 
-class GamingRoles(str, Enum):
-    """Seznam rolí, co si lidi sami můžou naklikat"""
+class GamingRoles(BaseRoleEnum):
+    """Seznam herních rolí pro tagy"""
 
-    # název role
-    WARCRAFT = "warcraft"
-    GMOD = "gmod"
-    VALORANT = "valorant"
-    KYOUDAI = "kyoudai"
-    LOLKO = "lolko"
-    DOTA2 = "dota2"
-    CSGO = "csgo"
-    SEA_OF_THIEVES = "sea of thieves"
-    MINECRAFT = "Minecraft"
-    DARK_AND_DARKER = "Dark and Darker"
-    GOLFISTI = "golfisti"
-    WOWKO = "WoWko"
-    ROCKANDSTONE = "kámen a šutr"
-    HOTS = "hots"
-    GTAONLINE = "GTA Online"
-    WARFRAME = "Warframe"
-    HELLDIVERS = "helldivers"
-    VOIDBOYS = "voidboys"
-    THEFINALS = "finalnici"
-    BEYOND_ALL_REASON = "BeyondAllReason"
-    VALHEIM = "valheim"
-    ARC_RAIDERS = "ArcRaiders"
-    FRIENDSLOP = "Friendslop"
-
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        match self:
-            case GamingRoles.WARCRAFT:
-                return 871817685439234108
-            case GamingRoles.GMOD:
-                return 951457356221394975
-            case GamingRoles.VALORANT:
-                return 991026818054225931
-            case GamingRoles.KYOUDAI:
-                return 1031510557163008010
-            case GamingRoles.LOLKO:
-                return 994302892561399889
-            case GamingRoles.DOTA2:
-                return 994303445735587991
-            case GamingRoles.CSGO:
-                return 994303566082740224
-            case GamingRoles.SEA_OF_THIEVES:
-                return 994303863643451442
-            case GamingRoles.MINECRAFT:
-                return 1049052005341069382
-            case GamingRoles.DARK_AND_DARKER:
-                return 1054111346733617222
-            case GamingRoles.GOLFISTI:
-                return 1076931268555587645
-            case GamingRoles.WOWKO:
-                return 1120426868697473024
-            case GamingRoles.ROCKANDSTONE:
-                return 1107334623983312897
-            case GamingRoles.HOTS:
-                return 1140376580800118835
-            case GamingRoles.GTAONLINE:
-                return 1189322955063316551
-            case GamingRoles.WARFRAME:
-                return 1200135734590451834
-            case GamingRoles.HELLDIVERS:
-                return 1228002980754751621
-            case GamingRoles.VOIDBOYS:
-                return 1281326981878906931
-            case GamingRoles.THEFINALS:
-                return 1242187454837035228
-            case GamingRoles.BEYOND_ALL_REASON:
-                return 1358445521227874424
-            case GamingRoles.VALHEIM:
-                return 1356164640152883241
-            case GamingRoles.ARC_RAIDERS:
-                return 1432779821183930401
-            case GamingRoles.FRIENDSLOP:
-                return 1435240483852124292
-
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
+    WARCRAFT = ("warcraft", 871817685439234108)
+    GMOD = ("gmod", 951457356221394975)
+    VALORANT = ("valorant", 991026818054225931)
+    KYOUDAI = ("kyoudai", 1031510557163008010)
+    LOLKO = ("lolko", 994302892561399889)
+    DOTA2 = ("dota2", 994303445735587991)
+    CSGO = ("csgo", 994303566082740224)
+    SEA_OF_THIEVES = ("sea of thieves", 994303863643451442)
+    MINECRAFT = ("Minecraft", 1049052005341069382)
+    DARK_AND_DARKER = ("Dark and Darker", 1054111346733617222)
+    GOLFISTI = ("golfisti", 1076931268555587645)
+    WOWKO = ("WoWko", 1120426868697473024)
+    ROCKANDSTONE = ("kámen a šutr", 1107334623983312897)
+    HOTS = ("hots", 1140376580800118835)
+    GTAONLINE = ("GTA Online", 1189322955063316551)
+    WARFRAME = ("Warframe", 1200135734590451834)
+    HELLDIVERS = ("helldivers", 1228002980754751621)
+    VOIDBOYS = ("voidboys", 1281326981878906931)
+    THEFINALS = ("finalnici", 1242187454837035228)
+    BEYOND_ALL_REASON = ("BeyondAllReason", 1358445521227874424)
+    VALHEIM = ("valheim", 1356164640152883241)
+    ARC_RAIDERS = ("ArcRaiders", 1432779821183930401)
+    FRIENDSLOP = ("Friendslop", 1435240483852124292)
 
 
-class DiscordGamingTestingRoles(str, Enum):
-    """Seznam rolí, co si lidi sami můžou naklikat"""
+class DiscordGamingTestingRoles(BaseRoleEnum):
+    """Testing role enum for game pings"""
 
-    WARCRAFT = "warcraft"
-    VALORANT = "valorant"
-
-    @property
-    def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
-        match self:
-            case DiscordGamingTestingRoles.WARCRAFT:
-                return 1422634691969945830
-            case DiscordGamingTestingRoles.VALORANT:
-                return 1422634814095228928
-
-    @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
+    WARCRAFT = ("warcraft", 1422634691969945830)
+    VALORANT = ("valorant", 1422634814095228928)
 
 
 # preload all useful stuff
@@ -217,7 +110,7 @@ async def on_ready():
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     # Preload last 50 message IDs from hall of fame channel
-    hall_of_fame_channel = client.get_channel(1276805111506796605)
+    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     if hall_of_fame_channel:
         current_time = datetime.now()
         async for msg in hall_of_fame_channel.history(limit=50):
@@ -235,8 +128,6 @@ async def on_ready():
     print(f"{client.user} has connected to Discord!")
 
 
-# constants
-# TODO check if needed, HELP/MOT/Linux is šimek stuff, gaming callouts are not used anymore
 HELP = grossdi.HELP
 WARCRAFTY_CZ = grossdi.WARCRAFTY_CZ
 
@@ -251,12 +142,12 @@ async def batch_react(m: Message, reactions: list):
 # on_member_join - happens when a new member joins guild
 @client.event
 async def on_member_join(member: disnake.Member):
-    welcome_channel = client.get_channel(WELCOMEPERO)
+    welcome_channel = client.get_channel(Channel.WELCOMEPERO)
     await welcome_channel.send(f"""
 Vítej, {member.mention}!
-Prosím, přesuň se do <#1314388851304955904> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
+Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
 ---
-Please, go to the <#1314388851304955904> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
+Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
                         """)
     pass
 
@@ -314,18 +205,18 @@ async def poll(
 # rolls a dice
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
 async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
-    range = None
+    roll_range = None
     try:
-        range = int(arg_range)
+        roll_range = int(arg_range)
     except Exception:
         pass
 
     if arg_range == "joint":
         await ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
-    elif not range:
+    elif not roll_range:
         await ctx.response.send_message(f"{random.randint(0, 6)} (Defaulted to 6d.)")
-    elif type(range) is int and range > 0:
-        await ctx.response.send_message(f"{random.randint(0, int(range))} (Used d{range}.)")
+    elif type(roll_range) is int and roll_range > 0:
+        await ctx.response.send_message(f"{random.randint(0, int(roll_range))} (Used d{roll_range}.)")
     else:
         await ctx.response.send_message("Something's wrong. Check your syntax.")
 
@@ -334,7 +225,7 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 # works as intended, tested troughly
 @client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=GIDS)
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
-    twitterpero = client.get_channel(TWITTERPERO)
+    twitterpero = client.get_channel(Channel.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
     assert http_session is not None
 
@@ -613,7 +504,7 @@ async def on_message(m: Message):
 @client.event
 async def on_reaction_add(reaction, user):
     global hall_of_fame_message_ids
-    hall_of_fame_channel = client.get_channel(1276805111506796605)  # antispiral halloffame channel
+    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     message = reaction.message
     # Ensure the message is on server (not a DM)
     if not message.guild:

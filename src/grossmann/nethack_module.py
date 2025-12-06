@@ -8,8 +8,9 @@ from disnake.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
+from common.constants import Channel
+
 # Constants for access control
-ALLOWED_CHANNEL_ID = 1381296005441523885
 ADMIN_ROLE_ID = 786618350095695872
 
 # Globals for NetHack session
@@ -165,7 +166,7 @@ def is_admin(inter: disnake.ApplicationCommandInteraction):
 
 
 def is_correct_channel(inter: disnake.ApplicationCommandInteraction):
-    return inter.channel_id == ALLOWED_CHANNEL_ID
+    return inter.channel_id == Channel.NETHACK
 
 
 async def send_output_to_channel(inter: disnake.ApplicationCommandInteraction, message):
