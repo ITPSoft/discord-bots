@@ -10,7 +10,7 @@ from collections import defaultdict, Counter
 
 import aiohttp
 
-from common.constants import GIDS, ŠimekChannel as Channel
+from common.constants import GIDS, Channel, SIMEK_ALLOW_CHANNELS
 from common.utils import has_any, has_all
 from šimek import šimekdict
 
@@ -45,7 +45,7 @@ MOT_HLASKY = šimekdict.MOT_HLASKY
 LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
 RECENZE = šimekdict.RECENZE
 
-ALLOW_CHANNELS = [c for c in Channel if c != Channel.ECONPOLIPERO]
+ALLOW_CHANNELS = SIMEK_ALLOW_CHANNELS
 MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund

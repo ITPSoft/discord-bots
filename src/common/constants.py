@@ -7,17 +7,14 @@ GIDS = [
 ]
 
 
-class CommonChannel(IntEnum):
-    """Shared channel IDs used across multiple bots"""
+class Channel(IntEnum):
+    """All channel IDs used by the bots"""
 
+    # Common channels
     TWITTERPERO = 1042052161338626128
     WELCOMEPERO = 1104877855466344569
 
-
-class ŠimekChannel(IntEnum):
-    """Channel IDs used by the Šimek bot"""
-
-    # Allowed channels for general reactions
+    # Šimek channels
     BOT_DEBUG_GENERAL = 1420168841501216873
     GENERAL = 1000800481397973052
     MEMES_SHITPOSTING = 324970596360257548
@@ -34,18 +31,33 @@ class ŠimekChannel(IntEnum):
     JIDLOPERO = 990724186550972477
     SCHIZOPERO = 998556012086829126
     KOUZELNICI_GENERAL = 941703477694955560
-    # Special channel with its own handling (not in ALLOW_CHANNELS)
     ECONPOLIPERO = 786626221856391199
 
-
-class GrossmannChannel(IntEnum):
-    """Channel IDs used by the Grossmann bot"""
-
+    # Grossmann channels
     HALL_OF_FAME = 1276805111506796605
     ROLES = 1314388851304955904
     NETHACK = 1381296005441523885
 
 
+SIMEK_ALLOW_CHANNELS = [
+    Channel.BOT_DEBUG_GENERAL,
+    Channel.GENERAL,
+    Channel.MEMES_SHITPOSTING,
+    Channel.BOT_TESTING,
+    Channel.GAMING_GENERAL,
+    Channel.DESKOVKY_GENERAL,
+    Channel.MAGIC_THE_GATHERING_GENERAL,
+    Channel.PHASE_CONNECT,
+    Channel.MINECRAFT_GENERAL,
+    Channel.WARCRAFT3_GENERAL,
+    Channel.GACHA,
+    Channel.IT_PERO,
+    Channel.DYMKOPERO,
+    Channel.JIDLOPERO,
+    Channel.SCHIZOPERO,
+    Channel.KOUZELNICI_GENERAL,
+]
+
 # Backwards compatibility aliases
-TWITTERPERO = CommonChannel.TWITTERPERO
-WELCOMEPERO = CommonChannel.WELCOMEPERO
+TWITTERPERO = Channel.TWITTERPERO
+WELCOMEPERO = Channel.WELCOMEPERO

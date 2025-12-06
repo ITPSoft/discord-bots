@@ -12,7 +12,7 @@ from disnake.ui import Button
 from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 
-from common.constants import GIDS, TWITTERPERO, WELCOMEPERO, GrossmannChannel as Channel
+from common.constants import GIDS, TWITTERPERO, WELCOMEPERO, Channel
 from common.utils import has_any, prepare_http_response, ResponseType
 from grossmann import grossmanndict as grossdi
 

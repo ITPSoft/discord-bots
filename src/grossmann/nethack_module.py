@@ -8,7 +8,7 @@ from disnake.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
-from common.constants import GrossmannChannel as Channel
+from common.constants import Channel
 
 # Constants for access control
 ADMIN_ROLE_ID = 786618350095695872
