@@ -42,7 +42,7 @@ from šimek.utils import find_self_reference, run_async, needs_help, Token
         ),
         ("protože jsem za hordu nebrdoval", (False, "za hordu nebrdoval")),
         ("@John Doe jsem tu", (False, "tu")),
-        ("also, dělal jsem i improvemnts na bota and shit cmon :D", (True, "i improvemnts na boto and shit cmon")),
+        ("also, dělal jsem i improvemnts na bota and shit cmon :D", (False, "i improvemnts na boto and shit cmon")),
         ("aspoň jsem implementoval toho autogreetera", (False, "implementoval toho autogreetera")),
         (
             "a jo 5GHz nemám, musím koupit přijímač, jen jsem se k tomu ještě nedostal 😄",
@@ -62,8 +62,12 @@ from šimek.utils import find_self_reference, run_async, needs_help, Token
         ("jsem expert na prsteny a trouba", (True, "experte na prsteny a troubo")),
         ("jsem trouba a expert na prsteny", (True, "troubo a experte na prsteny")),
         ("jsem :kekW:", (False, "")),
-        # ("dohledal jsem rarran video kde prošel všechny championships, cool kontext", (False, "dohledal jsem rarran video kde prošel všechny championships")),
+        ("dohledal jsem rarran video kde prošel všechny championships, cool kontext", (False, "rarran video kde prošel všechny championships")),
         ("doběhl jsem maraton", (False, "maraton")),
+        ("To jsou věci, co jsem prostě líný googlit, takže třeba když hledám inflaci rumunska, použiju AI.", (True, "prostě líný googlit")),
+        ("Btw měl jsem hodinový call s Hiltonem k té číšnické pozici.", (False, "hodinový call s hiltonem k té číšnické pozici")),
+        ("Jinak jsem teda ready, modpack se pustí v klidu, mám stable 60fps, tak asi cajk", (True, "teda ready")),
+        ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
     ],
 )
 def test_self_reference_vocative(content, expected_self_reference):
@@ -105,6 +109,10 @@ async def test_run_async():
         ("pomoc, jsem utlačovanej", True),
         ("potřebuju pomoct", True),
         ("žádám o pomoc", True),
+        ("Ach ne. Takze jesteri se dostali az tam a zacali cipovat pomoci predrazenych trdelniku?", False),
+        ("Nevíte někdo jak se zapíná scrollování pomocí MB3 a tahu, než to začnu hledat? :D", False),
+        # last to fix
+        # ("U nás ta pomoc je ale mnohem víc dostupná a i celkově si myslím, že lidi tě akceptují", False),
     ],
 )
 def test_needs_help(content, expected):

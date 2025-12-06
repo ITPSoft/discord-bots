@@ -5,7 +5,9 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
+
+T = TypeVar("T")
 
 from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 
@@ -64,7 +66,7 @@ class Token:
 executor = ThreadPoolExecutor(max_workers=1)
 
 
-async def run_async(func: Callable[..., Any], *args: Any) -> tuple[bool, str, int]:
+async def run_async(func: Callable[..., T], *args: Any) -> T:
     return await asyncio.get_running_loop().run_in_executor(executor, func, *args)
 
 
@@ -74,18 +76,21 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
     lemmas_forms = TaggedLemmasForms()
-    # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, False)
-    toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
+    toks, word_count, keyword_idx, _ = parse_sentence_with_keyword(text, [keyword], False)
+    if word_count == 0: # keyword is not separate work, but substring in a word
+        return False, "", 0
+    # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
     singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
-    # pokud je tam další sloveso, je to špatně
-    any_verb = any([tok.tag_matches("VB") for tok in toks])
-    valid_me = singular_noun and not any_verb
+    # pokud je tam další sloveso přítomního času, není to odkaz na sebe
+    other_present_verb = any([tok.tag_matches("VB") and tok.text != keyword for tok in toks])
+    # pokud je tam další sloveso minulého času, tak "jsem" patří k nšmu
+    other_past_verb = any([tok.tag_matches("Vp******R") and tok.text != keyword for tok in toks])
+    valid_me = singular_noun and not other_present_verb and not other_past_verb
     # správné skloňování
     if use_vocative:
         nouns2vocative(lemmas_forms, toks)
-    # result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
-    result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks)])
+    result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
     return valid_me, result, word_count
 
 
@@ -102,9 +107,15 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
         print("Selhalo skloňování")
 
 
+async def needs_help_a(text: str) -> bool:
+    return await run_async(needs_help, text)
+
 def needs_help(text: str) -> bool:
-    toks, word_count, _ = parse_sentence_with_keyword(text, "pomoc", False)
-    if any(tok.tag_matches("NN*S") and tok.lemma == "pomoc" for tok in toks) or any(
+    keywords = ["pomoc", "pomoci", "pomoct"]
+    toks, word_count, _, nested = parse_sentence_with_keyword(text, keywords, False)
+    if nested:
+        return False
+    if any(tok.tag_matches("NN*S") and tok.lemma in keywords for tok in toks) or any(
         tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks
     ):
         if len(toks) == 1:
@@ -118,7 +129,7 @@ def needs_help(text: str) -> bool:
     return False
 
 
-def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) -> tuple[list[Token], int, int]:
+def parse_sentence_with_keyword(text: str, keywords: list[str], after_keyword: bool) -> tuple[list[Token], int, int, bool]:
     text = truncate_emojis(text.lower())
     word_count = 0
     keyword_idx = 0
@@ -129,6 +140,10 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
     tokenizer.setText(text)
     toks: list[Token] = []
     t_iter = 0
+    has_word = False
+    nesting_char = '"'
+    cur_nested = False   # assuming only 1 level of " nesting
+    keyword_nested = False
     while tokenizer.nextSentence(forms, tokens):
         has_word = False
         sentence_end = False
@@ -152,19 +167,25 @@ def parse_sentence_with_keyword(text: str, keyword: str, after_keyword: bool) ->
 
             # interpunkce
             if tok.lemma_tag[0] == "Z":
+                if tok.text == nesting_char:
+                    cur_nested = not cur_nested
                 sentence_end = True
-                if len(toks) > 0:
+                if len(toks) > 0 and has_word:
                     break
             # pokud je after keyword true, přidáváme až po keywordu, ale keyword samotný vynecháváme
             if (has_word and not sentence_end) or (not after_keyword):
                 toks.append(tok)
-            # jsem
-            if tok.text == keyword:
+            # jsem, pomoc apod.
+            if tok.text in keywords:
+                keyword_nested = cur_nested
                 has_word = True
                 keyword_idx = len(toks)
         if has_word and sentence_end:
             break
-    return toks, word_count, keyword_idx
+    if has_word:
+        return toks, word_count, keyword_idx, keyword_nested
+    else:
+        return [], 0, -1, keyword_nested
 
 
 def format_time_ago(time: dt.datetime) -> str:
