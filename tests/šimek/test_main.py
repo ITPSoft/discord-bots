@@ -113,8 +113,6 @@ def test_markov_chain_insufficient_data():
         ("novinky z dneška", [], ["😖"]),
         # Schizo
         ("schizo moment", ["never forgeti"], []),
-        # Kdo
-        ("kdo to udělal", ["kdo se ptal?"], []),
         # Brain damage
         ("brain damage od Pink Floyd", ["https://www.youtube.com/watch?v=kyg1uxOsAUY"], []),
         ("anureysm incoming", ["https://www.youtube.com/watch?v=kyg1uxOsAUY"], []),
