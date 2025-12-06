@@ -276,7 +276,7 @@ async def manage_response(m: Message):
         case "linux" | "gnu/linux":
             await do_response("🐧", m, chance=10, reaction=True)
             await do_response(LINUX_COPYPASTA, m, chance=10)
-        case "hilfe" | "help" | "pomoc":
+        case "hilfe" | "help":
             await do_response(oogway_help, m, chance=3)
         case "pomoc" if help_needed:  # better analysis of czech help, there is no nicer way to do it
             await do_response(oogway_help, m, chance=3)
