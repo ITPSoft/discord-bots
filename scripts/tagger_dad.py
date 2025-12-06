@@ -3,7 +3,9 @@ import time
 from šimek.utils import truncate_emojis, find_self_reference
 
 # load from file
-with open("sentences.txt", "r", encoding="utf-8") as f:
+text_file = "sentences.txt"
+# text_file = "sentences_large.txt"
+with open(text_file, "r", encoding="utf-8") as f:
     texts = f.readlines()
 texts = [truncate_emojis(x.strip().lower()) for x in texts]
 

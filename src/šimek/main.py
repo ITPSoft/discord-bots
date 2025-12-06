@@ -17,7 +17,7 @@ from šimek import šimekdict
 from dotenv import load_dotenv
 import pickle
 
-from šimek.utils import find_self_reference_a, format_time_ago
+from šimek.utils import find_self_reference_a, format_time_ago, needs_help_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
@@ -243,14 +243,20 @@ async def manage_response(m: Message):
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     assert http_session is not None
 
+    # analysing dad jokes and mom jokes
     jsi_is_ref = jsem_is_ref = False
     jsi_who = jsem_who = ""
+    help_needed = False
     if "jsi" in mess:
         jsi_is_ref, jsi_who, _ = await find_self_reference_a(mess, "jsi", False)
     if "jsem" in mess:
         jsem_is_ref, jsem_who, _ = await find_self_reference_a(mess, "jsem", True)
 
     matched = True
+    oogway_help = f"""„{random.choice(MOT_HLASKY)}“
+                                                                                - Mistr Oogway, {random.randint(461, 490)} př. n. l."""
+    if "pomoc" in mess:
+        help_needed = await needs_help_a(mess)
 
     match Substring(mess):
         case "hodný bot":
@@ -270,13 +276,10 @@ async def manage_response(m: Message):
         case "linux" | "gnu/linux":
             await do_response("🐧", m, chance=10, reaction=True)
             await do_response(LINUX_COPYPASTA, m, chance=10)
-        case "hilfe" | "pomoc" | "pomocí" | "help":
-            await do_response(
-                f"""„{random.choice(MOT_HLASKY)}“
-                                                                                - Mistr Oogway, {random.randint(461, 490)} př. n. l.""",
-                m,
-                chance=3,
-            )
+        case "hilfe" | "help" | "pomoc":
+            await do_response(oogway_help, m, chance=3)
+        case "pomoc" if help_needed:  # better analysis of czech help, there is no nicer way to do it
+            await do_response(oogway_help, m, chance=3)
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
             await do_response("Přestaň postovat cringe, bro.", m, chance=10)
