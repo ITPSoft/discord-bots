@@ -28,7 +28,6 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(nam
 # aby člověk commandem mohl přidat herní nebo městskou roli
 
 
-
 class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 

@@ -1,6 +1,6 @@
 import io
 from collections.abc import Iterable
-from enum import StrEnum, Enum
+from enum import StrEnum
 from urllib.parse import urlparse
 
 import aiohttp
