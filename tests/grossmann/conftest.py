@@ -1,8 +1,11 @@
 """Pytest configuration for Discord bot testing."""
 
 import os
+from typing import Any
+from collections.abc import Generator
+
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 # Mock environment variables for testing
 os.environ.setdefault("DISCORD_TOKEN", "test_token")
@@ -131,3 +134,10 @@ def assert_reactions_added(mock_message, expected_reactions):
     assert mock_message.add_reaction.call_count == len(expected_reactions)
     for reaction in expected_reactions:
         mock_message.add_reaction.assert_any_call(reaction)
+
+
+@pytest.fixture(autouse=True)
+def mock_is_correct_channel() -> Generator[MagicMock, Any, None]:
+    with patch("grossmann.nethack_module.is_correct_channel") as _fixture:
+        _fixture.side_effect = lambda channel: channel.channel_id == TEST_ALLOWED_CHANNEL_ID
+        yield _fixture

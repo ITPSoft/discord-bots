@@ -29,7 +29,6 @@ async def test_nethack_start_command_admin(bot, mock_admin_interaction):
     """Test NetHack start command with admin permissions."""
     # Mock the allowed channel and admin role IDs
     with (
-        patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID),
         patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID),
         patch("grossmann.nethack_module.start_nethack") as mock_start,
     ):
@@ -54,27 +53,23 @@ async def test_nethack_start_command_admin(bot, mock_admin_interaction):
 async def test_nethack_start_command_wrong_channel(bot, mock_wrong_channel_interaction):
     """Test NetHack start command in wrong channel."""
     # Set a different allowed channel ID
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
-        nethack_cmd = bot.get_slash_command("nethack")
-        start_cmd = None
-        for cmd in nethack_cmd.children.values():
-            if cmd.name == "start":
-                start_cmd = cmd
-                break
+    nethack_cmd = bot.get_slash_command("nethack")
+    start_cmd = None
+    for cmd in nethack_cmd.children.values():
+        if cmd.name == "start":
+            start_cmd = cmd
+            break
 
-        await start_cmd(mock_wrong_channel_interaction)
+    await start_cmd(mock_wrong_channel_interaction)
 
-        mock_wrong_channel_interaction.response.send_message.assert_called_with(
-            "This command can only be used in the designated NetHack channel.", ephemeral=True
-        )
+    mock_wrong_channel_interaction.response.send_message.assert_called_with(
+        "This command can only be used in the designated NetHack channel.", ephemeral=True
+    )
 
 
 async def test_nethack_start_command_no_admin(bot, mock_interaction):
     """Test NetHack start command without admin permissions."""
-    with (
-        patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID),
-        patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID),
-    ):
+    with patch.object(nethack_module, "ADMIN_ROLE_ID", TEST_ADMIN_ROLE_ID):
         nethack_cmd = bot.get_slash_command("nethack")
         start_cmd = None
         for cmd in nethack_cmd.children.values():
@@ -91,10 +86,7 @@ async def test_nethack_start_command_no_admin(bot, mock_interaction):
 
 async def test_nethack_key_command(bot, mock_interaction):
     """Test NetHack key command."""
-    with (
-        patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID),
-        patch("grossmann.nethack_module.send_key") as mock_send_key,
-    ):
+    with patch("grossmann.nethack_module.send_key") as mock_send_key:
         mock_send_key.return_value = Image.new("RGB", (100, 100))
 
         nethack_cmd = bot.get_slash_command("nethack")
@@ -112,10 +104,7 @@ async def test_nethack_key_command(bot, mock_interaction):
 
 async def test_nethack_status_command(bot, mock_interaction):
     """Test NetHack status command."""
-    with (
-        patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID),
-        patch("grossmann.nethack_module.nethack_proc", None),
-    ):
+    with patch("grossmann.nethack_module.nethack_proc", None):
         nethack_cmd = bot.get_slash_command("nethack")
         status_cmd = None
         for cmd in nethack_cmd.children.values():
@@ -145,16 +134,15 @@ def test_is_admin():
         assert nethack_module.is_admin(mock_inter) is False
 
 
-def test_is_correct_channel():
+def test_is_correct_channel(mock_is_correct_channel):
     """Test channel checking."""
-    with patch.object(nethack_module, "ALLOWED_CHANNEL_ID", TEST_ALLOWED_CHANNEL_ID):
-        mock_inter = MagicMock()
-        mock_inter.channel_id = TEST_ALLOWED_CHANNEL_ID
+    mock_inter = MagicMock()
+    mock_inter.channel_id = TEST_ALLOWED_CHANNEL_ID
 
-        assert nethack_module.is_correct_channel(mock_inter) is True
+    assert nethack_module.is_correct_channel(mock_inter) is True
 
-        mock_inter.channel_id = 999999
-        assert nethack_module.is_correct_channel(mock_inter) is False
+    mock_inter.channel_id = 999999
+    assert nethack_module.is_correct_channel(mock_inter) is False
 
 
 # @pytest.mark.skipif(sys.platform == "win32", reason="Nethack is currently not supported on Windows")
@@ -220,7 +208,7 @@ async def test_send_key_with_modifier():
     with (
         patch("grossmann.nethack_module.nethack_proc", mock_process),
         patch("grossmann.nethack_module.render_screen") as mock_render,
-        patch("grossmann.nethack_module.nethack_stream") as mock_stream,
+        patch("grossmann.nethack_module.nethack_stream"),
     ):
         mock_render.return_value = "rendered"
 

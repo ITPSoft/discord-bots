@@ -10,7 +10,7 @@ from collections import defaultdict, Counter
 
 import aiohttp
 
-from common.constants import GIDS, Channel, ŠIMEK_ALLOW_CHANNELS
+from common.constants import GIDS, Channel
 from common.utils import has_any, has_all
 from šimek import šimekdict
 
@@ -39,13 +39,30 @@ REPLIES = (
     "Pravděpodobně.",
     "bruh",
     "nemám tušení",
-)  # repeat ano/ne/perhaps to give it more common occurence
+)  # repeat ano/ne/perhaps to give it more common occurrence
 
 MOT_HLASKY = šimekdict.MOT_HLASKY
 LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
 RECENZE = šimekdict.RECENZE
 
-ALLOW_CHANNELS = ŠIMEK_ALLOW_CHANNELS
+ALLOW_CHANNELS = [
+    Channel.BOT_DEBUG_GENERAL,
+    Channel.GENERAL,
+    Channel.MEMES_SHITPOSTING,
+    Channel.BOT_TESTING,
+    Channel.GAMING_GENERAL,
+    Channel.DESKOVKY_GENERAL,
+    Channel.MAGIC_THE_GATHERING_GENERAL,
+    Channel.PHASE_CONNECT,
+    Channel.MINECRAFT_GENERAL,
+    Channel.WARCRAFT3_GENERAL,
+    Channel.GACHA,
+    Channel.IT_PERO,
+    Channel.DYMKOPERO,
+    Channel.JIDLOPERO,
+    Channel.SCHIZOPERO,
+    Channel.KOUZELNICI_GENERAL,
+]
 MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund
