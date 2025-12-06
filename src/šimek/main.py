@@ -267,8 +267,6 @@ async def manage_response(m: Message):
             await do_response(f"Ahoj, {jsem_who}. Já jsem táta.", m, chance=5)
         case "schizo":
             await do_response("never forgeti", m, chance=4)
-        case "kdo":
-            await do_response("kdo se ptal?", m, chance=100)
         case "anureysm" | "aneuerysm" | "brain damage" | "brian damage":
             await do_response("https://www.youtube.com/watch?v=kyg1uxOsAUY", m, chance=2)
         case "groku je to pravda" | "groku je toto pravda" | "groku, je to pravda" | "groku, je toto pravda":
