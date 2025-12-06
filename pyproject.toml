@@ -39,12 +39,6 @@ ignore_missing_imports = true
 module = "disnake.*"
 follow_imports = "skip"
 
-# not working for some reason
-#[[tool.mypy.overrides]]
-#module = ["ufal.morphodita.*", "ufal.morphodita"]
-#follow_imports = "skip"
-#ignore_errors = true
-
 [[tool.mypy.overrides]]
 module = [
     "src.krampol.*", # krampol is not actively used

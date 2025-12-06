@@ -17,7 +17,7 @@ from šimek import šimekdict
 from dotenv import load_dotenv
 import pickle
 
-from šimek.utils import find_self_reference_a, format_time_ago, needs_help, needs_help_a
+from šimek.utils import find_self_reference_a, format_time_ago, needs_help_a
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
