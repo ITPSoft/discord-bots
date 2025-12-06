@@ -6,10 +6,9 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Callable, TypeVar
+from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 
 T = TypeVar("T")
-
-from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 
 
 def truncate_emojis(text):
@@ -77,7 +76,7 @@ async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> 
 def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
     lemmas_forms = TaggedLemmasForms()
     toks, word_count, keyword_idx, _ = parse_sentence_with_keyword(text, [keyword], False)
-    if word_count == 0: # keyword is not separate work, but substring in a word
+    if word_count == 0:  # keyword is not separate work, but substring in a word
         return False, "", 0
     # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
     # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
@@ -110,6 +109,7 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
 async def needs_help_a(text: str) -> bool:
     return await run_async(needs_help, text)
 
+
 def needs_help(text: str) -> bool:
     keywords = ["pomoc", "pomoci", "pomoct"]
     toks, word_count, _, nested = parse_sentence_with_keyword(text, keywords, False)
@@ -129,7 +129,9 @@ def needs_help(text: str) -> bool:
     return False
 
 
-def parse_sentence_with_keyword(text: str, keywords: list[str], after_keyword: bool) -> tuple[list[Token], int, int, bool]:
+def parse_sentence_with_keyword(
+    text: str, keywords: list[str], after_keyword: bool
+) -> tuple[list[Token], int, int, bool]:
     text = truncate_emojis(text.lower())
     word_count = 0
     keyword_idx = 0
@@ -142,7 +144,7 @@ def parse_sentence_with_keyword(text: str, keywords: list[str], after_keyword: b
     t_iter = 0
     has_word = False
     nesting_char = '"'
-    cur_nested = False   # assuming only 1 level of " nesting
+    cur_nested = False  # assuming only 1 level of " nesting
     keyword_nested = False
     while tokenizer.nextSentence(forms, tokens):
         has_word = False

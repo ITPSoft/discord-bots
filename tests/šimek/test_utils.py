@@ -62,10 +62,19 @@ from šimek.utils import find_self_reference, run_async, needs_help, Token
         ("jsem expert na prsteny a trouba", (True, "experte na prsteny a troubo")),
         ("jsem trouba a expert na prsteny", (True, "troubo a experte na prsteny")),
         ("jsem :kekW:", (False, "")),
-        ("dohledal jsem rarran video kde prošel všechny championships, cool kontext", (False, "rarran video kde prošel všechny championships")),
+        (
+            "dohledal jsem rarran video kde prošel všechny championships, cool kontext",
+            (False, "rarran video kde prošel všechny championships"),
+        ),
         ("doběhl jsem maraton", (False, "maraton")),
-        ("To jsou věci, co jsem prostě líný googlit, takže třeba když hledám inflaci rumunska, použiju AI.", (True, "prostě líný googlit")),
-        ("Btw měl jsem hodinový call s Hiltonem k té číšnické pozici.", (False, "hodinový call s hiltonem k té číšnické pozici")),
+        (
+            "To jsou věci, co jsem prostě líný googlit, takže třeba když hledám inflaci rumunska, použiju AI.",
+            (True, "prostě líný googlit"),
+        ),
+        (
+            "Btw měl jsem hodinový call s Hiltonem k té číšnické pozici.",
+            (False, "hodinový call s hiltonem k té číšnické pozici"),
+        ),
         ("Jinak jsem teda ready, modpack se pustí v klidu, mám stable 60fps, tak asi cajk", (True, "teda ready")),
         ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
     ],

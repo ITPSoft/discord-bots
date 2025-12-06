@@ -278,7 +278,7 @@ async def manage_response(m: Message):
             await do_response(LINUX_COPYPASTA, m, chance=10)
         case "hilfe" | "help" | "pomoc":
             await do_response(oogway_help, m, chance=3)
-        case "pomoc" if help_needed: # better analysis of czech help, there is no nicer way to do it
+        case "pomoc" if help_needed:  # better analysis of czech help, there is no nicer way to do it
             await do_response(oogway_help, m, chance=3)
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
