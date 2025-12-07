@@ -55,7 +55,7 @@ Make .env file following [.env.sample](.env.sample) and fill there the required 
 
 Docker images are automatically built and pushed to GitHub Container Registry (GHCR) on every push to main and on version tags.
 
-**Pull and run a bot:**
+#### Pull and run a bot
 
 ```shell
 # Pull the latest image
@@ -71,7 +71,7 @@ docker run -d --name simek --env-file .env -e BOT_NAME=šimek ghcr.io/itpsoft/di
 docker run -d --name krampol --env-file .env -e BOT_NAME=krampol ghcr.io/itpsoft/discord-bots:latest
 ```
 
-**Build and run locally:**
+#### Build and run locally
 
 Using Docker Compose (recommended):
 ```shell
@@ -95,7 +95,7 @@ docker build -t discord-bots .
 docker run --env-file .env discord-bots
 ```
 
-** Deploying to Portainer **
+#### Deploying to Portainer
 
 [docker-compose.portainer.yaml](docker-compose.portainer.yaml) contains the configuration for deploying the bot to Portainer,
 and it's automatically being pulled.

@@ -59,3 +59,12 @@ or by running
 ```shell
 mypy .
 ```
+
+## Šimek jokes
+
+Mom jokes, dad jokes and help requests are implemented using [ufal/morphodita](https://github.com/ufal/morphodita),
+system description is [here](https://ufal.mff.cuni.cz/morphodita/users-manual) and complete documentation [here](https://ufal.mff.cuni.cz/techrep/tr64.pdf).
+
+## Šimek grok feature
+
+It's implemented using markov chain 3grams.

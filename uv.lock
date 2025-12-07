@@ -454,17 +454,13 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "disnake" },
-    { name = "notebook" },
-    { name = "pexpect" },
-    { name = "pillow" },
-    { name = "pyte" },
     { name = "python-dotenv" },
-    { name = "requests" },
     { name = "ufal-morphodita" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "notebook" },
     { name = "poethepoet" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -472,28 +468,34 @@ dev = [
     { name = "pytest-mypy" },
     { name = "pytest-ruff" },
 ]
+nethack = [
+    { name = "pexpect" },
+    { name = "pillow" },
+    { name = "pyte" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.11,<4.0.0" },
     { name = "disnake", specifier = ">=2.10.1,<3.0.0" },
-    { name = "notebook", specifier = ">=7.5.0" },
-    { name = "pexpect", specifier = ">=4.9.0" },
-    { name = "pillow", specifier = ">=11.3.0" },
-    { name = "pyte", specifier = ">=0.8.2" },
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
-    { name = "requests", specifier = ">=2.32.5,<3.0.0" },
     { name = "ufal-morphodita", specifier = "==1.11.3.3" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "notebook", specifier = ">=7.5.0" },
     { name = "poethepoet", specifier = ">=0.38.0" },
     { name = "pytest", specifier = ">=9.0.1,<9.1.0" },
     { name = "pytest-asyncio", specifier = ">=1.3.0,<1.4.0" },
     { name = "pytest-cov", specifier = ">=7.0.0,<7.1.0" },
     { name = "pytest-mypy", specifier = ">=0.10.3,<1.1.0" },
     { name = "pytest-ruff", specifier = ">=0.3.1,<0.6.0" },
+]
+nethack = [
+    { name = "pexpect", specifier = ">=4.9.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
+    { name = "pyte", specifier = ">=0.8.2" },
 ]
 
 [[package]]

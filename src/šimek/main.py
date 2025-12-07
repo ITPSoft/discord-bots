@@ -181,6 +181,7 @@ def cooldown(channel_id: int):
         return CUSTOM_COOLDOWNS[channel_id]
     return COOLDOWN
 
+
 async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     reply: str - text or emoji to reply with
@@ -268,7 +269,7 @@ async def manage_response(m: Message):
     matched = True
     oogway_help = f"""„{random.choice(MOT_HLASKY)}“
                                                                                 - Mistr Oogway, {random.randint(461, 490)} př. n. l."""
-    if "pomoc" in mess:
+    if "pomo" in mess:
         help_needed = await needs_help_a(mess)
 
     match Substring(mess):
@@ -291,7 +292,7 @@ async def manage_response(m: Message):
             await do_response(LINUX_COPYPASTA, m, chance=10)
         case "hilfe" | "help":
             await do_response(oogway_help, m, chance=3)
-        case "pomoc" if help_needed:  # better analysis of czech help, there is no nicer way to do it
+        case "pomo" if help_needed:  # better analysis of czech help, there is no nicer way to do it, pomoz etc.
             await do_response(oogway_help, m, chance=3)
         case "novinky":
             await do_response("😖", m, chance=3, reaction=True)
