@@ -18,7 +18,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev --no-group nethack
+# remove the --no-group nethack to add the nethack
 
 # Install project itself using bind mounts (avoids copying tests, docs, etc.)
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -26,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=README.md,target=README.md \
     --mount=type=bind,source=src,target=src \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-group nethack
 
 # Copy only what's needed for runtime and build
 COPY src /app/src

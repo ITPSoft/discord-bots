@@ -83,7 +83,7 @@ def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bo
     singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
     # pokud je tam další sloveso přítomního času, není to odkaz na sebe
     other_present_verb = any([tok.tag_matches("VB") and tok.text != keyword for tok in toks])
-    # pokud je tam další sloveso minulého času, tak "jsem" patří k nšmu
+    # pokud je tam další sloveso minulého času, tak "jsem" patří k němu
     other_past_verb = any([tok.tag_matches("Vp******R") and tok.text != keyword for tok in toks])
     valid_me = singular_noun and not other_present_verb and not other_past_verb
     # správné skloňování
@@ -112,25 +112,38 @@ async def needs_help_a(text: str) -> bool:
 
 def needs_help(text: str) -> bool:
     keywords = ["pomoc", "pomoci", "pomoct"]
-    toks, word_count, _, nested = parse_sentence_with_keyword(text, keywords, False)
+    toks, word_count, _, nested = parse_sentence_with_keyword(text, keywords, after_keyword=False, match_lemma=True)
     if nested:
         return False
-    if any(tok.tag_matches("NN*S") and tok.lemma in keywords for tok in toks) or any(
-        tok.tag_matches("Vf") and tok.lemma == "pomoci" for tok in toks
+    if any(tok.tag_matches("NN*S4") and tok.lemma in keywords for tok in toks) or any(
+        (tok.tag_matches("Vf") or tok.tag_matches("Vi")) and tok.lemma in keywords
+        for tok in toks  # sloveslo v infinitivu nebo imperativu
     ):
         if len(toks) == 1:
             return True
-        if any(
+        # volání o pomoc shortcut
+        help_ask = any(
+            tok.tag_matches("Vi-****2**A") and tok.lemma in keywords for tok in toks
+        )  # sloveso přítomného času jednotného čísla, pozitivní a první osoba, jako chci pomoct apod.
+        help_ask_me = any(tok.tag_matches("P***3") and tok.lemma in ["já"] for tok in toks)
+        if help_ask and help_ask_me:
+            return True
+        verb_present = any(
             tok.tag_matches("VB-S***1P*A")
-            # and tok.lemma in ["potřebovat", "chtít"]
+            and tok.lemma not in ["být"]  # být apod. je moc obecné a způsobuje false positivy
             for tok in toks
-        ) and not any(tok.tag_matches("V*******R") for tok in toks):  # jen přítomný čas a žádný záporný
+        )  # sloveso přítomného času jednotného čísla, pozitivní a první osoba, jako chci pomoct apod.
+        verb_past = any(tok.tag_matches("V*******R") for tok in toks)  # sloveso minulého času
+        verb_negated = any(tok.tag_matches("V*********N") for tok in toks)  # jen když u sloves není zápor
+        if verb_past or verb_negated:
+            return False
+        if verb_present:
             return True
     return False
 
 
 def parse_sentence_with_keyword(
-    text: str, keywords: list[str], after_keyword: bool
+    text: str, keywords: list[str], after_keyword: bool, match_lemma: bool = False
 ) -> tuple[list[Token], int, int, bool]:
     text = truncate_emojis(text.lower())
     word_count = 0
@@ -178,7 +191,7 @@ def parse_sentence_with_keyword(
             if (has_word and not sentence_end) or (not after_keyword):
                 toks.append(tok)
             # jsem, pomoc apod.
-            if tok.text in keywords:
+            if (tok.text in keywords and not match_lemma) or (tok.lemma in keywords and match_lemma):
                 keyword_nested = cur_nested
                 has_word = True
                 keyword_idx = len(toks)
