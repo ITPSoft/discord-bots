@@ -135,10 +135,10 @@ def load_trigram_counts(filename=MARKOV_FILE):
 def markov_chain(messages, max_words=20):
     # Build and save trigram counts
     markov_counts = build_trigram_counts(messages)
-    save_trigram_counts(markov_counts)
-
-    # Load trigram counts
-    markov_counts = load_trigram_counts()
+    # save_trigram_counts(markov_counts)
+    #
+    # # Load trigram counts
+    # markov_counts = load_trigram_counts()
 
     if not markov_counts:
         return "Not enough data for trigram Markov chain."
