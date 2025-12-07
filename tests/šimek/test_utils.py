@@ -77,6 +77,8 @@ from šimek.utils import find_self_reference, run_async, needs_help, Token
         ),
         ("Jinak jsem teda ready, modpack se pustí v klidu, mám stable 60fps, tak asi cajk", (True, "teda ready")),
         ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
+        ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
+        ("Já. Dostal jsem ji jednou k vánocům, myslím. Kolega svolal deskohraní a nedorazil, tak jsem tím nakazil ostatní. ", (False, "")),
     ],
 )
 def test_self_reference_vocative(content, expected_self_reference):
@@ -95,6 +97,8 @@ def test_self_reference_vocative(content, expected_self_reference):
         ("debilní dotaz, nezapomněl jsi tam dát prdopeč?", (False, "tam dát prdopeč")),
         ("jak jsi to uhodl? podvádíš", (False, "to uhodl")),
         ("Jsi borec", (True, "borec")),
+        # todo: tohle zkontrolovat, proč to neprochází
+        ("Ale je důležité stát si na tom co jsi ty sám a nenechat si diktovat život jinými jen kvuli jejich názoru.", (False, "ty sám a nenechat si diktovat život jinými jen kvuli jejich názoru")),
     ],
 )
 def test_self_reference_nominative(content, expected_self_reference):
@@ -118,6 +122,9 @@ async def test_run_async():
         ("pomoc, jsem utlačovanej", True),
         ("potřebuju pomoct", True),
         ("žádám o pomoc", True),
+        ("Chci pomoct", True),
+        ("Nechtěl jsem pomoct.", True),
+        ("Nechci pomoct", True),
         ("Ach ne. Takze jesteri se dostali az tam a zacali cipovat pomoci predrazenych trdelniku?", False),
         ("Nevíte někdo jak se zapíná scrollování pomocí MB3 a tahu, než to začnu hledat? :D", False),
         # last to fix

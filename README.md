@@ -33,7 +33,7 @@ We use [uv](https://docs.astral.sh/uv/) for package and Python version managemen
 - [uv installation](https://docs.astral.sh/uv/getting-started/installation/)
 - Install dependencies
   - ```shell
-    uv sync --frozen
+    uv sync --frozen --all-groups
     ```
   this installs everything needed into the `.venv` folder
 

@@ -67,6 +67,11 @@ MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund
 
+# for easier testing
+CUSTOM_COOLDOWNS = {
+    Channel.BOT_TESTING.value: 0,
+}
+
 # add intents for bot
 intents = disnake.Intents.all()
 client = InteractionBot(intents=intents)  # so we can have debug commands
@@ -168,6 +173,14 @@ class Substring(str):
 # evil hack end
 
 
+def cooldown(channel_id: int):
+    """
+    Allows different cooldown per channel
+    """
+    if channel_id in CUSTOM_COOLDOWNS:
+        return CUSTOM_COOLDOWNS[channel_id]
+    return COOLDOWN
+
 async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     reply: str - text or emoji to reply with
@@ -198,7 +211,7 @@ async def manage_response(m: Message):
         return  # skip setting the time again at the end of the function
 
     last_time = last_reaction_time.get(m.channel.id)
-    if last_time and (seconds_diff := (now - last_time).total_seconds()) < COOLDOWN:
+    if last_time and (seconds_diff := (now - last_time).total_seconds()) < cooldown(m.channel.id):
         print(f"too soon, last replied {seconds_diff} seconds ago")
         return
 
