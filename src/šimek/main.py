@@ -12,7 +12,7 @@ from disnake.ext.commands import InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 from šimek import šimekdict
 from šimek.morphodita_utils import find_self_reference_a, needs_help_a
-from šimek.utils import format_time_ago
+from šimek.utils import format_time_ago, markov_chain
 
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
