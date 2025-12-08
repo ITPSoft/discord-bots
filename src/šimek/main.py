@@ -1,31 +1,19 @@
-import time
-start = time.monotonic()
+import datetime as dt
 import os
 import random
-import datetime as dt
 import re
 
-import disnake
-from disnake import Message, ApplicationCommandInteraction
-from disnake.ext.commands import InteractionBot, default_member_permissions
-from collections import defaultdict, Counter
-
 import aiohttp
-
+import disnake
 from common.constants import GIDS, Channel
 from common.utils import has_any, has_all
-from šimek import šimekdict
-
+from disnake import Message, ApplicationCommandInteraction
+from disnake.ext.commands import InteractionBot, default_member_permissions
 from dotenv import load_dotenv
-import pickle
+from šimek import šimekdict
+from šimek.morphodita_utils import find_self_reference_a, needs_help_a
+from šimek.utils import format_time_ago
 
-beforeutils = time.monotonic()
-print(f"{beforeutils - start} s")
-
-from šimek.utils import find_self_reference_a, format_time_ago, needs_help_a
-
-afterutils = time.monotonic()
-print(f"{afterutils - start} s")
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
 
@@ -70,7 +58,6 @@ ALLOW_CHANNELS = [
     Channel.SCHIZOPERO,
     Channel.KOUZELNICI_GENERAL,
 ]
-MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund
 
@@ -81,12 +68,9 @@ CUSTOM_COOLDOWNS = {
 
 # add intents for bot
 intents = disnake.Intents.all()
-client = InteractionBot(intents=intents, asyncio_debug=True)  # so we can have debug commands
+client = InteractionBot(intents=intents)  # so we can have debug commands
 
 last_reaction_time: dict[int, dt.datetime] = {}
-
-afterconstruct = time.monotonic()
-print(f"{afterconstruct - start} s")
 
 @client.slash_command(description="Show last reaction times")
 @default_member_permissions(administrator=True)
@@ -112,67 +96,7 @@ async def on_ready():
     global http_session
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
-    afterboot = time.monotonic()
     print(f"{client.user} has connected to Discord!")
-    print(f"{afterboot - start} s")
-
-
-def build_trigram_counts(messages):
-    words = " ".join(messages).lower().split()
-    if len(words) < 3:
-        return {}
-    markov = defaultdict(list)
-    for i in range(len(words) - 2):
-        key = (words[i], words[i + 1])
-        next_word = words[i + 2]
-        markov[key].append(next_word)
-    markov_counts = {k: Counter(v) for k, v in markov.items()}
-    return markov_counts
-
-
-def save_trigram_counts(markov_counts, filename=MARKOV_FILE):
-    with open(filename, "wb") as f:
-        pickle.dump(markov_counts, f)
-
-
-def load_trigram_counts(filename=MARKOV_FILE):
-    try:
-        with open(filename, "rb") as f:
-            return pickle.load(f)
-    except Exception:
-        return {}
-
-
-def markov_chain(messages, max_words=20):
-    # Build and save trigram counts
-    markov_counts = build_trigram_counts(messages)
-    # save_trigram_counts(markov_counts)
-    #
-    # # Load trigram counts
-    # markov_counts = load_trigram_counts()
-
-    if not markov_counts:
-        return "Not enough data for trigram Markov chain."
-
-    start_key = random.choice(list(markov_counts.keys()))
-    sentence = [start_key[0], start_key[1]]
-
-    for _ in range(max_words - 2):
-        if start_key in markov_counts:
-            next_words, weights = zip(*markov_counts[start_key].items())
-            next_word = random.choices(next_words, weights=weights)[0]
-            sentence.append(next_word)
-            if next_word.endswith((".", "!", "?:D", ":D", ":)", "😂", "🤣", ":kekw:")):
-                break
-            start_key = (start_key[1], next_word)
-        else:
-            break
-
-    return " ".join(sentence).lower()
-
-
-# trigram Markov chain functions end
-
 
 # we use a evil class magic to hack match case to check for substrings istead of exact matches
 # https://stackoverflow.com/a/78046484

@@ -71,6 +71,11 @@ mypy .
 Mom jokes, dad jokes and help requests are implemented using [ufal/morphodita](https://github.com/ufal/morphodita),
 system description is [here](https://ufal.mff.cuni.cz/morphodita/users-manual) and complete documentation [here](https://ufal.mff.cuni.cz/techrep/tr64.pdf).
 
+### Morphodita
+
+Loading morphodita takes ~3s, but because it doesn't release the GIL, loading it in separate thread doesn't speed up
+the total start time. I did experiment with it and got nowhere, 2thread version took same time as single thread.
+
 ## Šimek grok feature
 
 It's implemented using markov chain 3grams.
@@ -87,3 +92,11 @@ didn't help and I didn't want to install pip to the uv env, wasn't worth it.
 
 I ran šimek with `PYTHONASYNCIODEBUG=1` and it didn't print anything when processing some messages, meaning no
 function is blocking the main event loop for over 100ms.
+
+## Docker
+
+The dockerfile is highly optimized to produce small layers, the main logic is using UV to build and then copy only what
+is needed to slim image.
+Morphodita is copied first as it doesn't change.
+Then venv is copied without source code, and source code is copied last, so for just source code changes, there is minimal
+traffic related to docker image.
