@@ -1,3 +1,5 @@
+import time
+start = time.monotonic()
 import os
 import random
 import datetime as dt
@@ -17,8 +19,13 @@ from šimek import šimekdict
 from dotenv import load_dotenv
 import pickle
 
+beforeutils = time.monotonic()
+print(f"{beforeutils - start} s")
+
 from šimek.utils import find_self_reference_a, format_time_ago, needs_help_a
 
+afterutils = time.monotonic()
+print(f"{afterutils - start} s")
 # Global HTTP session - will be initialized when bot starts
 http_session: aiohttp.ClientSession | None = None
 
@@ -74,10 +81,12 @@ CUSTOM_COOLDOWNS = {
 
 # add intents for bot
 intents = disnake.Intents.all()
-client = InteractionBot(intents=intents)  # so we can have debug commands
+client = InteractionBot(intents=intents, asyncio_debug=True)  # so we can have debug commands
 
 last_reaction_time: dict[int, dt.datetime] = {}
 
+afterconstruct = time.monotonic()
+print(f"{afterconstruct - start} s")
 
 @client.slash_command(description="Show last reaction times")
 @default_member_permissions(administrator=True)
@@ -103,7 +112,9 @@ async def on_ready():
     global http_session
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    afterboot = time.monotonic()
     print(f"{client.user} has connected to Discord!")
+    print(f"{afterboot - start} s")
 
 
 def build_trigram_counts(messages):

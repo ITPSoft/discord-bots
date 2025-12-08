@@ -11,7 +11,8 @@ WORKDIR /app
 
 # Environment configuration for optimal Docker behavior
 ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    PIP_NO_CACHE_DIR=1
 
 # Install dependencies FIRST (cached unless lock/pyproject change)
 # Using bind mounts avoids copying files into intermediate layers
@@ -53,5 +54,6 @@ COPY --from=build --chown=app:app /app/pyproject.toml /app/uv.lock /app/README.m
 
 # Activate virtualenv by adding to PATH
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PIP_NO_CACHE_DIR=1
 
 USER app

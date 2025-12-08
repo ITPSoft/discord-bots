@@ -2,6 +2,12 @@
 
 All useful information about development that is too detailed for README.md
 
+## UV
+
+Nethack has its own dependency group, just for transparency.
+
+All non-production deps must be in the dev group to keep the docker image small.
+
 ## Ruff
 
 Ruff is used for linting and formatting.
@@ -68,3 +74,16 @@ system description is [here](https://ufal.mff.cuni.cz/morphodita/users-manual) a
 ## Šimek grok feature
 
 It's implemented using markov chain 3grams.
+
+## Pip
+
+Running pip freeze inside the container doesn't do anything, because system pip doesn't see into env made by UV.
+```Dockerfile
+ENV VIRTUAL_ENV=/app/.venv
+```
+didn't help and I didn't want to install pip to the uv env, wasn't worth it.
+
+## Asyncio optimizations
+
+I ran šimek with `PYTHONASYNCIODEBUG=1` and it didn't print anything when processing some messages, meaning no
+function is blocking the main event loop for over 100ms.
