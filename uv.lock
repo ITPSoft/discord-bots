@@ -453,6 +453,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "discord-handler" },
     { name = "disnake" },
     { name = "python-dotenv" },
     { name = "ufal-morphodita" },
@@ -477,6 +478,7 @@ nethack = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.11,<4.0.0" },
+    { name = "discord-handler", specifier = ">=0.0.5" },
     { name = "disnake", specifier = ">=2.10.1,<3.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.1,<2.0.0" },
     { name = "ufal-morphodita", specifier = "==1.11.3.3" },
@@ -497,6 +499,15 @@ nethack = [
     { name = "pillow", specifier = ">=11.3.0" },
     { name = "pyte", specifier = ">=0.8.2" },
 ]
+
+[[package]]
+name = "discord-handler"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/76/48edb67b9e10a917fa48e13ee6889bbad8572fd76601aee2412e04967fcb/discord_handler-0.0.5.tar.gz", hash = "sha256:3691509edb37eb77773c578f8cdba4a8654e77dbf6cffc7f9f558baa9e014d5d", size = 4069, upload-time = "2022-04-21T08:41:10.008Z" }
 
 [[package]]
 name = "disnake"

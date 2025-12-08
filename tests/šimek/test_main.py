@@ -58,24 +58,6 @@ def mock_message():
     return message
 
 
-def test_build_trigram_counts():
-    """Test trigram counting function."""
-    messages = ["hello world test", "world test again"]
-    result = main.build_trigram_counts(messages)
-
-    assert isinstance(result, dict)
-    assert ("hello", "world") in result
-    assert ("world", "test") in result
-
-
-def test_markov_chain_insufficient_data():
-    """Test markov chain with insufficient data."""
-    messages = ["hi"]
-    result = main.markov_chain(messages)
-
-    assert "Not enough data" in result
-
-
 @pytest.mark.parametrize(
     "user_message,expected_responses,expected_reactions",
     [

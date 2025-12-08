@@ -51,6 +51,8 @@ Make .env file following [.env.sample](.env.sample) and fill there the required 
 
 ## Deployment
 
+See [development.md](development.md) for more details beyond this readme.
+
 ### Docker
 
 Docker images are automatically built and pushed to GitHub Container Registry (GHCR) on every push to main and on version tags.

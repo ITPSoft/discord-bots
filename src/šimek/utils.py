@@ -1,14 +1,32 @@
 import asyncio
 import datetime as dt
-import os.path as osp
+import logging
+import os
 import re
-import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from typing import Any, Callable, TypeVar
-from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
+from collections import defaultdict, Counter
+import pickle
+import random
 
 T = TypeVar("T")
+MARKOV_FILE = "data/šimek/markov_trigram.pkl"
+
+# CPU-heavy věci budeme dělat v separátním threadu
+executor = ThreadPoolExecutor(max_workers=1)
+
+# Semaphore for save operations - ensures only one save at a time
+_save_semaphore = threading.Semaphore(1)
+# Cached trigram counts (initialized at module load)
+_markov_cache: dict = {}
+_cache_initialized = False
+
+logger = logging.getLogger(__name__)
+
+
+async def run_async(func: Callable[..., T], *args: Any) -> T:
+    return await asyncio.get_running_loop().run_in_executor(executor, func, *args)
 
 
 def truncate_emojis(text):
@@ -25,182 +43,6 @@ def truncate_emojis(text):
         flags=re.UNICODE,
     )
     return emoji_pattern.sub(r"", text)
-
-
-print("Loading tagger: ")
-
-cur_dir = osp.dirname(__file__)
-tagger_path = "czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-pdtc1.0-220710.tagger"
-tagger = Tagger.load(osp.join(cur_dir, tagger_path))
-dict_path = "./czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict"
-morpho = Morpho.load(osp.join(cur_dir, dict_path))
-if not tagger:
-    print(f"Cannot load tagger from file {tagger_path}")
-    sys.exit(1)
-
-print("Tagger loaded.")
-
-tokenizer = tagger.newTokenizer()
-if tokenizer is None:
-    print("No tokenizer is defined for the supplied model!")
-    sys.exit(1)
-
-
-@dataclass
-class Token:
-    text_before: str
-    lemma: str
-    lemma_tag: str
-    text: str
-
-    def tag_matches(self, tag: str) -> bool:
-        # * means anything
-        for i, char in enumerate(tag):
-            if char != "*" and char != self.lemma_tag[i]:
-                return False
-        return True
-
-
-# CPU-heavy věci budeme dělat v separátním threadu
-executor = ThreadPoolExecutor(max_workers=1)
-
-
-async def run_async(func: Callable[..., T], *args: Any) -> T:
-    return await asyncio.get_running_loop().run_in_executor(executor, func, *args)
-
-
-async def find_self_reference_a(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    return await run_async(find_self_reference, text, keyword, use_vocative)
-
-
-def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bool, str, int]:
-    lemmas_forms = TaggedLemmasForms()
-    toks, word_count, keyword_idx, _ = parse_sentence_with_keyword(text, [keyword], False)
-    if word_count == 0:  # keyword is not separate work, but substring in a word
-        return False, "", 0
-    # toks, word_count, keyword_idx = parse_sentence_with_keyword(text, keyword, True)
-    # kontroluje, zda je tam nějaké podstatné jméno jednotného čísla v prvním pádu
-    singular_noun = any([tok.tag_matches("NN*S1") for tok in toks])
-    # pokud je tam další sloveso přítomního času, není to odkaz na sebe
-    other_present_verb = any([tok.tag_matches("VB") and tok.text != keyword for tok in toks])
-    # pokud je tam další sloveso minulého času, tak "jsem" patří k němu
-    other_past_verb = any([tok.tag_matches("Vp******R") and tok.text != keyword for tok in toks])
-    valid_me = singular_noun and not other_present_verb and not other_past_verb
-    # správné skloňování
-    if use_vocative:
-        nouns2vocative(lemmas_forms, toks)
-    result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
-    return valid_me, result, word_count
-
-
-def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
-    try:
-        for tok in toks:
-            if not tok.tag_matches("NN*S1"):
-                continue
-            tok_tags = tok.lemma_tag
-            tok_tags = tok_tags[:4] + "5" + tok_tags[5:]
-            morpho.generate(tok.lemma, tok_tags, morpho.GUESSER, lemmas_forms)
-            tok.text = next(form.form for lemma_forms in lemmas_forms for form in lemma_forms.forms)
-    except:
-        print("Selhalo skloňování")
-
-
-async def needs_help_a(text: str) -> bool:
-    return await run_async(needs_help, text)
-
-
-def needs_help(text: str) -> bool:
-    keywords = ["pomoc", "pomoci", "pomoct"]
-    toks, word_count, _, nested = parse_sentence_with_keyword(text, keywords, after_keyword=False, match_lemma=True)
-    if nested:
-        return False
-    if any(tok.tag_matches("NN*S4") and tok.lemma in keywords for tok in toks) or any(
-        (tok.tag_matches("Vf") or tok.tag_matches("Vi")) and tok.lemma in keywords
-        for tok in toks  # sloveslo v infinitivu nebo imperativu
-    ):
-        if len(toks) == 1:
-            return True
-        # volání o pomoc shortcut
-        help_ask = any(
-            tok.tag_matches("Vi-****2**A") and tok.lemma in keywords for tok in toks
-        )  # sloveso přítomného času jednotného čísla, pozitivní a první osoba, jako chci pomoct apod.
-        help_ask_me = any(tok.tag_matches("P***3") and tok.lemma in ["já"] for tok in toks)
-        if help_ask and help_ask_me:
-            return True
-        verb_present = any(
-            tok.tag_matches("VB-S***1P*A")
-            and tok.lemma not in ["být"]  # být apod. je moc obecné a způsobuje false positivy
-            for tok in toks
-        )  # sloveso přítomného času jednotného čísla, pozitivní a první osoba, jako chci pomoct apod.
-        verb_past = any(tok.tag_matches("V*******R") for tok in toks)  # sloveso minulého času
-        verb_negated = any(tok.tag_matches("V*********N") for tok in toks)  # jen když u sloves není zápor
-        if verb_past or verb_negated:
-            return False
-        if verb_present:
-            return True
-    return False
-
-
-def parse_sentence_with_keyword(
-    text: str, keywords: list[str], after_keyword: bool, match_lemma: bool = False
-) -> tuple[list[Token], int, int, bool]:
-    text = truncate_emojis(text.lower())
-    word_count = 0
-    keyword_idx = 0
-    forms = Forms()
-    lemmas = TaggedLemmas()
-    tokens = TokenRanges()
-    # Tag
-    tokenizer.setText(text)
-    toks: list[Token] = []
-    t_iter = 0
-    has_word = False
-    nesting_char = '"'
-    cur_nested = False  # assuming only 1 level of " nesting
-    keyword_nested = False
-    while tokenizer.nextSentence(forms, tokens):
-        has_word = False
-        sentence_end = False
-        toks = []
-        tagger.tag(forms, lemmas)
-
-        for i in range(len(lemmas)):
-            word_count += 1
-            if sentence_end:
-                has_word = False
-                sentence_end = False
-                toks = []
-
-            lemma = lemmas[i]
-            token = tokens[i]
-
-            tok = Token(
-                text[t_iter : token.start], lemma.lemma, lemma.tag, text[token.start : token.start + token.length]
-            )
-            t_iter = token.start + token.length
-
-            # interpunkce
-            if tok.lemma_tag[0] == "Z":
-                if tok.text == nesting_char:
-                    cur_nested = not cur_nested
-                sentence_end = True
-                if len(toks) > 0 and has_word:
-                    break
-            # pokud je after keyword true, přidáváme až po keywordu, ale keyword samotný vynecháváme
-            if (has_word and not sentence_end) or (not after_keyword):
-                toks.append(tok)
-            # jsem, pomoc apod.
-            if (tok.text in keywords and not match_lemma) or (tok.lemma in keywords and match_lemma):
-                keyword_nested = cur_nested
-                has_word = True
-                keyword_idx = len(toks)
-        if has_word and sentence_end:
-            break
-    if has_word:
-        return toks, word_count, keyword_idx, keyword_nested
-    else:
-        return [], 0, -1, keyword_nested
 
 
 def format_time_ago(time: dt.datetime) -> str:
@@ -231,3 +73,94 @@ def format_time_ago(time: dt.datetime) -> str:
         return f"in {time_ago}"
     else:
         return f"{time_ago} ago"
+
+
+def build_trigram_counts(messages):
+    words = " ".join(messages).lower().split()
+    if len(words) < 3:
+        return {}
+    markov = defaultdict(list)
+    for i in range(len(words) - 2):
+        key = (words[i], words[i + 1])
+        next_word = words[i + 2]
+        markov[key].append(next_word)
+    markov_counts = {k: Counter(v) for k, v in markov.items()}
+    return markov_counts
+
+
+def _save_trigram_counts_sync(markov_counts, filename=MARKOV_FILE):
+    """Save trigram counts synchronously with semaphore protection."""
+    acquired = _save_semaphore.acquire(blocking=False)
+    if not acquired:
+        # Another save is in progress, skip this one
+        return
+    try:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
+            pickle.dump(markov_counts, f)
+        logger.info("Saved trigrams to cache")
+    except Exception as e:
+        logger.warning(f"Failed to save trigram counts: {e}")
+    finally:
+        _save_semaphore.release()
+
+
+def save_trigram_counts_async(markov_counts, filename=MARKOV_FILE):
+    """Save trigram counts in a background thread, non-blocking."""
+    # Make a copy to avoid race conditions
+    counts_copy = dict(markov_counts)
+    executor.submit(_save_trigram_counts_sync, counts_copy, filename)
+
+
+def load_trigram_counts(filename=MARKOV_FILE):
+    """Load trigram counts from file into global cache. Call once at bot start."""
+    global _markov_cache, _cache_initialized
+    if _cache_initialized:
+        return _markov_cache
+    try:
+        with open(filename, "rb") as f:
+            _markov_cache = pickle.load(f)
+        logger.info("Loaded trigrams from cache")
+    except Exception as e:
+        logger.warning(f"Failed to load markov cache: {e}")
+        _markov_cache = {}
+    _cache_initialized = True
+    return _markov_cache
+
+
+def markov_chain(messages, max_words=20):
+    global _markov_cache
+    # Build new trigram counts from messages
+    new_counts = build_trigram_counts(messages)
+    # Update global cache in place
+    for key, counter in new_counts.items():
+        if key in _markov_cache:
+            _markov_cache[key].update(counter)
+        else:
+            _markov_cache[key] = counter
+    # Save asynchronously in background thread
+    save_trigram_counts_async(_markov_cache)
+    markov_counts = _markov_cache
+
+    if not markov_counts:
+        return "Not enough data for trigram Markov chain."
+
+    start_key = random.choice(list(markov_counts.keys()))
+    sentence = [start_key[0], start_key[1]]
+
+    for _ in range(max_words - 2):
+        if start_key in markov_counts:
+            next_words, weights = zip(*markov_counts[start_key].items())
+            next_word = random.choices(next_words, weights=weights)[0]
+            sentence.append(next_word)
+            if next_word.endswith((".", "!", "?:D", ":D", ":)", "😂", "🤣", ":kekw:")):
+                break
+            start_key = (start_key[1], next_word)
+        else:
+            break
+
+    return " ".join(sentence).lower()
+
+
+# Load trigram counts at module import (bot start)
+load_trigram_counts()

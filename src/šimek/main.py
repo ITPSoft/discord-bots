@@ -1,29 +1,37 @@
+import datetime as dt
+import logging
 import os
 import random
-import datetime as dt
 import re
 
-import disnake
-from disnake import Message, ApplicationCommandInteraction
-from disnake.ext.commands import InteractionBot, default_member_permissions
-from collections import defaultdict, Counter
-
 import aiohttp
+import disnake
 
 from common.constants import GIDS, Channel
 from common.utils import has_any, has_all
-from šimek import šimekdict
-
+from common import discord_logging
+from disnake import Message, ApplicationCommandInteraction
+from disnake.ext.commands import InteractionBot, default_member_permissions
 from dotenv import load_dotenv
-import pickle
-
-from šimek.utils import find_self_reference_a, format_time_ago, needs_help_a
-
-# Global HTTP session - will be initialized when bot starts
-http_session: aiohttp.ClientSession | None = None
+from šimek import šimekdict
 
 # preload all useful stuff
 load_dotenv()
+
+# add intents for bot
+intents = disnake.Intents.all()
+client = InteractionBot(intents=intents)  # so we can have debug commands
+
+discord_logging.configure_logging(client)
+
+# so logger is configured, this is intentional, files are read when importing these
+from šimek.utils import format_time_ago, markov_chain
+from šimek.morphodita_utils import find_self_reference_a, needs_help_a
+
+logger = logging.getLogger(__name__)
+
+# Global HTTP session - will be initialized when bot starts
+http_session: aiohttp.ClientSession | None = None
 TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 REPLIES = (
@@ -63,7 +71,6 @@ ALLOW_CHANNELS = [
     Channel.SCHIZOPERO,
     Channel.KOUZELNICI_GENERAL,
 ]
-MARKOV_FILE = "markov_twogram.pkl"
 
 COOLDOWN = 30  # sekund
 
@@ -71,10 +78,6 @@ COOLDOWN = 30  # sekund
 CUSTOM_COOLDOWNS = {
     Channel.BOT_TESTING.value: 0,
 }
-
-# add intents for bot
-intents = disnake.Intents.all()
-client = InteractionBot(intents=intents)  # so we can have debug commands
 
 last_reaction_time: dict[int, dt.datetime] = {}
 
@@ -103,64 +106,7 @@ async def on_ready():
     global http_session
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
-    print(f"{client.user} has connected to Discord!")
-
-
-def build_trigram_counts(messages):
-    words = " ".join(messages).lower().split()
-    if len(words) < 3:
-        return {}
-    markov = defaultdict(list)
-    for i in range(len(words) - 2):
-        key = (words[i], words[i + 1])
-        next_word = words[i + 2]
-        markov[key].append(next_word)
-    markov_counts = {k: Counter(v) for k, v in markov.items()}
-    return markov_counts
-
-
-def save_trigram_counts(markov_counts, filename=MARKOV_FILE):
-    with open(filename, "wb") as f:
-        pickle.dump(markov_counts, f)
-
-
-def load_trigram_counts(filename=MARKOV_FILE):
-    try:
-        with open(filename, "rb") as f:
-            return pickle.load(f)
-    except Exception:
-        return {}
-
-
-def markov_chain(messages, max_words=20):
-    # Build and save trigram counts
-    markov_counts = build_trigram_counts(messages)
-    # save_trigram_counts(markov_counts)
-    #
-    # # Load trigram counts
-    # markov_counts = load_trigram_counts()
-
-    if not markov_counts:
-        return "Not enough data for trigram Markov chain."
-
-    start_key = random.choice(list(markov_counts.keys()))
-    sentence = [start_key[0], start_key[1]]
-
-    for _ in range(max_words - 2):
-        if start_key in markov_counts:
-            next_words, weights = zip(*markov_counts[start_key].items())
-            next_word = random.choices(next_words, weights=weights)[0]
-            sentence.append(next_word)
-            if next_word.endswith((".", "!", "?:D", ":D", ":)", "😂", "🤣", ":kekw:")):
-                break
-            start_key = (start_key[1], next_word)
-        else:
-            break
-
-    return " ".join(sentence).lower()
-
-
-# trigram Markov chain functions end
+    logger.info(f"{client.user} has connected to Discord!")
 
 
 # we use a evil class magic to hack match case to check for substrings istead of exact matches
@@ -213,7 +159,7 @@ async def manage_response(m: Message):
 
     last_time = last_reaction_time.get(m.channel.id)
     if last_time and (seconds_diff := (now - last_time).total_seconds()) < cooldown(m.channel.id):
-        print(f"too soon, last replied {seconds_diff} seconds ago")
+        logger.debug(f"Too soon, last replied {seconds_diff} seconds ago")
         return
 
     if Substring(mess) in [
@@ -253,7 +199,7 @@ async def manage_response(m: Message):
 
     elif m.channel.id not in ALLOW_CHANNELS:
         return
-    print("check passed getting into main loop")
+    logger.debug("Check passed, getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     assert http_session is not None
 
@@ -392,7 +338,7 @@ async def manage_response(m: Message):
 
 @client.event
 async def on_message(m: Message):
-    print(
+    logger.debug(
         f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
     )
     if not m.content:

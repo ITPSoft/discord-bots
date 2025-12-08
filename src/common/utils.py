@@ -1,9 +1,12 @@
 import io
+import logging
 from collections.abc import Iterable
 from enum import StrEnum
 from urllib.parse import urlparse
 
 import aiohttp
+
+logger = logging.getLogger(__name__)
 
 
 def has_any(content: str, words: Iterable) -> bool:
@@ -39,7 +42,7 @@ async def prepare_http_response(
             else:
                 return error_message, ResponseType.CONTENT
     except Exception as exc:
-        print(f"Encountered exception:\n {exc}")
+        logger.error(f"Encountered exception: {exc}")
         return "Something crashed", ResponseType.CONTENT
     return "Something crashed relly bad", ResponseType.CONTENT
 

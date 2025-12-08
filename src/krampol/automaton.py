@@ -1,7 +1,10 @@
 ## DecimAutomation main functionality
 # parsing the "cronjob" file
 import json
+import logging
 from datetime import datetime as dt
+
+logger = logging.getLogger(__name__)
 
 TARGETS = {
     "decimautomation": "DecimAutomation#4633",
@@ -31,10 +34,10 @@ class Automaton:
                     pass
                 elif line[0] == "@":
                     self.jobs.append(line.replace("\n", "").split(" "))
-        print(f"Job list parsed. Number of jobs: {len(self.jobs)}\nList of jobs:\n{self.print_jobs()}")
+        logger.info(f"Job list parsed. Number of jobs: {len(self.jobs)}\nList of jobs:\n{self.print_jobs()}")
 
     def work_job(self, job) -> str:
-        print(f"Processing job: {job[1]}|{job[2]}...")
+        logger.info(f"Processing job: {job[1]}|{job[2]}...")
         f = open("./jobslock.json", encoding="utf-8")
         lf = json.load(f)
         f.close()
@@ -66,7 +69,7 @@ class Automaton:
                 else:
                     return False
             except Exception:
-                print(f"Job {target}|{name} not present or ran for the first time! Running the job...")
+                logger.info(f"Job {target}|{name} not present or ran for the first time! Running the job...")
                 return True
 
     # prints out jobs
