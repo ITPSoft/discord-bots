@@ -46,6 +46,10 @@ RUN groupadd -r app && useradd -r -d /app -g app -N app
 
 WORKDIR /app
 
+# Create data directories with proper ownership (before switching to app user)
+# This ensures the app user can write to these directories when volumes are mounted
+RUN mkdir -p /app/data && chown -R app:app /app/data
+
 # separate copying for better layer caching, saves easily 99% of disk space on target server
 COPY --from=build --chown=app:app /app/src/šimek/czech-morfflex2.0-pdtc1.0-220710 /app/src/šimek/czech-morfflex2.0-pdtc1.0-220710
 COPY --from=build --chown=app:app /app/.venv /app/.venv
