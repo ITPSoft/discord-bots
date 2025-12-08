@@ -1,4 +1,5 @@
 import io
+import os
 from collections.abc import Iterable
 from enum import StrEnum
 from urllib.parse import urlparse

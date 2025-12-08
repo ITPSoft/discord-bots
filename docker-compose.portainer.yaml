@@ -14,7 +14,8 @@ services:
       - stack.env
     labels:
       - "com.centurylinklabs.watchtower.enable=true" # white-list for watchtower update
-
+    volumes:
+      - kouzelnici-bots-data:/app/data
   kouzelnici-simek:  # š is not allowed :(
     image: ghcr.io/itpsoft/discord-bots:latest
     container_name: kouzelnici-simek # š is not allowed :(
@@ -27,6 +28,8 @@ services:
       - stack.env
     labels:
       - "com.centurylinklabs.watchtower.enable=true" # white-list for watchtower update
+    volumes:
+      - kouzelnici-bots-data:/app/data
 #
 #  krampol:
 #    build: .
@@ -38,3 +41,5 @@ services:
 #      - .env
 #    restart: unless-stopped
 #
+volumes:
+  kouzelnici-bots-data:
