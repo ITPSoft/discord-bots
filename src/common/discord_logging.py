@@ -2,50 +2,82 @@ import logging
 import os
 import socket
 import sys
+from typing import Any
 
-fs = "%(asctime)s - {} - %(name)s - %(levelname)s - %(message).100s".format(socket.gethostname())
+from discord_handler import DiscordHandler
+from disnake import ApplicationCommandInteraction
+from disnake.ext.commands import InteractionBot, Context, CommandError
 
-# separated from utils, because this executes code on import
-try:
-    # discord handler should be used only if it's in production, not for development
-    from discord_handler import DiscordHandler
+fs = "%(asctime)s:{}:%(name)s:%(levelname)s:%(message).100s".format(socket.gethostname())  # max 100 chars of message
 
-    webhook = os.getenv("DISCORD_MONITORING_WEBHOOK", "")
-    if not webhook:
+
+def configure_logging(client: InteractionBot, level=logging.INFO):
+    try:
+        webhook = os.getenv("DISCORD_MONITORING_WEBHOOK", "")
+        if not webhook:
+            handler = None
+        # by default excluding developers machines so they don't spam the discord
+        elif socket.gethostname() in ["WA-7WFYKN3"]:
+            handler = None
+        else:
+            handler = DiscordHandler(webhook, "Discord bots logging", emit_as_code_block=True, max_size=1_900)
+            handler.setLevel(logging.ERROR)
+            # discord handler must have the message less than 2000 characters, so I'm trimming this here
+            # formatter copied from basicConfig
+            handler.setFormatter(logging.Formatter(fs))
+    except ImportError:
         handler = None
-    else:
-        handler = DiscordHandler(webhook, "Discord bots logging", emit_as_code_block=True, max_size=1_900)
-        handler.setLevel(logging.ERROR)
-        # discord handler must have the message less than 2000 characters, so I'm trimming this here
-        # formatter copied from basicConfig
-        handler.setFormatter(logging.Formatter(fs))
-except ImportError:
-    handler = None
 
-
-def configure_logging():
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(logging.INFO)
     handlers = [stream_handler]
 
     if handler is not None:
         handlers.append(handler)
 
     logging.basicConfig(
-        level=logging.INFO,
+        level=level,
         format=fs,
         handlers=handlers,
     )
 
+    sys.excepthook = exception_hook
 
+    if handler is None:
+        logger.info("Logging configured without discord")
+    else:
+        logger.info("Logging configured including discord")
 
-configure_logging()
+    # we need to set all error kinds
+    # https://docs.disnake.dev/en/latest/ext/commands/api/bots.html#disnake.ext.commands.Bot
+
+    @client.event
+    async def on_error(event_method: str, *args: Any, **kwargs: Any):
+        logger.exception(f"Uncaught exception in event {event_method}")
+
+    @client.event
+    async def on_command_error(context: Context, exception: CommandError):
+        logger.exception(f"Uncaught exception in event {context}", exc_info=exception)
+
+    @client.event
+    async def on_gateway_error(event: str, data: Any, shard_id: int | None, exc: Exception):
+        logger.exception(f"Uncaught exception in event {event}", exc_info=exc)
+
+    @client.event
+    async def on_message_command_error(interaction: ApplicationCommandInteraction, exception: CommandError):
+        logger.exception(f"Uncaught exception in on_message_command_error {interaction}", exc_info=exception)
+
+    @client.event
+    async def on_slash_command_error(interaction: ApplicationCommandInteraction, exception: CommandError):
+        logger.exception(f"Uncaught exception in on_slash_command_error {interaction}", exc_info=exception)
+
+    @client.event
+    async def on_user_command_error(interaction: ApplicationCommandInteraction, exception: CommandError):
+        logger.exception(f"Uncaught exception in on_user_command_error {interaction}", exc_info=exception)
+
 
 logger = logging.getLogger(__name__)
+
 
 def exception_hook(exc_type, exc_value, exc_traceback):
     # propagating all exceptions into discord webhook
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
-
-
-sys.excepthook = exception_hook

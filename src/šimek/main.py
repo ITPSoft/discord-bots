@@ -1,24 +1,37 @@
 import datetime as dt
+import logging
 import os
 import random
 import re
 
 import aiohttp
 import disnake
+
 from common.constants import GIDS, Channel
 from common.utils import has_any, has_all
+from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 from šimek import šimekdict
-from šimek.morphodita_utils import find_self_reference_a, needs_help_a
-from šimek.utils import format_time_ago, markov_chain
-
-# Global HTTP session - will be initialized when bot starts
-http_session: aiohttp.ClientSession | None = None
 
 # preload all useful stuff
 load_dotenv()
+
+# add intents for bot
+intents = disnake.Intents.all()
+client = InteractionBot(intents=intents)  # so we can have debug commands
+
+discord_logging.configure_logging(client)
+
+# so logger is configured, this is intentional, files are read when importing these
+from šimek.utils import format_time_ago, markov_chain
+from šimek.morphodita_utils import find_self_reference_a, needs_help_a
+
+logger = logging.getLogger(__name__)
+
+# Global HTTP session - will be initialized when bot starts
+http_session: aiohttp.ClientSession | None = None
 TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 REPLIES = (
@@ -66,11 +79,8 @@ CUSTOM_COOLDOWNS = {
     Channel.BOT_TESTING.value: 0,
 }
 
-# add intents for bot
-intents = disnake.Intents.all()
-client = InteractionBot(intents=intents)  # so we can have debug commands
-
 last_reaction_time: dict[int, dt.datetime] = {}
+
 
 @client.slash_command(description="Show last reaction times")
 @default_member_permissions(administrator=True)
@@ -96,7 +106,8 @@ async def on_ready():
     global http_session
     # Initialize the global HTTP session with SSL disabled
     http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
-    print(f"{client.user} has connected to Discord!")
+    logger.info(f"{client.user} has connected to Discord!")
+
 
 # we use a evil class magic to hack match case to check for substrings istead of exact matches
 # https://stackoverflow.com/a/78046484
@@ -148,7 +159,7 @@ async def manage_response(m: Message):
 
     last_time = last_reaction_time.get(m.channel.id)
     if last_time and (seconds_diff := (now - last_time).total_seconds()) < cooldown(m.channel.id):
-        print(f"too soon, last replied {seconds_diff} seconds ago")
+        logger.debug(f"Too soon, last replied {seconds_diff} seconds ago")
         return
 
     if Substring(mess) in [
@@ -188,7 +199,7 @@ async def manage_response(m: Message):
 
     elif m.channel.id not in ALLOW_CHANNELS:
         return
-    print("check passed getting into main loop")
+    logger.debug("Check passed, getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
     assert http_session is not None
 
@@ -327,7 +338,7 @@ async def manage_response(m: Message):
 
 @client.event
 async def on_message(m: Message):
-    print(
+    logger.debug(
         f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
     )
     if not m.content:

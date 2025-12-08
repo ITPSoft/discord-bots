@@ -1,10 +1,13 @@
+import logging
 import os.path as osp
-import sys
 from dataclasses import dataclass
 
 from ufal.morphodita import Tagger, Forms, TaggedLemmas, TokenRanges, Morpho, TaggedLemmasForms
 from šimek.utils import run_async, truncate_emojis
 
+logger = logging.getLogger(__name__)
+
+logger.info("Preparing to load tagger.")
 # we can not optimize the loading time, because the C code blocks GIL, so we can not postpone it.
 cur_dir = osp.dirname(__file__)
 tagger_path = "czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-pdtc1.0-220710.tagger"
@@ -12,13 +15,11 @@ tagger = Tagger.load(osp.join(cur_dir, tagger_path))
 dict_path = "./czech-morfflex2.0-pdtc1.0-220710/czech-morfflex2.0-220710.dict"
 morpho = Morpho.load(osp.join(cur_dir, dict_path))
 if not tagger:
-    print(f"Cannot load tagger from file {tagger_path}")
-    sys.exit(1)
+    raise Exception(f"Cannot load tagger from file {tagger_path}")
 tokenizer = tagger.newTokenizer()
 if tokenizer is None:
-    print("No tokenizer is defined for the supplied model!")
-    sys.exit(1)
-print("Tagger loaded.")
+    raise Exception("No tokenizer is defined for the supplied model!")
+logger.info("Tagger loaded.")
 
 
 @dataclass
@@ -70,7 +71,7 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
             morpho.generate(tok.lemma, tok_tags, morpho.GUESSER, lemmas_forms)
             tok.text = next(form.form for lemma_forms in lemmas_forms for form in lemma_forms.forms)
     except:
-        print("Selhalo skloňování")
+        logger.warning("Selhalo skloňování")
 
 
 async def needs_help_a(text: str) -> bool:

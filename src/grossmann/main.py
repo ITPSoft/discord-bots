@@ -6,16 +6,36 @@ from datetime import datetime
 
 import aiohttp
 import disnake
-from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
-from disnake.ui import Button
-from disnake.ext.commands import Bot, Param, InteractionBot, default_member_permissions
-from dotenv import load_dotenv
-
+from common import discord_logging
 from common.constants import GIDS, Channel
 from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum
+from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
+from disnake.ext.commands import Param, InteractionBot, default_member_permissions
+from disnake.ui import Button
+from dotenv import load_dotenv
 from grossmann import grossmanndict as grossdi
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+# preload all useful stuff
+load_dotenv()
+TOKEN = os.getenv("GROSSMANN_DISCORD_TOKEN")
+TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
+
+# needed setup to be able to read message contents
+intents = disnake.Intents.all()
+intents.message_content = True
+client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
+
+discord_logging.configure_logging(client)
+
+logger = logging.getLogger(__name__)
+
+
+# Global HTTP session - will be initialized when bot starts
+http_session: aiohttp.ClientSession | None = None
+
+# Store last 50 forwarded message IDs for hall of fame duplicate checking
+# Dict maps message_id -> timestamp
+hall_of_fame_message_ids: dict[int, datetime] = {}
 
 
 # TODO: logging
@@ -74,35 +94,6 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
     VALORANT = ("valorant", 1422634814095228928)
 
 
-# preload all useful stuff
-load_dotenv()
-TOKEN = os.getenv("GROSSMANN_DISCORD_TOKEN")
-TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
-
-
-# TODO is this even useful?
-class UnfilteredBot(Bot):
-    """An overridden version of the Bot class that will listen to other bots."""
-
-    async def process_commands(self, message):
-        """Override process_commands to listen to bots."""
-        ctx = await self.get_context(message)
-        await self.invoke(ctx)
-
-
-# needed setup to be able to read message contents
-intents = disnake.Intents.all()
-intents.message_content = True
-client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
-
-# Global HTTP session - will be initialized when bot starts
-http_session: aiohttp.ClientSession | None = None
-
-# Store last 50 forwarded message IDs for hall of fame duplicate checking
-# Dict maps message_id -> timestamp
-hall_of_fame_message_ids: dict[int, datetime] = {}
-
-
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
@@ -125,7 +116,7 @@ async def on_ready():
         if len(hall_of_fame_message_ids) > 50:
             sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1], reverse=True)
             hall_of_fame_message_ids = dict(sorted_items[:50])
-    print(f"{client.user} has connected to Discord!")
+    logger.info(f"{client.user} has connected to Discord!")
 
 
 HELP = grossdi.HELP
@@ -448,7 +439,7 @@ async def send_http_response(
 
 async def respond(ctx: ApplicationCommandInteraction, **results):
     if ctx.response.is_done():
-        print("using followup instead of response")
+        logger.debug("Using followup instead of response")
         await ctx.followup.send(**results)
     else:
         await ctx.response.send_message(**results)

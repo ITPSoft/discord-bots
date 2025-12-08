@@ -98,7 +98,7 @@ def _save_trigram_counts_sync(markov_counts, filename=MARKOV_FILE):
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as f:
             pickle.dump(markov_counts, f)
-        print("saved trigrams to cache")
+        logger.info("Saved trigrams to cache")
     except Exception as e:
         logger.warning(f"Failed to save trigram counts: {e}")
     finally:
@@ -120,9 +120,9 @@ def load_trigram_counts(filename=MARKOV_FILE):
     try:
         with open(filename, "rb") as f:
             _markov_cache = pickle.load(f)
-        print("loaded trigrams from cache")
+        logger.info("Loaded trigrams from cache")
     except Exception as e:
-        print(f"Failed to load markov cache: {e}")
+        logger.warning(f"Failed to load markov cache: {e}")
         _markov_cache = {}
     _cache_initialized = True
     return _markov_cache

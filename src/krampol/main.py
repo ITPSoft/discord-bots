@@ -1,10 +1,14 @@
-import disnake
+import logging
 import os
+
+import disnake
 from disnake import Message
 from disnake.ext.commands import Context
 from dotenv import load_dotenv
 from disnake.ext import tasks
 from automaton import Automaton
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -48,24 +52,24 @@ async def work_loop(jobs):
 # running job check
 @tasks.loop(seconds=30)
 async def check_jobs_loop():
-    print("Running job checker!")
+    logger.debug("Running job checker!")
     await work_loop(autoserv.precheck_jobs())
 
 
 @check_jobs_loop.before_loop
 async def before_check_jobs():
-    print("Waiting...")
+    logger.debug("Waiting...")
     await client.wait_until_ready()
 
 
 @client.event
 async def on_ready():
-    print(f"{client.user} has connected to Discord!")
+    logger.info(f"{client.user} has connected to Discord!")
     autoserv.parse_cronjobs()
     if check_jobs_loop.start():
-        print("Automaton running...")
+        logger.info("Automaton running...")
     else:
-        print("Automaton failed to run.")
+        logger.error("Automaton failed to run.")
 
 
 ## other DecimAutomation platform commands

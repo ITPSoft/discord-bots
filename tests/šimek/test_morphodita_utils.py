@@ -113,6 +113,7 @@ def test_self_reference_nominative(content, expected_self_reference):
     result = find_self_reference(content, "jsi", False)
     assert result[:2] == expected_self_reference
 
+
 @pytest.mark.parametrize(
     "content, expected",
     [
