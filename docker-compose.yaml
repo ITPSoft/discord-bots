@@ -3,6 +3,7 @@ services:
     build: .
     image: discord-bots:latest
     container_name: grossmann
+    hostname: grossmann-dev
     command:
       - python
       - -u
@@ -14,6 +15,7 @@ services:
   simek:  # š is not allowed :(
     image: discord-bots:latest
     container_name: simek # š is not allowed :(
+    hostname: simek-dev
     command:
       - python
       - -u

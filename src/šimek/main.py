@@ -4,10 +4,10 @@ import os
 import random
 import re
 
-import aiohttp
 import disnake
 
 from common.constants import GIDS, Channel
+from common.http import get_http_session, close_http_session
 from common.utils import has_any, has_all
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction
@@ -30,8 +30,6 @@ from šimek.morphodita_utils import find_self_reference_a, needs_help_a
 
 logger = logging.getLogger(__name__)
 
-# Global HTTP session - will be initialized when bot starts
-http_session: aiohttp.ClientSession | None = None
 TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
 TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 REPLIES = (
@@ -49,9 +47,6 @@ REPLIES = (
     "nemám tušení",
 )  # repeat ano/ne/perhaps to give it more common occurrence
 
-MOT_HLASKY = šimekdict.MOT_HLASKY
-LINUX_COPYPASTA = šimekdict.LINUX_COPYPASTA
-RECENZE = šimekdict.RECENZE
 
 ALLOW_CHANNELS = [
     Channel.BOT_DEBUG_GENERAL,
@@ -103,9 +98,6 @@ async def ping(ctx: ApplicationCommandInteraction):
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    global http_session
-    # Initialize the global HTTP session with SSL disabled
-    http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     logger.info(f"{client.user} has connected to Discord!")
 
 
@@ -201,7 +193,6 @@ async def manage_response(m: Message):
         return
     logger.debug("Check passed, getting into main loop")
     # we are matching whole substrings now, not exact matches, only one case will be executed, if none match, default case will be executed
-    assert http_session is not None
 
     # analysing dad jokes and mom jokes
     jsi_is_ref = jsem_is_ref = False
@@ -213,7 +204,7 @@ async def manage_response(m: Message):
         jsem_is_ref, jsem_who, _ = await find_self_reference_a(mess, "jsem", True)
 
     matched = True
-    oogway_help = f"""„{random.choice(MOT_HLASKY)}“
+    oogway_help = f"""„{random.choice(šimekdict.MOT_HLASKY)}“
                                                                                 - Mistr Oogway, {random.randint(461, 490)} př. n. l."""
     if "pomo" in mess:
         help_needed = await needs_help_a(mess)
@@ -235,7 +226,7 @@ async def manage_response(m: Message):
             await do_response("🥳", m, chance=1, reaction=True)
         case "linux" | "gnu/linux":
             await do_response("🐧", m, chance=10, reaction=True)
-            await do_response(LINUX_COPYPASTA, m, chance=10)
+            await do_response(random.choice([šimekdict.LINUX_COPYPASTA, šimekdict.CESKA_LINUX_COPYPASTA]), m, chance=10)
         case "hilfe" | "help":
             await do_response(oogway_help, m, chance=3)
         case "pomo" if help_needed:  # better analysis of czech help, there is no nicer way to do it, pomoz etc.
@@ -263,7 +254,7 @@ async def manage_response(m: Message):
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
         case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
-            async with http_session.get("https://www.yomama-jokes.com/api/v1/jokes/random/") as api_call:
+            async with get_http_session().get("https://www.yomama-jokes.com/api/v1/jokes/random/") as api_call:
                 if api_call.status == 200:
                     await do_response(f"{(await api_call.json())['joke']}", m, chance=4)
         case "lagtrain":
@@ -291,7 +282,7 @@ async def manage_response(m: Message):
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
-            await do_response(random.choice(RECENZE), m, chance=2)  # není to tak vtipné, když je to pokaždé
+            await do_response(random.choice(šimekdict.RECENZE), m, chance=2)  # není to tak vtipné, když je to pokaždé
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
@@ -350,9 +341,7 @@ async def on_message(m: Message):
 
 async def cleanup():
     """Clean up resources when bot shuts down"""
-    global http_session
-    if http_session and not http_session.closed:
-        await http_session.close()
+    await close_http_session()
 
 
 # Register cleanup to run when bot shuts down

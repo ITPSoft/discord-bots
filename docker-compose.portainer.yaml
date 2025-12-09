@@ -5,6 +5,7 @@ services:
   kouzelnici-grossmann:
     image: ghcr.io/itpsoft/discord-bots:latest
     container_name: kouzelnici-grossmann
+    hostname: grossmann-portainer-prod
     command:
       - python
       - -u
@@ -19,6 +20,7 @@ services:
   kouzelnici-simek:  # š is not allowed :(
     image: ghcr.io/itpsoft/discord-bots:latest
     container_name: kouzelnici-simek # š is not allowed :(
+    hostname: simek-portainer-prod
     command:
       - python
       - -u

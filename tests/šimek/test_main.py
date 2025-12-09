@@ -4,9 +4,9 @@ from collections.abc import Generator
 from typing import Any
 from unittest.mock import AsyncMock, patch, MagicMock, call
 
-import aiohttp
 import pytest
 
+from common import http
 from šimek import main
 
 
@@ -31,9 +31,7 @@ def always_answer() -> Generator[MagicMock, Any, None]:
 async def cleanup_http_session():
     """Ensure HTTP session is cleaned up after each test."""
     yield
-    if main.http_session and not main.http_session.closed:
-        await main.http_session.close()
-        main.http_session = None
+    await http.close_http_session()
 
 
 @pytest.fixture(scope="function")
@@ -156,7 +154,6 @@ async def test_maybe_respond(
     mock_message, user_message, expected_responses, expected_reactions, first_rand_answer, always_answer
 ):
     """Test special message responses."""
-    main.http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     main.COOLDOWN = -1  # to test all answers
     mock_message.content = user_message
 
@@ -170,7 +167,6 @@ async def test_maybe_respond(
 
 async def test_business(mock_message, always_answer):
     main.COOLDOWN = -1  # to test all answers
-    main.http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     mock_message.content = "Dobrý buisness"
     await main.manage_response(mock_message)
     mock_message.reply.assert_called_once()
@@ -195,9 +191,8 @@ async def test_mama_joke_api(mock_message, always_answer):
     mock_session = MagicMock()
     mock_session.get = MagicMock(return_value=mock_context_manager)
 
-    main.http_session = mock_session
-
-    await main.manage_response(mock_message)
+    with patch("šimek.main.get_http_session", return_value=mock_session):
+        await main.manage_response(mock_message)
 
     mock_message.reply.assert_called_once_with("Yo mama so fat...")
 
