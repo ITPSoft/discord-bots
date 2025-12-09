@@ -8,7 +8,7 @@ import disnake
 from common import discord_logging
 from common.constants import GIDS, Channel
 from common.http import get_http_session, close_http_session
-from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum
+from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum, get_commit_hash
 from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
 from disnake.ext.commands import Param, InteractionBot, default_member_permissions
 from disnake.ui import Button
@@ -258,7 +258,9 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 @client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
+    await ctx.response.send_message(
+        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
+    )
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=GIDS)

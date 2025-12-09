@@ -8,7 +8,7 @@ import disnake
 
 from common.constants import GIDS, Channel
 from common.http import get_http_session, close_http_session
-from common.utils import has_any, has_all
+from common.utils import has_any, has_all, get_commit_hash
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, default_member_permissions
@@ -92,7 +92,9 @@ async def show_last_reaction_times(inter: ApplicationCommandInteraction):
 @client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms.")
+    await ctx.response.send_message(
+        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
+    )
 
 
 # on_ready event - happens when bot connects to Discord API
