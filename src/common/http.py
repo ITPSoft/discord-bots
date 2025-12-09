@@ -17,4 +17,3 @@ async def close_http_session() -> None:
     if _http_session and not _http_session.closed:
         await _http_session.close()
         _http_session = None
-

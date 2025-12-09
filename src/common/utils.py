@@ -22,9 +22,7 @@ class ResponseType(StrEnum):
     CONTENT = "content"
 
 
-async def prepare_http_response(
-    url: str, resp_key: str, error_message: str
-) -> tuple[io.BytesIO | str, ResponseType]:
+async def prepare_http_response(url: str, resp_key: str, error_message: str) -> tuple[io.BytesIO | str, ResponseType]:
     try:
         async with get_http_session().get(url) as api_call:
             if api_call.status == 200:
