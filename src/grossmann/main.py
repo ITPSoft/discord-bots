@@ -4,10 +4,10 @@ import random
 import time
 from datetime import datetime
 
-import aiohttp
 import disnake
 from common import discord_logging
 from common.constants import GIDS, Channel
+from common.http import get_http_session, close_http_session
 from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum
 from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
 from disnake.ext.commands import Param, InteractionBot, default_member_permissions
@@ -29,9 +29,6 @@ discord_logging.configure_logging(client)
 
 logger = logging.getLogger(__name__)
 
-
-# Global HTTP session - will be initialized when bot starts
-http_session: aiohttp.ClientSession | None = None
 
 # Store last 50 forwarded message IDs for hall of fame duplicate checking
 # Dict maps message_id -> timestamp
@@ -97,9 +94,7 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    global http_session, hall_of_fame_message_ids
-    # Initialize the global HTTP session with SSL disabled
-    http_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    global hall_of_fame_message_ids
     # Preload last 50 message IDs from hall of fame channel
     hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     if hall_of_fame_channel:
@@ -218,7 +213,6 @@ async def roll(ctx: ApplicationCommandInteraction, arg_range=None):
 async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "null", anonym: bool = False):
     twitterpero = client.get_channel(Channel.TWITTERPERO)
     sentfrom = f"Sent from #{ctx.channel.name}"
-    assert http_session is not None
 
     if anonym:
         random_city = "Void"
@@ -226,7 +220,7 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
         result = None
 
         try:
-            async with http_session.get("https://randomuser.me//api") as api_call:
+            async with get_http_session().get("https://randomuser.me//api") as api_call:
                 if api_call.status == 200:
                     result = (await api_call.json())["results"][0]
                     randomizer_opt = ["0", "1", "2", "3", "4"]  # lazy way
@@ -416,20 +410,17 @@ async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, heig
         h = random.randint(64, 640)
 
     await send_http_response(
-        ctx, http_session, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
+        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
     )
 
 
 async def send_http_response(
     ctx: ApplicationCommandInteraction,
-    http_session: aiohttp.ClientSession | None,
     url: str,
     resp_key: str,
     error_message: str,
 ) -> None:
-    resp, resp_type = prepare_http_response(
-        http_session=ctx.client.http_session, url=url, resp_key=resp_key, error_message=error_message
-    )
+    resp, resp_type = await prepare_http_response(url=url, resp_key=resp_key, error_message=error_message)
     match resp_type:
         case ResponseType.EMBED:
             await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png")))
@@ -448,7 +439,7 @@ async def respond(ctx: ApplicationCommandInteraction, **results):
 @client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=GIDS)
 async def fox(ctx: ApplicationCommandInteraction):
     await send_http_response(
-        ctx, http_session, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
+        ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
     )
 
 
@@ -459,7 +450,7 @@ async def waifu(
     category: str = Param(default="neko"),
 ):
     url = f"https://api.waifu.pics/{content_type}/{category}"
-    await send_http_response(ctx, http_session, url, "url", "Server connection error :( No waifu image for you.")
+    await send_http_response(ctx, url, "url", "Server connection error :( No waifu image for you.")
 
 
 # sends an xkcd comic
@@ -471,7 +462,7 @@ async def xkcd(ctx: ApplicationCommandInteraction, xkcd_id: str | None = None):
         url = f"https://xkcd.com/{xkcd_id}/info.0.json"
     else:
         url = "https://xkcd.com/info.0.json"
-    await send_http_response(ctx, http_session, url, "img", "No such xkcd comics with this ID found.")
+    await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
 
 
 async def bot_validate(content: str, m: Message):
@@ -553,9 +544,7 @@ async def on_reaction_add(reaction, user):
 
 async def cleanup():
     """Clean up resources when bot shuts down"""
-    global http_session
-    if http_session and not http_session.closed:
-        await http_session.close()
+    await close_http_session()
 
 
 # Register cleanup to run when bot shuts down

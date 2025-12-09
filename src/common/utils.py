@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from enum import StrEnum
 from urllib.parse import urlparse
 
-import aiohttp
+from common.http import get_http_session
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,10 @@ class ResponseType(StrEnum):
 
 
 async def prepare_http_response(
-    http_session: aiohttp.ClientSession | None, url: str, resp_key: str, error_message: str
+    url: str, resp_key: str, error_message: str
 ) -> tuple[io.BytesIO | str, ResponseType]:
-    assert http_session is not None
     try:
-        async with http_session.get(url) as api_call:
+        async with get_http_session().get(url) as api_call:
             if api_call.status == 200:
                 match api_call.content_type:
                     case "image/gif" | "image/jpeg" | "image/png":
