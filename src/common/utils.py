@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def get_commit_hash() -> str:
     """Get the current git commit hash.
-    
+
     Returns commit hash from GIT_COMMIT_HASH env var (Docker) or git command (local dev).
     """
     if commit_hash := os.environ.get("GIT_COMMIT_HASH"):
         return commit_hash[:8]
-    
+
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         capture_output=True,

@@ -258,7 +258,9 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 @client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}")
+    await ctx.response.send_message(
+        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
+    )
 
 
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=GIDS)

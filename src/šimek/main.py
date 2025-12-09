@@ -92,7 +92,9 @@ async def show_last_reaction_times(inter: ApplicationCommandInteraction):
 @client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}")
+    await ctx.response.send_message(
+        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
+    )
 
 
 # on_ready event - happens when bot connects to Discord API
