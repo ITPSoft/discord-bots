@@ -422,12 +422,15 @@ async def send_http_response(
     resp_key: str,
     error_message: str,
 ) -> None:
-    resp, resp_type = await prepare_http_response(url=url, resp_key=resp_key, error_message=error_message)
+    resp, status_code, resp_type = await prepare_http_response(url=url, resp_key=resp_key, error_message=error_message)
     match resp_type:
         case ResponseType.EMBED:
             await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png")))
         case ResponseType.CONTENT:
-            await respond(ctx, content=error_message)
+            if 200 <= status_code < 300:
+                await respond(ctx, content=resp)
+            else:
+                await respond(ctx, content=error_message)
 
 
 async def respond(ctx: ApplicationCommandInteraction, **results):

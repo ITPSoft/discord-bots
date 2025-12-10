@@ -44,7 +44,9 @@ class ResponseType(StrEnum):
     CONTENT = "content"
 
 
-async def prepare_http_response(url: str, resp_key: str, error_message: str) -> tuple[io.BytesIO | str, ResponseType]:
+async def prepare_http_response(
+    url: str, resp_key: str, error_message: str
+) -> tuple[io.BytesIO | str, int, ResponseType]:
     try:
         async with get_http_session().get(url) as api_call:
             if api_call.status == 200:
@@ -54,15 +56,15 @@ async def prepare_http_response(url: str, resp_key: str, error_message: str) -> 
                         bytes_io = io.BytesIO()
                         bytes_io.write(result)
                         bytes_io.seek(0)
-                        return bytes_io, ResponseType.EMBED
+                        return bytes_io, api_call.status, ResponseType.EMBED
                     case "application/json":
                         result = (await api_call.json())[resp_key]
-                        return result, ResponseType.CONTENT
+                        return result, api_call.status, ResponseType.CONTENT
             else:
-                return error_message, ResponseType.CONTENT
+                return error_message, api_call.status, ResponseType.CONTENT
     except Exception as exc:
         logger.error(f"Encountered exception: {exc}")
-        return "Something crashed", ResponseType.CONTENT
+        return "Something crashed", 0, ResponseType.CONTENT
     return "Something crashed relly bad", ResponseType.CONTENT
 
 
