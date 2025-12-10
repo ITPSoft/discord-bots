@@ -182,6 +182,7 @@ async def test_mama_joke_api(mock_message, always_answer):
     mock_response = MagicMock()
     mock_response.status = 200
     mock_response.json = AsyncMock(return_value={"joke": "Yo mama so fat..."})
+    mock_response.content_type = "application/json"
 
     # Create a proper async context manager
     mock_context_manager = MagicMock()
@@ -191,7 +192,7 @@ async def test_mama_joke_api(mock_message, always_answer):
     mock_session = MagicMock()
     mock_session.get = MagicMock(return_value=mock_context_manager)
 
-    with patch("šimek.main.get_http_session", return_value=mock_session):
+    with patch("common.http.get_http_session", return_value=mock_session):
         await main.manage_response(mock_message)
 
     mock_message.reply.assert_called_once_with("Yo mama so fat...")

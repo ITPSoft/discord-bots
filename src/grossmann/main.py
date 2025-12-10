@@ -7,8 +7,15 @@ from datetime import datetime
 import disnake
 from common import discord_logging
 from common.constants import GIDS, Channel
-from common.http import get_http_session, close_http_session
-from common.utils import has_any, prepare_http_response, ResponseType, BaseRoleEnum, get_commit_hash
+from common.http import (
+    get_http_session,
+    close_http_session,
+    prepare_http_response,
+    EmbedResponse,
+    TextResponse,
+    ErrorResponse,
+)
+from common.utils import has_any, BaseRoleEnum, get_commit_hash
 from disnake import Message, ApplicationCommandInteraction, Embed, ButtonStyle
 from disnake.ext.commands import Param, InteractionBot, default_member_permissions
 from disnake.ui import Button
@@ -28,7 +35,6 @@ client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
 discord_logging.configure_logging(client)
 
 logger = logging.getLogger(__name__)
-
 
 # Store last 50 forwarded message IDs for hall of fame duplicate checking
 # Dict maps message_id -> timestamp
@@ -412,25 +418,18 @@ async def cat(ctx: ApplicationCommandInteraction, width: int | None = None, heig
         h = random.randint(64, 640)
 
     await send_http_response(
-        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No fox image for you."
+        ctx, f"https://placecats.com/{w}/{h}", "image", "Server connection error :( No cat image for you."
     )
 
 
-async def send_http_response(
-    ctx: ApplicationCommandInteraction,
-    url: str,
-    resp_key: str,
-    error_message: str,
-) -> None:
-    resp, status_code, resp_type = await prepare_http_response(url=url, resp_key=resp_key, error_message=error_message)
-    match resp_type:
-        case ResponseType.EMBED:
-            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=resp, filename="image.png")))
-        case ResponseType.CONTENT:
-            if 200 <= status_code < 300:
-                await respond(ctx, content=resp)
-            else:
-                await respond(ctx, content=error_message)
+async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
+    match await prepare_http_response(url=url, resp_key=resp_key):
+        case EmbedResponse(_, content):
+            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=content, filename="image.png")))
+        case TextResponse(_, content):
+            await respond(ctx, content=content)
+        case ErrorResponse():
+            await respond(ctx, content=error_message)
 
 
 async def respond(ctx: ApplicationCommandInteraction, **results):

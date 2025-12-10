@@ -7,7 +7,7 @@ import re
 import disnake
 
 from common.constants import GIDS, Channel
-from common.http import get_http_session, close_http_session
+from common.http import close_http_session, prepare_http_response, TextResponse
 from common.utils import has_any, has_all, get_commit_hash
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction
@@ -256,9 +256,9 @@ async def manage_response(m: Message):
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
         case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
-            async with get_http_session().get("https://www.yomama-jokes.com/api/v1/jokes/random/") as api_call:
-                if api_call.status == 200:
-                    await do_response(f"{(await api_call.json())['joke']}", m, chance=4)
+            match await prepare_http_response(url="https://yomama-jokes.com/api/random", resp_key="joke"):
+                case TextResponse(_, content):
+                    await do_response(content, m, chance=4)
         case "lagtrain":
             await do_response("https://www.youtube.com/watch?v=UnIhRpIT7nc", m, chance=1)
         case "cum zone":
