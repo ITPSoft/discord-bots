@@ -17,7 +17,7 @@ async def bot():
     intents = disnake.Intents.all()
     intents.message_content = True
 
-    bot = commands.Bot(intents=intents)
+    bot = commands.InteractionBot(intents=intents)
 
     # Setup NetHack commands
     nethack_module.setup_nethack_commands(bot, [])
