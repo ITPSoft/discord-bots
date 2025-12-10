@@ -228,7 +228,7 @@ async def manage_response(m: Message):
             await do_response("🥳", m, chance=1, reaction=True)
         case "linux" | "gnu/linux":
             await do_response("🐧", m, chance=10, reaction=True)
-            await do_response(random.choice([šimekdict.LINUX_COPYPASTA, šimekdict.CESKA_LINUX_COPYPASTA]), m, chance=10)
+            await do_response(random.choice([šimekdict.LINUX_COPYPASTA, šimekdict.CESKA_LINUX_COPYPASTA]), m, chance=20)
         case "hilfe" | "help":
             await do_response(oogway_help, m, chance=3)
         case "pomo" if help_needed:  # better analysis of czech help, there is no nicer way to do it, pomoz etc.
