@@ -1,3 +1,5 @@
+from common.constants import Channel
+
 HELP = r"""
     ***Bot commands:***
     _arguments in \{\} are optional, arguments with \[\] are required_
@@ -47,3 +49,49 @@ Will you join?
 
 {3}
 """
+
+# based on https://waifu.pics/docs
+WAIFU_CATEGORIES = {
+    "sfw": [
+        "waifu",
+        "neko",
+        "shinobu",
+        "megumin",
+        "bully",
+        "cuddle",
+        "cry",
+        "hug",
+        "awoo",
+        "kiss",
+        "lick",
+        "pat",
+        "smug",
+        "bonk",
+        "yeet",
+        "blush",
+        "smile",
+        "wave",
+        "highfive",
+        "handhold",
+        "nom",
+        "bite",
+        "glomp",
+        "slap",
+        "kick",
+        "happy",
+        "wink",
+        "poke",
+        "dance",
+        "cringe",
+        # commented out options valid for API but unwanted
+        # "kill"
+    ],
+    "nsfw": [
+        "waifu",
+        "neko",
+        "trap",
+        "blowjob",
+    ],
+}
+
+WAIFU_ALLOWED_NSFW = [Channel.NSFW]

@@ -3,7 +3,7 @@ name = "discord-bots"
 version = "0.1.0"
 description = "Šimek&Grossmann bots."
 readme = "README.md"
-requires-python = ">=3.13,<4.0"
+requires-python = ">=3.14,<4.0"
 dependencies = [
     "aiohttp>=3.11.11,<4.0.0",
     "discord-handler>=0.0.5",

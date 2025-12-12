@@ -1,11 +1,14 @@
+import asyncio
+import functools
 import logging
 import os
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Iterable, Callable
 from enum import StrEnum
 from functools import lru_cache
 from urllib.parse import urlparse
 
+from disnake.ext import commands
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ def get_commit_hash() -> str:
 
     Returns commit hash from GIT_COMMIT_HASH env var (Docker) or git command (local dev).
     """
-    short_hash_len = 7    # consistent with GitHub. GitLab uses 8.
+    short_hash_len = 7  # consistent with GitHub. GitLab uses 8.
     if commit_hash := os.environ.get("GIT_COMMIT_HASH"):
         return commit_hash[:short_hash_len]
 
@@ -65,3 +68,43 @@ class BaseRoleEnum(StrEnum):
             return role.role_id
         except ValueError:
             return None
+
+
+def validate_param(func: Callable) -> Callable:
+    """
+    Decorator that returns a function accepting parameter name for enriching BadArgument error messages.
+
+    Usage:
+        @validate_param
+        def validate_image_url(value: str) -> str:
+            ...
+
+        Param(converter=validate_image_url("media"))
+        Param(converter=validate_image_url("thumbnail"))
+    """
+
+    @functools.wraps(func)
+    def param_wrapper(param_name: str) -> Callable:
+        @functools.wraps(func)
+        async def async_converter(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except commands.BadArgument as e:
+                msg = str(e)
+                if not msg.startswith(f"{param_name}:"):
+                    msg = f"{param_name}: {msg}"
+                raise commands.BadArgument(msg) from e
+
+        @functools.wraps(func)
+        def sync_converter(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except commands.BadArgument as e:
+                msg = str(e)
+                if not msg.startswith(f"{param_name}:"):
+                    msg = f"{param_name}: {msg}"
+                raise commands.BadArgument(msg) from e
+
+        return async_converter if asyncio.iscoroutinefunction(func) else sync_converter
+
+    return param_wrapper
