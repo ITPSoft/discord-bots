@@ -56,22 +56,22 @@ def find_self_reference(text: str, keyword: str, use_vocative: bool) -> tuple[bo
     valid_me = singular_noun and not other_present_verb and not other_past_verb
     # správné skloňování
     if use_vocative:
-        nouns2vocative(lemmas_forms, toks)
+        nouns2vocative(lemmas_forms, toks, text)
     result = "".join([tok.text if i == 0 else tok.text_before + tok.text for i, tok in enumerate(toks[keyword_idx:])])
     return valid_me, result, word_count
 
 
-def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token]):
-    try:
-        for tok in toks:
+def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token], text: str):
+    for tok in toks:
+        try:
             if not tok.tag_matches("NN*S1"):
                 continue
             tok_tags = tok.lemma_tag
             tok_tags = tok_tags[:4] + "5" + tok_tags[5:]
             morpho.generate(tok.lemma, tok_tags, morpho.GUESSER, lemmas_forms)
             tok.text = next(form.form for lemma_forms in lemmas_forms for form in lemma_forms.forms)
-    except:
-        logger.warning("Selhalo skloňování")
+        except Exception as e:
+            logger.error(f"Selhalo skloňování v {text=}: {tok=}", exc_info=e)
 
 
 async def needs_help_a(text: str) -> bool:

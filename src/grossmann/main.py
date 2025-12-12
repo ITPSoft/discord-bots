@@ -30,7 +30,7 @@ TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 # needed setup to be able to read message contents
 intents = disnake.Intents.all()
 intents.message_content = True
-client = InteractionBot(intents=intents)  # maybe use UnfilteredBot instead?
+client = InteractionBot(intents=intents)
 
 discord_logging.configure_logging(client)
 
@@ -39,16 +39,6 @@ logger = logging.getLogger(__name__)
 # Store last 50 forwarded message IDs for hall of fame duplicate checking
 # Dict maps message_id -> timestamp
 hall_of_fame_message_ids: dict[int, datetime] = {}
-
-
-# TODO: logging
-# TODO: make all stuff loadable modules
-
-# todo: ekonpolipero mit na nakliknutelnou roli, ale v ekonpolipera to hodí anketu a musí to třeba 3 lidi approvnout
-# todo: role na selfservice přidávat commandem
-#   a pak přidat command na dump uložených rolí do zdrojáku
-#   nějak to parametrizovat per server
-# aby člověk commandem mohl přidat herní nebo městskou roli
 
 
 class SelfServiceRoles(BaseRoleEnum):
@@ -168,8 +158,6 @@ async def say(ctx: ApplicationCommandInteraction, message: str):
 
 
 # poll creation, takes up to five arguments
-# TODO check as slash command, probably make as embed?
-# TODO add anonymity voting option (better in embed)
 @client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=GIDS)
 async def poll(
     ctx: ApplicationCommandInteraction,
@@ -238,8 +226,10 @@ async def tweet(ctx: ApplicationCommandInteraction, content: str, media: str = "
 
                     random_name = f"@{randomizer_opt[random.randint(0, len(randomizer_opt) - 1)]}"
                     random_city = result["location"]["city"]
-        except:
-            pass
+                else:
+                    logger.error(f"Failed to get random user, api returned {api_call.status}")
+        except Exception as e:
+            logger.error("Failed to get random user", exc_info=e)
 
         embed = disnake.Embed(
             title=f"{random_name} tweeted:", description=f"{content}", color=disnake.Colour.dark_purple()
@@ -309,16 +299,15 @@ async def game_ping(
     await batch_react(m, ["✅", "❎", "🤔", "☦️"])
 
 
-# TODO is this even used?
 @client.slash_command(description="Fetch guild roles (admin only)", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def fetchrole(ctx: ApplicationCommandInteraction):
+    # useful for debugging, quickly gives IDs
     roles = await ctx.guild.fetch_roles()
     role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
     await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
 
 
-# TODO design more dynamic approach for role picker, probably side load file with roles and ids to be able to add/remove roles and regenerate messeage without code edit
 @client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def command(ctx):
@@ -386,7 +375,6 @@ async def command(ctx):
     )
 
 
-# TODO same as above, design more dynamic approach for role picker
 @client.listen("on_button_click")
 async def listener(ctx: disnake.MessageInteraction):
     role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or GamingRoles.get_role_id_by_name(
@@ -403,9 +391,6 @@ async def listener(ctx: disnake.MessageInteraction):
             await ctx.response.send_message(content=f"Role `{ctx.component.custom_id}` added!", ephemeral=True)
     else:
         raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
-
-
-# todo: role by měly svítit podle toho, jestli je uživatel má nebo nemá, pokud by to šlo
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=GIDS)

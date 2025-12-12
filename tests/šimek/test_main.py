@@ -108,7 +108,7 @@ def mock_message():
         ("proc ne", ["skill issue"], []),  # No question mark to avoid "?" case
         # Jsi/negr combinations
         ("jsi negr", ["Tvoje máma je negr."], []),
-        ("nejsi negr", [":pensive:", ":+1:"], []),
+        ("nejsi negr", [":pensive:", "👍"], []),
         # Cum zone
         ("jsi v cum zone", ["https://www.youtube.com/watch?v=j0lN0w5HVT8"], []),
         ("welcome to the cum zone", ["https://www.youtube.com/watch?v=j0lN0w5HVT8"], []),
@@ -129,8 +129,8 @@ def mock_message():
         ("jsem v píči", ["stejně tak moc v píči jako já včera večer v tvojí mámě loool"], []),
         ("to je v pici", ["stejně tak moc v píči jako já včera večer v tvojí mámě loool"], []),
         # Business correct
-        ("dobrý business", [], [":+1:"]),
-        ("nějaký byznys", [], [":+1:"]),
+        ("dobrý business", [], ["👍"]),
+        ("nějaký byznys", [], ["👍"]),
         # Reminder
         ("reminder pro všechny", ["kind reminder: ur a bitch :)"], []),
         # Bad bot
