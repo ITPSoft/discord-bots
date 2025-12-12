@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import aiohttp
 import disnake
 from aiohttp import ClientTimeout
-from disnake import Message, ApplicationCommandInteraction, Embed
+from disnake import Message, ApplicationCommandInteraction, Embed, File
 from disnake.ext.commands import BadArgument
 
 from common.http import (
@@ -31,7 +31,7 @@ async def batch_react(m: Message, reactions: list):
 async def send_http_response(ctx: ApplicationCommandInteraction, url: str, resp_key: str, error_message: str) -> None:
     match await prepare_http_response(url=url, resp_key=resp_key):
         case EmbedResponse(_, content):
-            await respond(ctx, embed=Embed().set_image(file=disnake.File(fp=content, filename="image.png")))
+            await respond(ctx, embed=Embed().set_image(file=File(fp=content, filename="image.png")))
         case TextResponse(_, content):
             await respond(ctx, content=content)
         case ErrorResponse():

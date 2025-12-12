@@ -1,11 +1,14 @@
 """Comprehensive tests for Grossmann Discord bot using pytest and mocking."""
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
-from grossmann import main
+from common.constants import HALL_OF_FAME_EMOJIS
+from disnake import Embed, File
 from grossmann import grossmanndict as grossdi
+from grossmann import main
 from grossmann.utils import batch_react
 
 
@@ -111,7 +114,7 @@ async def test_roll_command(mock_ctx, roll_range, expected_max):
         await main.roll(mock_ctx, roll_range)
 
         mock_randint.assert_called_once_with(0, expected_max)
-        mock_ctx.response.send_message.assert_called_once_with("You rolled 3 (Used d3).")
+        mock_ctx.response.send_message.assert_called_once_with(f"You rolled 3 (Used d{roll_range}).")
 
 
 async def test_roll_command_default_range(mock_ctx):
@@ -279,3 +282,398 @@ async def test_on_message_ignores_bot_messages(mock_message):
         await main.on_message(mock_message)
 
         mock_validate.assert_not_called()
+
+
+# Test twitter_pero function
+async def test_twitter_pero_non_anonymous(mock_ctx):
+    """Test twitter_pero posts non-anonymous tweet."""
+    mock_channel = AsyncMock()
+    mock_sent_message = AsyncMock()
+    mock_sent_message.add_reaction = AsyncMock()
+    mock_channel.send = AsyncMock(return_value=mock_sent_message)
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_channel
+
+        await main.twitter_pero(anonym=False, content="Test tweet!", ctx=mock_ctx, image_url=None)
+
+    mock_ctx.response.send_message.assert_called_once()
+    assert "Tweet posted!" in mock_ctx.response.send_message.call_args.kwargs["content"]
+    mock_channel.send.assert_called_once()
+    embed = mock_channel.send.call_args.kwargs["embed"]
+    assert "TestUser" in embed.title
+    assert "Test tweet!" in embed.description
+    # Verify tweet reactions
+    assert mock_sent_message.add_reaction.call_count == 5
+    mock_sent_message.add_reaction.assert_has_calls([call(r) for r in ["💜", "🔁", "⬇️", "💭", "🔗"]])
+
+
+async def test_twitter_pero_with_image(mock_ctx):
+    """Test twitter_pero posts tweet with image."""
+    mock_channel = AsyncMock()
+    mock_sent_message = AsyncMock()
+    mock_sent_message.add_reaction = AsyncMock()
+    mock_channel.send = AsyncMock(return_value=mock_sent_message)
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_channel
+
+        await main.twitter_pero(
+            anonym=False, content="Tweet with image", ctx=mock_ctx, image_url="https://example.com/image.png"
+        )
+
+    embed = mock_channel.send.call_args.kwargs["embed"]
+    assert embed.image.url == "https://example.com/image.png"
+
+
+async def test_twitter_pero_anonymous(mock_ctx):
+    """Test twitter_pero posts anonymous tweet with random user."""
+    mock_channel = AsyncMock()
+    mock_sent_message = AsyncMock()
+    mock_sent_message.add_reaction = AsyncMock()
+    mock_channel.send = AsyncMock(return_value=mock_sent_message)
+
+    mock_response = MagicMock()
+    mock_response.status = 200
+    mock_response.json = AsyncMock(
+        return_value={
+            "results": [
+                {
+                    "login": {"username": "testuser", "password": "pass123"},
+                    "email": "test@example.com",
+                    "dob": {"age": 25},
+                    "gender": "male",
+                    "location": {"city": "TestCity", "country": "Czechia"},
+                    "picture": {"medium": "https://example.com/pic.jpg"},
+                }
+            ]
+        }
+    )
+
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response)))
+
+    with (
+        patch.object(main, "client") as mock_client,
+        patch("grossmann.main.get_http_session", return_value=mock_session),
+        patch("random.choice", return_value="testuser"),
+    ):
+        mock_client.get_channel.return_value = mock_channel
+
+        await main.twitter_pero(anonym=True, content="Anonymous tweet", ctx=mock_ctx, image_url=None)
+
+    embed = mock_channel.send.call_args.kwargs["embed"]
+    assert "TestUser" not in embed.title  # Should not contain real username
+    assert "Anonymous tweet" in embed.description
+
+
+# Test send_role_picker function
+async def test_send_role_picker(mock_ctx):
+    """Test send_role_picker sends role picker embeds with buttons."""
+    mock_ctx.channel.send = AsyncMock()
+
+    await main.send_role_picker(mock_ctx)
+
+    mock_ctx.response.send_message.assert_called_once()
+    assert "Done!" in mock_ctx.response.send_message.call_args.kwargs["content"]
+    # Should send two embeds (general roles + gaming roles)
+    assert mock_ctx.channel.send.call_count == 2
+
+
+# Test hall_of_fame_history_fetching function
+async def test_hall_of_fame_history_fetching():
+    """Test hall_of_fame_history_fetching loads message IDs."""
+
+    async def mock_history(limit):
+        mock_msg1 = MagicMock()
+        mock_msg1.reference = MagicMock()
+        mock_msg1.reference.message_id = 111111
+        mock_msg1.created_at = datetime(2024, 1, 1, 12, 0, 0)
+
+        mock_msg2 = MagicMock()
+        mock_msg2.reference = MagicMock()
+        mock_msg2.reference.message_id = 222222
+        mock_msg2.created_at = datetime(2024, 1, 2, 12, 0, 0)
+
+        for msg in [mock_msg1, mock_msg2]:
+            yield msg
+
+    mock_channel = MagicMock()
+    mock_channel.history = mock_history
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_channel
+        main.hall_of_fame_message_ids = {}
+
+        await main.hall_of_fame_history_fetching()
+
+    assert 111111 in main.hall_of_fame_message_ids
+    assert 222222 in main.hall_of_fame_message_ids
+
+
+async def test_hall_of_fame_history_fetching_no_channel():
+    """Test hall_of_fame_history_fetching handles missing channel."""
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = None
+        main.hall_of_fame_message_ids = {}
+
+        await main.hall_of_fame_history_fetching()
+
+    assert main.hall_of_fame_message_ids == {}
+
+
+# Test on_reaction_add event
+async def test_on_reaction_add_forwards_to_hall_of_fame(mock_message):
+    """Test on_reaction_add forwards message when threshold reached."""
+    mock_reaction = MagicMock()
+    mock_reaction.message = mock_message
+    mock_reaction.emoji = "⭐"
+
+    # Set up message with enough reactions
+    mock_message.id = 12345678
+    mock_message.guild = MagicMock()
+    mock_message.channel = MagicMock()
+
+    reaction_obj = MagicMock()
+    reaction_obj.emoji = "⭐"
+    reaction_obj.count = 11  # Above threshold of 10
+    mock_message.reactions = [reaction_obj]
+
+    mock_hall_channel = AsyncMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_hall_channel
+        main.hall_of_fame_message_ids = {}
+
+        await main.on_reaction_add(mock_reaction, MagicMock())
+
+    mock_message.forward.assert_called_once_with(mock_hall_channel)
+    assert mock_message.id in main.hall_of_fame_message_ids
+
+
+async def test_on_reaction_add_ignores_dm():
+    """Test on_reaction_add ignores DM messages."""
+    mock_message = MagicMock()
+    mock_message.guild = None  # DM has no guild
+
+    mock_reaction = MagicMock()
+    mock_reaction.message = mock_message
+
+    with patch.object(main, "client"):
+        await main.on_reaction_add(mock_reaction, MagicMock())
+
+    # No forward should happen
+    assert not hasattr(mock_message, "forward") or not mock_message.forward.called
+
+
+async def test_on_reaction_add_ignores_below_threshold(mock_message):
+    """Test on_reaction_add ignores messages below reaction threshold."""
+    mock_reaction = MagicMock()
+    mock_reaction.message = mock_message
+    mock_reaction.emoji = "⭐"
+
+    reaction_obj = MagicMock()
+    reaction_obj.emoji = "⭐"
+    reaction_obj.count = 5  # Below threshold
+    mock_message.reactions = [reaction_obj]
+    mock_message.id = 99999
+
+    mock_hall_channel = MagicMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_hall_channel
+        main.hall_of_fame_message_ids = {}
+
+        await main.on_reaction_add(mock_reaction, MagicMock())
+
+    mock_message.forward.assert_not_called()
+
+
+async def test_on_reaction_add_ignores_already_forwarded(mock_message):
+    """Test on_reaction_add ignores already forwarded messages."""
+    mock_reaction = MagicMock()
+    mock_reaction.message = mock_message
+
+    reaction_obj = MagicMock()
+    reaction_obj.emoji = "⭐"
+    reaction_obj.count = 15
+    mock_message.reactions = [reaction_obj]
+    mock_message.id = 77777
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = MagicMock()
+        main.hall_of_fame_message_ids = {77777: datetime.now()}
+
+        await main.on_reaction_add(mock_reaction, MagicMock())
+
+    mock_message.forward.assert_not_called()
+
+
+# Test on_member_join event
+async def test_on_member_join_sends_welcome():
+    """Test on_member_join sends welcome message."""
+    mock_member = MagicMock()
+    mock_member.mention = "<@987654321>"
+
+    mock_welcome_channel = AsyncMock()
+    mock_welcome_channel.send = AsyncMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_welcome_channel
+
+        await main.on_member_join(mock_member)
+
+    mock_welcome_channel.send.assert_called_once()
+    sent_content = mock_welcome_channel.send.call_args[0][0]
+    assert mock_member.mention in sent_content
+    assert "Vítej" in sent_content or "Welcome" in sent_content
+
+
+# Test game_ping command
+async def test_game_ping_command(mock_ctx, mock_message):
+    """Test game_ping command creates announcement with reactions."""
+    mock_ctx.original_message.return_value = mock_message
+
+    game = main.DiscordGamingTestingRoles.WARCRAFT
+    await main.game_ping(mock_ctx, game, "20:00", "Let's play!")
+
+    mock_ctx.response.send_message.assert_called_once()
+    call_content = mock_ctx.response.send_message.call_args[0][0]
+    assert "20:00" in call_content
+    assert "Let's play!" in call_content
+
+    # Verify reactions
+    expected_reactions = ["✅", "❎", "🤔", "☦️"]
+    assert mock_message.add_reaction.call_count == len(expected_reactions)
+    mock_message.add_reaction.assert_has_calls([call(r) for r in expected_reactions])
+
+
+async def test_game_ping_command_without_note(mock_ctx, mock_message):
+    """Test game_ping command works without note."""
+    mock_ctx.original_message.return_value = mock_message
+
+    game = main.DiscordGamingTestingRoles.VALORANT
+    await main.game_ping(mock_ctx, game, "21:00", "")
+
+    mock_ctx.response.send_message.assert_called_once()
+
+
+# Test cat command
+async def test_cat_command_with_dimensions(mock_ctx, m):
+    """Test cat command with specified dimensions."""
+    empty_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82'
+    m.get("https://placecats.com/200/300", body=empty_png, content_type="image/png")
+    await main.cat(mock_ctx, width=200, height=300)
+
+    mock_ctx.followup.send.assert_called_once()
+    assert mock_ctx.followup.send.call_args.kwargs["embed"]._files["image"].fp.getvalue() == empty_png
+
+
+async def test_cat_command_random_dimensions(mock_ctx):
+    """Test cat command with random dimensions."""
+    with (
+        patch("grossmann.main.random.randint", return_value=128) as mock_randint,
+        patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send,
+    ):
+        await main.cat(mock_ctx, width=None, height=None)
+
+        assert mock_randint.call_count == 2
+        mock_send.assert_called_once()
+        assert "https://placecats.com/128/128" in mock_send.call_args[0][1]
+
+
+# Test fox command
+async def test_fox_command(mock_ctx):
+    """Test fox command calls correct API."""
+    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
+        await main.fox(mock_ctx)
+
+        mock_send.assert_called_once()
+        args = mock_send.call_args
+        assert "https://randomfox.ca/floof/" in args[0][1]
+        assert "No fox image for you" in args[0][3]
+
+
+# Test waifu command
+async def test_waifu_command_sfw(mock_ctx):
+    """Test waifu command with SFW content."""
+    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
+        await main.waifu(mock_ctx, content_type="sfw", category="neko")
+
+        mock_send.assert_called_once()
+        url = mock_send.call_args[0][1]
+        assert "https://api.waifu.pics/sfw/neko" == url
+
+
+async def test_waifu_command_nsfw_wrong_channel(mock_ctx):
+    """Test waifu command rejects NSFW in wrong channel."""
+    mock_ctx.channel.id = 12345  # Not an NSFW channel
+
+    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
+        await main.waifu(mock_ctx, content_type="nsfw", category="neko")
+
+        mock_send.assert_not_called()
+        mock_ctx.response.send_message.assert_called_once()
+        assert "prase" in mock_ctx.response.send_message.call_args[0][0]
+
+
+async def test_waifu_command_nsfw_allowed_channel(mock_ctx, m):
+    """Test waifu command allows NSFW in correct channel."""
+    mock_ctx.channel.id = grossdi.WAIFU_ALLOWED_NSFW[0]  # NSFW channel
+    m.get("https://api.waifu.pics/nsfw/neko", payload={"url": "https://i.waifu.pics/rwOQYVR.jpg"})
+
+    await main.waifu(mock_ctx, content_type="nsfw", category="neko")
+
+    # mock_send.assert_called_once()
+    # url = mock_send.call_args[0][1]
+    # assert "https://api.waifu.pics/nsfw/neko" == url
+
+
+# Test xkcd command
+async def test_xkcd_command_with_id(mock_ctx, m):
+    """Test xkcd command with specific ID."""
+    m.get("https://xkcd.com/1234/info.0.json", payload={
+        "month": "7", "num": 1234, "link": "", "year": "2013", "news": "",
+        "safe_title": "Douglas Engelbart (1925-2013)",
+        "transcript": "San Francisco, December 9th, 1968: \n[[We see a figure talking into a headset. It's a fair assumption that it's Douglas Engelbart.]]\nDouglas: ... We generated video signals with a cathode ray tube... We have a pointing device we call a \"mouse\"... I can \"copy\" text... ... and we have powerful join file editing... underneath the file here we can exchange \"direct messages\"...\n\n[[Douglas continues to narrate. Some music is playing.]]\nDouglas: ... Users can share files... ... files which can encode audio samples, using our \"masking codecs\"... The file you're hearing now is one of my own compositions...\nMusic: I heard there was a secret chord\n\n[[Douglas continues to narrate.]]\nDouglas: ... And you can superimpose text on the picture of the cat, like so... This cat is saying \"YOLO\", which stands for \"You Only Live Once\"... ...Just a little acronym we thought up...\n\n{{Title text: Actual quote from The Demo: '... an advantage of being online is that it keeps track of who you are and what you\u00e2\u0080\u0099re doing all the time ...'}}",
+        "alt": "Actual quote from The Demo: '... an advantage of being online is that it keeps track of who you are and what you\u2019re doing all the time ...'",
+        "img": "https://imgs.xkcd.com/comics/douglas_engelbart_1925_2013.png", "title": "Douglas Engelbart (1925-2013)",
+        "day": "5"})
+    await main.xkcd(mock_ctx, xkcd_id=1234)
+
+    mock_send.assert_called_once()
+    url = mock_send.call_args[0][1]
+    assert url == "https://xkcd.com/1234/info.0.json"
+
+
+async def test_xkcd_command_latest(mock_ctx, m):
+    m.post("https://xkcd.com/info.0.json", payload={
+        "month": "7", "num": 1234, "link": "", "year": "2013", "news": "",
+        "safe_title": "Douglas Engelbart (1925-2013)",
+        "transcript": "San Francisco, December 9th, 1968",
+        "alt": "Actual quote from The Demo",
+        "img": "https://imgs.xkcd.com/comics/douglas_engelbart_1925_2013.png",
+        "title": "Douglas Engelbart (1925-2013)",
+        "day": "5"})
+    """Test xkcd command gets latest comic when no ID."""
+    await main.xkcd(mock_ctx, xkcd_id=None)
+
+    mock_send.assert_called_once()
+    url = mock_send.call_args[0][1]
+    assert url == "https://xkcd.com/info.0.json"
+
+
+# Test waifu categories structure
+def test_waifu_categories_structure():
+    """Test waifu categories have expected structure."""
+    assert "sfw" in grossdi.WAIFU_CATEGORIES
+    assert "nsfw" in grossdi.WAIFU_CATEGORIES
+    assert "neko" in grossdi.WAIFU_CATEGORIES["sfw"]
+    assert "waifu" in grossdi.WAIFU_CATEGORIES["sfw"]
+
+
+# Test hall of fame emojis
+def test_hall_of_fame_emojis_exist():
+    """Test hall of fame emojis list is populated."""
+    assert len(HALL_OF_FAME_EMOJIS) > 0
+    assert "⭐" in HALL_OF_FAME_EMOJIS

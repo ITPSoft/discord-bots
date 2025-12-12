@@ -1,6 +1,9 @@
+from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from aioresponses import aioresponses
+
 from common import http
 from common.constants import Channel
 
@@ -56,3 +59,11 @@ async def cleanup_http_session():
     """Ensure HTTP session is cleaned up after each test."""
     yield
     await http.close_http_session()
+
+
+@pytest.fixture
+def m() -> Iterator[aioresponses]:
+    """Mock HTTP requests done by AioHTTP."""
+    with aioresponses() as mock:
+        yield mock
+
