@@ -14,6 +14,7 @@ from disnake import Message, ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, default_member_permissions
 from dotenv import load_dotenv
 from šimek import šimekdict
+from šimek.šimekdict import RANDOM_EMOJIS
 
 # preload all useful stuff
 load_dotenv()
@@ -219,7 +220,7 @@ async def manage_response(m: Message):
             await do_response("🙂", m, chance=1, reaction=True)
         case _ if has_all(mess, ["problém", "windows"]):
             await do_response(
-                "Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:", m, chance=1
+                "Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>", m, chance=1
             )
         case _ if has_all(mess, ["nvidia", "driver", "linux"]):
             await do_response("Nemůžu za to, že si neumíš vybrat distro, smh", m, chance=2)
@@ -326,12 +327,8 @@ async def manage_response(m: Message):
                 m,
                 chance=50000,
             )
-            await do_response(
-                f"{random.choice([':kekWR:', ':kekW:', ':heart:', ':5head:', ':adampat:', ':catworry:', ':maregg:', ':pepela:', ':pog:', ':333:'])}",
-                m,
-                reaction=True,
-                chance=1000,
-            )
+
+            await do_response(f"{random.choice(RANDOM_EMOJIS)}",m,reaction=True,chance=1000)
 
 
 @client.event

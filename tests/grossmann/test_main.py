@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 
 from common.constants import HALL_OF_FAME_EMOJIS
-from disnake import Embed, File
 from grossmann import grossmanndict as grossdi
 from grossmann import main
 from grossmann.utils import batch_react
@@ -326,17 +325,11 @@ async def test_twitter_pero_with_image(mock_ctx):
     assert embed.image.url == "https://example.com/image.png"
 
 
-async def test_twitter_pero_anonymous(mock_ctx):
+async def test_twitter_pero_anonymous(mock_ctx, m):
     """Test twitter_pero posts anonymous tweet with random user."""
-    mock_channel = AsyncMock()
-    mock_sent_message = AsyncMock()
-    mock_sent_message.add_reaction = AsyncMock()
-    mock_channel.send = AsyncMock(return_value=mock_sent_message)
-
-    mock_response = MagicMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(
-        return_value={
+    m.get(
+        "https://randomuser.me/api",
+        payload={
             "results": [
                 {
                     "login": {"username": "testuser", "password": "pass123"},
@@ -347,15 +340,16 @@ async def test_twitter_pero_anonymous(mock_ctx):
                     "picture": {"medium": "https://example.com/pic.jpg"},
                 }
             ]
-        }
+        },
     )
 
-    mock_session = MagicMock()
-    mock_session.get = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response)))
+    mock_channel = AsyncMock()
+    mock_sent_message = AsyncMock()
+    mock_sent_message.add_reaction = AsyncMock()
+    mock_channel.send = AsyncMock(return_value=mock_sent_message)
 
     with (
         patch.object(main, "client") as mock_client,
-        patch("grossmann.main.get_http_session", return_value=mock_session),
         patch("random.choice", return_value="testuser"),
     ):
         mock_client.get_channel.return_value = mock_channel
@@ -561,106 +555,101 @@ async def test_game_ping_command_without_note(mock_ctx, mock_message):
 # Test cat command
 async def test_cat_command_with_dimensions(mock_ctx, m):
     """Test cat command with specified dimensions."""
-    empty_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82'
+    empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
     m.get("https://placecats.com/200/300", body=empty_png, content_type="image/png")
+
     await main.cat(mock_ctx, width=200, height=300)
 
     mock_ctx.followup.send.assert_called_once()
-    assert mock_ctx.followup.send.call_args.kwargs["embed"]._files["image"].fp.getvalue() == empty_png
+    embed = mock_ctx.followup.send.call_args.kwargs["embed"]
+    assert embed._files["image"].fp.getvalue() == empty_png
 
 
-async def test_cat_command_random_dimensions(mock_ctx):
+async def test_cat_command_random_dimensions(mock_ctx, m):
     """Test cat command with random dimensions."""
-    with (
-        patch("grossmann.main.random.randint", return_value=128) as mock_randint,
-        patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send,
-    ):
+    empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
+    m.get("https://placecats.com/128/128", body=empty_png, content_type="image/png")
+
+    with patch("grossmann.main.random.randint", return_value=128) as mock_randint:
         await main.cat(mock_ctx, width=None, height=None)
 
-        assert mock_randint.call_count == 2
-        mock_send.assert_called_once()
-        assert "https://placecats.com/128/128" in mock_send.call_args[0][1]
+    assert mock_randint.call_count == 2
+    mock_ctx.followup.send.assert_called_once()
+    embed = mock_ctx.followup.send.call_args.kwargs["embed"]
+    assert embed._files["image"].fp.getvalue() == empty_png
 
 
 # Test fox command
-async def test_fox_command(mock_ctx):
-    """Test fox command calls correct API."""
-    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
-        await main.fox(mock_ctx)
-
-        mock_send.assert_called_once()
-        args = mock_send.call_args
-        assert "https://randomfox.ca/floof/" in args[0][1]
-        assert "No fox image for you" in args[0][3]
+async def test_fox_command(mock_ctx, m):
+    """Test fox command returns image URL from API."""
+    m.get(
+        "https://randomfox.ca/floof/",
+        payload={"image": "https://randomfox.ca/images/87.jpg", "link": "https://randomfox.ca/?i=87"},
+    )
+    await main.fox(mock_ctx)
+    mock_ctx.followup.send.assert_called_once_with(content="https://randomfox.ca/images/87.jpg")
 
 
 # Test waifu command
-async def test_waifu_command_sfw(mock_ctx):
+async def test_waifu_command_sfw(mock_ctx, m):
     """Test waifu command with SFW content."""
-    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
-        await main.waifu(mock_ctx, content_type="sfw", category="neko")
+    m.get("https://api.waifu.pics/sfw/neko", payload={"url": "https://i.waifu.pics/abc123.jpg"})
 
-        mock_send.assert_called_once()
-        url = mock_send.call_args[0][1]
-        assert "https://api.waifu.pics/sfw/neko" == url
+    await main.waifu(mock_ctx, content_type="sfw", category="neko")
+    mock_ctx.followup.send.assert_called_once_with(content="https://i.waifu.pics/abc123.jpg")
 
 
 async def test_waifu_command_nsfw_wrong_channel(mock_ctx):
     """Test waifu command rejects NSFW in wrong channel."""
     mock_ctx.channel.id = 12345  # Not an NSFW channel
 
-    with patch("grossmann.main.send_http_response", new_callable=AsyncMock) as mock_send:
-        await main.waifu(mock_ctx, content_type="nsfw", category="neko")
+    await main.waifu(mock_ctx, content_type="nsfw", category="neko")
 
-        mock_send.assert_not_called()
-        mock_ctx.response.send_message.assert_called_once()
-        assert "prase" in mock_ctx.response.send_message.call_args[0][0]
+    # NSFW rejection uses response.send_message directly (not through respond())
+    mock_ctx.response.send_message.assert_called_once()
+    assert "prase" in mock_ctx.response.send_message.call_args[0][0]
 
 
 async def test_waifu_command_nsfw_allowed_channel(mock_ctx, m):
     """Test waifu command allows NSFW in correct channel."""
     mock_ctx.channel.id = grossdi.WAIFU_ALLOWED_NSFW[0]  # NSFW channel
-    m.get("https://api.waifu.pics/nsfw/neko", payload={"url": "https://i.waifu.pics/rwOQYVR.jpg"})
+    m.get("https://api.waifu.pics/nsfw/neko", payload={"url": "https://i.waifu.pics/nsfw123.jpg"})
 
     await main.waifu(mock_ctx, content_type="nsfw", category="neko")
-
-    # mock_send.assert_called_once()
-    # url = mock_send.call_args[0][1]
-    # assert "https://api.waifu.pics/nsfw/neko" == url
+    mock_ctx.followup.send.assert_called_once_with(content="https://i.waifu.pics/nsfw123.jpg")
 
 
 # Test xkcd command
 async def test_xkcd_command_with_id(mock_ctx, m):
     """Test xkcd command with specific ID."""
-    m.get("https://xkcd.com/1234/info.0.json", payload={
-        "month": "7", "num": 1234, "link": "", "year": "2013", "news": "",
-        "safe_title": "Douglas Engelbart (1925-2013)",
-        "transcript": "San Francisco, December 9th, 1968: \n[[We see a figure talking into a headset. It's a fair assumption that it's Douglas Engelbart.]]\nDouglas: ... We generated video signals with a cathode ray tube... We have a pointing device we call a \"mouse\"... I can \"copy\" text... ... and we have powerful join file editing... underneath the file here we can exchange \"direct messages\"...\n\n[[Douglas continues to narrate. Some music is playing.]]\nDouglas: ... Users can share files... ... files which can encode audio samples, using our \"masking codecs\"... The file you're hearing now is one of my own compositions...\nMusic: I heard there was a secret chord\n\n[[Douglas continues to narrate.]]\nDouglas: ... And you can superimpose text on the picture of the cat, like so... This cat is saying \"YOLO\", which stands for \"You Only Live Once\"... ...Just a little acronym we thought up...\n\n{{Title text: Actual quote from The Demo: '... an advantage of being online is that it keeps track of who you are and what you\u00e2\u0080\u0099re doing all the time ...'}}",
-        "alt": "Actual quote from The Demo: '... an advantage of being online is that it keeps track of who you are and what you\u2019re doing all the time ...'",
-        "img": "https://imgs.xkcd.com/comics/douglas_engelbart_1925_2013.png", "title": "Douglas Engelbart (1925-2013)",
-        "day": "5"})
-    await main.xkcd(mock_ctx, xkcd_id=1234)
+    m.get(
+        "https://xkcd.com/1234/info.0.json",
+        payload={
+            "num": 1234,
+            "title": "Douglas Engelbart (1925-2013)",
+            "img": "https://imgs.xkcd.com/comics/douglas_engelbart.png",
+            "alt": "Actual quote from The Demo",
+        },
+    )
 
-    mock_send.assert_called_once()
-    url = mock_send.call_args[0][1]
-    assert url == "https://xkcd.com/1234/info.0.json"
+    await main.xkcd(mock_ctx, xkcd_id=1234)
+    mock_ctx.followup.send.assert_called_once_with(content="https://imgs.xkcd.com/comics/douglas_engelbart.png")
 
 
 async def test_xkcd_command_latest(mock_ctx, m):
-    m.post("https://xkcd.com/info.0.json", payload={
-        "month": "7", "num": 1234, "link": "", "year": "2013", "news": "",
-        "safe_title": "Douglas Engelbart (1925-2013)",
-        "transcript": "San Francisco, December 9th, 1968",
-        "alt": "Actual quote from The Demo",
-        "img": "https://imgs.xkcd.com/comics/douglas_engelbart_1925_2013.png",
-        "title": "Douglas Engelbart (1925-2013)",
-        "day": "5"})
     """Test xkcd command gets latest comic when no ID."""
-    await main.xkcd(mock_ctx, xkcd_id=None)
+    m.get(
+        "https://xkcd.com/info.0.json",
+        payload={
+            "num": 3000,
+            "title": "Latest Comic",
+            "img": "https://imgs.xkcd.com/comics/latest.png",
+            "alt": "Alt text",
+        },
+    )
 
-    mock_send.assert_called_once()
-    url = mock_send.call_args[0][1]
-    assert url == "https://xkcd.com/info.0.json"
+    await main.xkcd(mock_ctx, xkcd_id=None)
+    mock_ctx.followup.send.assert_called_once_with(content="https://imgs.xkcd.com/comics/latest.png")
 
 
 # Test waifu categories structure

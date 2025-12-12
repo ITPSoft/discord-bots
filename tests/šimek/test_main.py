@@ -1,6 +1,6 @@
 """Basic smoke tests for Šimek Discord bot."""
 
-from unittest.mock import AsyncMock, patch, MagicMock, call
+from unittest.mock import AsyncMock, patch, call
 
 import pytest
 from šimek import main
@@ -17,12 +17,12 @@ from šimek import main
         # Windows problem
         (
             "mám velký problém s windows",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"],
+            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>"],
             [],
         ),
         (
             "mé windows mají velký problém",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"],
+            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>"],
             [],
         ),
         # Nvidia driver issue
@@ -123,29 +123,22 @@ async def test_business(mock_message, always_answer):
     assert "příště raději napiš 'byznys'" in mock_message.reply.call_args[0][0]
 
 
-async def test_mama_joke_api(mock_message, always_answer):
+async def test_mama_joke_api(mock_message, always_answer, m):
     """Test yo mama joke API call."""
     main.COOLDOWN = -1
     mock_message.content = "tvoje mama"
-
-    # Mock the HTTP session
-    mock_response = MagicMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value={"joke": "Yo mama so fat..."})
-    mock_response.content_type = "application/json"
-
-    # Create a proper async context manager
-    mock_context_manager = MagicMock()
-    mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session = MagicMock()
-    mock_session.get = MagicMock(return_value=mock_context_manager)
-
-    with patch("common.http.get_http_session", return_value=mock_session):
-        await main.manage_response(mock_message)
-
-    mock_message.reply.assert_called_once_with("Yo mama so fat...")
+    m.get(
+        "https://yomama-jokes.com/api/random",
+        payload={
+            "id": 126,
+            "joke": "Yo mama is so old she remembers when the Mayans published their calendar.",
+            "category": "old",
+        },
+    )
+    await main.manage_response(mock_message)
+    mock_message.reply.assert_called_once_with(
+        "Yo mama is so old she remembers when the Mayans published their calendar."
+    )
 
 
 async def test_jsem_self_reference(mock_message, always_answer):

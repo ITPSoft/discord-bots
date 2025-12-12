@@ -3,7 +3,6 @@ import logging
 from urllib.parse import urlparse
 
 import aiohttp
-import disnake
 from aiohttp import ClientTimeout
 from disnake import Message, ApplicationCommandInteraction, Embed, File
 from disnake.ext.commands import BadArgument

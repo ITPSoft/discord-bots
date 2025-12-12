@@ -66,4 +66,3 @@ def m() -> Iterator[aioresponses]:
     """Mock HTTP requests done by AioHTTP."""
     with aioresponses() as mock:
         yield mock
-
