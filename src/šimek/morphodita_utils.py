@@ -69,6 +69,8 @@ def nouns2vocative(lemmas_forms: TaggedLemmasForms, toks: list[Token], text: str
             tok_tags = tok.lemma_tag
             tok_tags = tok_tags[:4] + "5" + tok_tags[5:]
             morpho.generate(tok.lemma, tok_tags, morpho.GUESSER, lemmas_forms)
+            if len(lemmas_forms) == 0:  # unknown word to morphodita, no variant generated
+                return
             tok.text = next(form.form for lemma_forms in lemmas_forms for form in lemma_forms.forms)
         except Exception as e:
             logger.error(f"Selhalo skloňování v {text=}: {tok=}", exc_info=e)
