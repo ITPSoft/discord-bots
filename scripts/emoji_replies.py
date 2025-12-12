@@ -19,7 +19,7 @@ async def main():
     await client.wait_until_ready()
     channel = await client.fetch_channel(Channel.BOT_TESTING.value)
     assert channel is not None
-    m = await channel.fetch_message(1449172564298436699)
+    m = await channel.fetch_message(1449173781481525279)
     assert m is not None
     await m.add_reaction("🙂")
     await m.add_reaction("😔")
