@@ -32,7 +32,7 @@ def print_stats(markov_counts: dict) -> None:
     top_keys = sorted(key_counts, key=lambda x: x[1], reverse=True)[:10]
 
     # Most common next words overall
-    all_next_words = Counter()
+    all_next_words: Counter[str] = Counter()
     for counter in markov_counts.values():
         all_next_words.update(counter)
     top_next_words = all_next_words.most_common(10)

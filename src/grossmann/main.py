@@ -10,7 +10,7 @@ from common.http import (
     get_http_session,
     close_http_session,
 )
-from common.utils import has_any, BaseRoleEnum, get_commit_hash
+from common.utils import has_any, BaseRoleEnum, get_commit_hash, Role
 from disnake import (
     Message,
     ApplicationCommandInteraction,
@@ -57,47 +57,47 @@ hall_of_fame_message_ids: dict[int, datetime] = {}
 class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
 
-    CLEN = ("Člen", 804431648959627294)
-    OSTRAVAK = ("Ostravák", 988431391807131690)
-    PRAZAK = ("Pražák", 998636130511630386)
-    BRNAK = ("brnak", 1105227159712309391)
-    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797)
-    CARFAG = ("carfag", 1057281159509319800)
+    CLEN = Role("Člen", 804431648959627294)
+    OSTRAVAK = Role("Ostravák", 988431391807131690)
+    PRAZAK = Role("Pražák", 998636130511630386)
+    BRNAK = Role("brnak", 1105227159712309391)
+    MAGIC_THE_GATHERING = Role("magicTheGathering", 1327396658605981797)
+    CARFAG = Role("carfag", 1057281159509319800)
 
 
 class GamingRoles(BaseRoleEnum):
     """Seznam herních rolí pro tagy"""
 
-    WARCRAFT = ("warcraft", 871817685439234108)
-    GMOD = ("gmod", 951457356221394975)
-    VALORANT = ("valorant", 991026818054225931)
-    KYOUDAI = ("kyoudai", 1031510557163008010)
-    LOLKO = ("lolko", 994302892561399889)
-    DOTA2 = ("dota2", 994303445735587991)
-    CSGO = ("csgo", 994303566082740224)
-    SEA_OF_THIEVES = ("sea of thieves", 994303863643451442)
-    MINECRAFT = ("Minecraft", 1049052005341069382)
-    DARK_AND_DARKER = ("Dark and Darker", 1054111346733617222)
-    GOLFISTI = ("golfisti", 1076931268555587645)
-    WOWKO = ("WoWko", 1120426868697473024)
-    ROCKANDSTONE = ("kámen a šutr", 1107334623983312897)
-    HOTS = ("hots", 1140376580800118835)
-    GTAONLINE = ("GTA Online", 1189322955063316551)
-    WARFRAME = ("Warframe", 1200135734590451834)
-    HELLDIVERS = ("helldivers", 1228002980754751621)
-    VOIDBOYS = ("voidboys", 1281326981878906931)
-    THEFINALS = ("finalnici", 1242187454837035228)
-    BEYOND_ALL_REASON = ("BeyondAllReason", 1358445521227874424)
-    VALHEIM = ("valheim", 1356164640152883241)
-    ARC_RAIDERS = ("ArcRaiders", 1432779821183930401)
-    FRIENDSLOP = ("Friendslop", 1435240483852124292)
+    WARCRAFT = Role("warcraft", 871817685439234108)
+    GMOD = Role("gmod", 951457356221394975)
+    VALORANT = Role("valorant", 991026818054225931)
+    KYOUDAI = Role("kyoudai", 1031510557163008010)
+    LOLKO = Role("lolko", 994302892561399889)
+    DOTA2 = Role("dota2", 994303445735587991)
+    CSGO = Role("csgo", 994303566082740224)
+    SEA_OF_THIEVES = Role("sea of thieves", 994303863643451442)
+    MINECRAFT = Role("Minecraft", 1049052005341069382)
+    DARK_AND_DARKER = Role("Dark and Darker", 1054111346733617222)
+    GOLFISTI = Role("golfisti", 1076931268555587645)
+    WOWKO = Role("WoWko", 1120426868697473024)
+    ROCKANDSTONE = Role("kámen a šutr", 1107334623983312897)
+    HOTS = Role("hots", 1140376580800118835)
+    GTAONLINE = Role("GTA Online", 1189322955063316551)
+    WARFRAME = Role("Warframe", 1200135734590451834)
+    HELLDIVERS = Role("helldivers", 1228002980754751621)
+    VOIDBOYS = Role("voidboys", 1281326981878906931)
+    THEFINALS = Role("finalnici", 1242187454837035228)
+    BEYOND_ALL_REASON = Role("BeyondAllReason", 1358445521227874424)
+    VALHEIM = Role("valheim", 1356164640152883241)
+    ARC_RAIDERS = Role("ArcRaiders", 1432779821183930401)
+    FRIENDSLOP = Role("Friendslop", 1435240483852124292)
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
     """Testing role enum for game pings"""
 
-    WARCRAFT = ("warcraft", 1422634691969945830)
-    VALORANT = ("valorant", 1422634814095228928)
+    WARCRAFT = Role("warcraft", 1422634691969945830)
+    VALORANT = Role("valorant", 1422634814095228928)
 
 
 async def bot_validate(content: str, m: Message):

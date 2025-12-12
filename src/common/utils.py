@@ -6,6 +6,7 @@ import subprocess
 from collections.abc import Iterable, Callable
 from enum import StrEnum
 from functools import lru_cache
+from typing import NamedTuple
 from urllib.parse import urlparse
 
 from disnake.ext import commands
@@ -46,28 +47,30 @@ def is_url(string):
     return bool(parsed.scheme) and bool(parsed.netloc)
 
 
-class BaseRoleEnum(StrEnum):
-    """Base class for role enums with shared functionality"""
+class Role(NamedTuple):
+    name: str
+    role_id: int
 
-    def __new__(cls, name: str, role_id: int):
-        obj = str.__new__(cls, name)
-        obj._value_ = name
-        obj._role_id = role_id
+
+class BaseRoleEnum(StrEnum):
+    _role_id: int  # ← This line is crucial for MyPy
+
+    def __new__(cls, mapping: Role):
+        obj = str.__new__(cls, mapping.name)
+        obj._value_ = mapping.name
+        obj._role_id = mapping.role_id
         return obj
 
     @property
     def role_id(self) -> int:
-        """Get the Discord role ID for this role"""
         return self._role_id
 
     @classmethod
-    def get_role_id_by_name(cls, role_name: str) -> int | None:
-        """Get role ID by role name"""
-        try:
-            role = cls(role_name)
-            return role.role_id
-        except ValueError:
-            return None
+    def get_role_id_by_name(cls, role_id: int) -> BaseRoleEnum | None:
+        for member in cls:
+            if member.role_id == role_id:
+                return member
+        return None
 
 
 def validate_param(func: Callable) -> Callable:
