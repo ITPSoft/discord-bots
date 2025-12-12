@@ -226,6 +226,12 @@ async def send_role_picker(ctx):
 async def on_ready():
     global hall_of_fame_message_ids
     # Preload last 50 message IDs from hall of fame channel
+    await hall_of_fame_history_fetching()
+    logger.info(f"{client.user} has connected to Discord!")
+
+
+async def hall_of_fame_history_fetching():
+    global hall_of_fame_message_ids
     hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     if hall_of_fame_channel:
         current_time = datetime.now()
@@ -241,7 +247,6 @@ async def on_ready():
         if len(hall_of_fame_message_ids) > 50:
             sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1], reverse=True)
             hall_of_fame_message_ids = dict(sorted_items[:50])
-    logger.info(f"{client.user} has connected to Discord!")
 
 
 @client.event
@@ -379,7 +384,7 @@ async def roll(
     ctx: ApplicationCommandInteraction,
     roll_range: int = Param(default=6, gt=0, description="Enter a positive integer (1 or higher, default 6)"),
 ):
-    await ctx.response.send_message(f"You rolled {random.randint(0, roll_range)} (Used d{roll_range}.)")
+    await ctx.response.send_message(f"You rolled {random.randint(0, roll_range)} (Used d{roll_range}).")
 
 
 # "twitter" functionality

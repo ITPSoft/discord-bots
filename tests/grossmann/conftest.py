@@ -1,11 +1,11 @@
 """Pytest configuration for Discord bot testing."""
 
 import os
-from typing import Any
 from collections.abc import Generator
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 # Mock environment variables for testing
 os.environ.setdefault("DISCORD_TOKEN", "test_token")
@@ -18,29 +18,7 @@ TEST_ADMIN_ROLE_ID = 11111
 TEST_ALLOWED_CHANNEL_ID = 22222
 
 # Test role IDs (using actual IDs from the bot for consistency in tests)
-TEST_CLEN_ROLE_ID = 804431648959627294
 TEST_WARCRAFT_ROLE_ID = 871817685439234108
-TEST_GMOD_ROLE_ID = 951457356221394975
-
-# Test channel IDs for specific features
-TEST_ROLE_SELECTION_CHANNEL_ID = 1314388851304955904
-
-
-@pytest.fixture
-def mock_ctx():
-    """Create a mock ApplicationCommandInteraction context."""
-    ctx = AsyncMock()
-    ctx.response.send_message = AsyncMock()
-    return ctx
-
-
-@pytest.fixture
-def mock_message():
-    """Create a mock Message object."""
-    message = AsyncMock()
-    message.add_reaction = AsyncMock()
-    message.edit = AsyncMock()
-    return message
 
 
 @pytest.fixture
@@ -60,15 +38,15 @@ def patched_main():
 
 
 @pytest.fixture
-def gaming_reactions():
-    """Standard gaming command reactions."""
-    return ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
+def poll_emojis():
+    """Standard poll emoji list."""
+    return ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
 
 
 @pytest.fixture
-def poll_reactions():
-    """Standard poll emoji reactions."""
-    return ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+def gaming_reactions():
+    """Standard gaming command reactions."""
+    return ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
 
 
 @pytest.fixture
@@ -85,12 +63,6 @@ def sample_poll_data():
         "options": ["Warcraft", "GMod", "Valorant"],
         "expected_reactions": ["1️⃣", "2️⃣", "3️⃣"],
     }
-
-
-@pytest.fixture
-def bot_validation_cases():
-    """Test cases for bot validation."""
-    return [("good bot", "🙂"), ("hodný bot", "🙂"), ("bad bot", "😢"), ("zlý bot", "😢"), ("naser si bote", "😢")]
 
 
 @pytest.fixture

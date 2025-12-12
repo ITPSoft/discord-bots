@@ -1,59 +1,9 @@
 """Basic smoke tests for Šimek Discord bot."""
 
-from collections.abc import Generator
-from typing import Any
 from unittest.mock import AsyncMock, patch, MagicMock, call
 
 import pytest
-
-from common import http
 from šimek import main
-
-
-@pytest.fixture()
-def first_rand_answer() -> Generator[MagicMock, Any, None]:
-    # Use the same mock object for both patches
-    with patch("random.choice") as mock_choice:
-        mock_choice.side_effect = lambda x: x[0]  # force random to return first element
-        yield mock_choice
-
-
-@pytest.fixture()
-def always_answer() -> Generator[MagicMock, Any, None]:
-    # Create a single mock object
-    # Use the same mock object for both patches
-    with patch("random.randint") as mock_randint:
-        mock_randint.return_value = 1  # so the probability triggers always in tests
-        yield mock_randint
-
-
-@pytest.fixture(autouse=True)
-async def cleanup_http_session():
-    """Ensure HTTP session is cleaned up after each test."""
-    yield
-    await http.close_http_session()
-
-
-@pytest.fixture(scope="function")
-def mock_message():
-    """Create a mock Message object."""
-    message = AsyncMock()
-    message.channel.id = 932301697836003358  # bot-testing
-
-    # Mock channel.history() as an async generator
-    async def mock_history(*args, **kwargs):
-        # Return some sample messages for markov chain generation
-        mock_msg1 = AsyncMock()
-        mock_msg1.content = "hello world test"
-        mock_msg2 = AsyncMock()
-        mock_msg2.content = "world test again"
-        mock_msg3 = AsyncMock()
-        mock_msg3.content = "some other message"
-        for msg in [mock_msg1, mock_msg2, mock_msg3]:
-            yield msg
-
-    message.channel.history = MagicMock(return_value=mock_history())
-    return message
 
 
 @pytest.mark.parametrize(

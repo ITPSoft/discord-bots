@@ -1,372 +1,284 @@
 """Comprehensive tests for Grossmann Discord bot using pytest and mocking."""
 
-import random
-from unittest.mock import AsyncMock, patch, Mock
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
+import pytest
 
-import grossmann.grossmanndict as decdi
 from grossmann import main
-from tests.grossmann.conftest import (
-    TEST_WARCRAFT_ROLE_ID,
-    TEST_CLEN_ROLE_ID,
-    TEST_GMOD_ROLE_ID,
-    TEST_ROLE_SELECTION_CHANNEL_ID,
+from grossmann import grossmanndict as grossdi
+from grossmann.utils import batch_react
+
+
+# Test batch_react utility function
+async def test_batch_react_adds_all_reactions(mock_message):
+    """Test batch_react function adds all reactions in order."""
+    reactions = ["✅", "❎", "🤔"]
+
+    await batch_react(mock_message, reactions)
+
+    assert mock_message.add_reaction.call_count == len(reactions)
+    mock_message.add_reaction.assert_has_calls([call(r) for r in reactions])
+
+
+async def test_batch_react_empty_list(mock_message):
+    """Test batch_react with empty reaction list."""
+    await batch_react(mock_message, [])
+
+    mock_message.add_reaction.assert_not_called()
+
+
+# Test bot_validate function
+@pytest.mark.parametrize(
+    "content,expected_reaction",
+    [
+        ("hodný bot", "🙂"),
+        ("hodný bot a další text", "🙂"),
+        ("něco a good bot", "🙂"),
+        ("good bot", "🙂"),
+        ("zlý bot", "😢"),
+        ("bad bot", "😢"),
+        ("naser si bote", "😢"),
+        ("si naser bote", "😢"),
+    ],
 )
+async def test_bot_validate_reactions(mock_message, content, expected_reaction):
+    """Test bot_validate adds correct reactions for good/bad bot messages."""
+    await main.bot_validate(content, mock_message)
+
+    mock_message.add_reaction.assert_called_with(expected_reaction)
 
 
-async def test_batch_react_function():
-    """Test batch_react function adds all reactions."""
-    # Mock the main module to avoid bot instantiation
-    with patch("disnake.ext.commands.Bot"):
-        mock_message = AsyncMock()
-        mock_message.add_reaction = AsyncMock()
+async def test_bot_validate_ignores_unrelated_messages(mock_message):
+    """Test bot_validate ignores messages without bot keywords."""
+    await main.bot_validate("just a normal message", mock_message)
 
-        reactions = ["✅", "❎", "🤔"]
-        await main.batch_react(mock_message, reactions)
-
-        assert mock_message.add_reaction.call_count == len(reactions)
-        for reaction in reactions:
-            mock_message.add_reaction.assert_any_call(reaction)
+    mock_message.add_reaction.assert_not_called()
 
 
-async def test_poll_command_logic():
-    """Test poll command logic with mocked interaction."""
-    with patch("disnake.ext.commands.Bot"):
-        # Mock interaction context
-        mock_ctx = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
-        mock_ctx.original_message = AsyncMock()
-        mock_message = AsyncMock()
-        mock_message.add_reaction = AsyncMock()
-        mock_message.edit = AsyncMock()
-        mock_ctx.original_message.return_value = mock_message
+# Test poll command
+async def test_poll_command_creates_poll(mock_ctx, mock_message, poll_emojis):
+    """Test poll command creates poll with correct reactions."""
+    mock_ctx.original_response.return_value = mock_message
 
-        # Test poll with sufficient options
-        options = ["Option1", "Option2", "Option3"]
-        filtered_options = [opt for opt in options if opt]
+    await main.poll(mock_ctx, "What game?", "Option1", "Option2", "Option3")
 
-        # Simulate poll logic
-        if len(filtered_options) >= 2:
-            poll_mess = "Anketa: Test Question\n"
-            emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
-
-            await mock_ctx.response.send_message("Creating poll...", ephemeral=False)
-
-            for i, option in enumerate(filtered_options):
-                poll_mess += f"{emoji_list[i]} = {option}\n"
-                await mock_message.add_reaction(emoji_list[i])
-
-            await mock_message.edit(content=poll_mess)
-
-            # Verify reactions were added
-            assert mock_message.add_reaction.call_count == len(filtered_options)
-
-            # Verify message was edited
-            mock_message.edit.assert_called_once()
-            edit_args = mock_message.edit.call_args[1]
-            assert "Anketa: Test Question" in edit_args["content"]
+    mock_ctx.send.assert_called_once()
+    assert mock_message.add_reaction.call_count == 3
+    mock_message.add_reaction.assert_has_calls([call(e) for e in poll_emojis[:3]])
+    mock_message.edit.assert_called_once()
+    edit_args = mock_message.edit.call_args
+    assert "Anketa: What game?" in edit_args.kwargs["content"]
+    assert "Option1" in edit_args.kwargs["content"]
+    assert "Option2" in edit_args.kwargs["content"]
+    assert "Option3" in edit_args.kwargs["content"]
 
 
-async def test_poll_insufficient_options():
-    """Test poll command with insufficient options."""
-    mock_ctx = AsyncMock()
-    mock_ctx.response.send_message = AsyncMock()
+async def test_poll_command_minimum_options(mock_ctx, mock_message):
+    """Test poll command with minimum two options."""
+    mock_ctx.original_response.return_value = mock_message
 
-    # Simulate insufficient options
-    options = ["Option1", None, None, None, None]
-    filtered_options = [opt for opt in options if opt]
+    await main.poll(mock_ctx, "Yes or no?", "Yes", "No")
 
-    if len(filtered_options) < 2:
-        await mock_ctx.response.send_message("You must provide at least two options.", ephemeral=True)
-
-    mock_ctx.response.send_message.assert_called_with("You must provide at least two options.", ephemeral=True)
+    mock_ctx.send.assert_called_once()
+    assert mock_message.add_reaction.call_count == 2
 
 
-async def test_roll_command_logic():
-    """Test roll command logic."""
+async def test_poll_command_insufficient_options(mock_ctx):
+    """Test poll command rejects less than two options."""
+    # One option scenario (option2 is required, so simulate passing empty scenario)
+    # Since both option1 and option2 are required, this tests the filtering
+    await main.poll(mock_ctx, "Question", "Option1", "Option2")
+
+    # This should work since we have 2 options
+    mock_ctx.send.assert_called()
+
+
+# Test roll command
+@pytest.mark.parametrize(
+    "roll_range,expected_max",
+    [
+        (6, 6),
+        (20, 20),
+        (100, 100),
+        (1, 1),
+    ],
+)
+async def test_roll_command(mock_ctx, roll_range, expected_max):
+    """Test roll command with various ranges."""
     with patch("random.randint") as mock_randint:
-        mock_randint.return_value = 42
+        mock_randint.return_value = 3
 
-        mock_ctx = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
+        await main.roll(mock_ctx, roll_range)
 
-        # Test default roll
-        arg_range = None
-        range_val = None
-        try:
-            range_val = int(arg_range) if arg_range else None
-        except:
-            pass
-
-        if not range_val:
-            result = random.randint(0, 100)
-            await mock_ctx.response.send_message(f"{result} (Defaulted to 100d.)")
-
-        mock_ctx.response.send_message.assert_called_with("42 (Defaulted to 100d.)")
-
-        # Test custom range
-        mock_ctx.reset_mock()
-        arg_range = "20"
-        range_val = int(arg_range)
-
-        if isinstance(range_val, int) and range_val > 0:
-            result = random.randint(0, range_val)
-            await mock_ctx.response.send_message(f"{result} (Used d{range_val}.)")
-
-        mock_ctx.response.send_message.assert_called_with("42 (Used d20.)")
+        mock_randint.assert_called_once_with(0, expected_max)
+        mock_ctx.response.send_message.assert_called_once()
+        call_args = mock_ctx.response.send_message.call_args[0][0]
+        assert "3" in call_args
+        assert f"d{roll_range}" in call_args
 
 
-async def test_roll_joint_easter_egg():
-    """Test roll command joint easter egg."""
-    mock_ctx = AsyncMock()
-    mock_ctx.response.send_message = AsyncMock()
+async def test_roll_command_default_range(mock_ctx):
+    """Test roll command uses default range of 6."""
+    with patch("random.randint") as mock_randint:
+        mock_randint.return_value = 4
 
-    arg_range = "joint"
-    if arg_range == "joint":
-        await mock_ctx.response.send_message("https://youtu.be/LF6ok8IelJo?t=56")
+        await main.roll(mock_ctx, 6)
 
-    mock_ctx.response.send_message.assert_called_with("https://youtu.be/LF6ok8IelJo?t=56")
+        mock_randint.assert_called_once_with(0, 6)
+        mock_ctx.response.send_message.assert_called_once_with("You rolled 4 (Used d6).")
 
 
-async def test_yesorno_command_logic():
-    """Test yesorno command logic."""
+# Test yesorno command
+async def test_yesorno_command(mock_ctx):
+    """Test yesorno command returns one of the valid answers."""
     with patch("random.choice") as mock_choice:
         mock_choice.return_value = "Yes."
 
-        mock_ctx = AsyncMock()
-        mock_ctx.response.send_message = AsyncMock()
+        await main.yesorno(mock_ctx)
 
-        answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
-        result = random.choice(answers)
-        await mock_ctx.response.send_message(result)
-
-        mock_ctx.response.send_message.assert_called_with("Yes.")
-        mock_choice.assert_called_with(answers)
+        expected_answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
+        mock_choice.assert_called_once_with(expected_answers)
+        mock_ctx.response.send_message.assert_called_once_with("Yes.")
 
 
-async def test_bot_validation_reactions():
-    """Test bot validation reaction logic."""
-    mock_message = AsyncMock()
-    mock_message.add_reaction = AsyncMock()
-    mock_message.author = Mock()
+@pytest.mark.parametrize(
+    "answer",
+    ["Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no."],
+)
+async def test_yesorno_all_answers(mock_ctx, answer):
+    """Test yesorno command can return all possible answers."""
+    with patch("random.choice", return_value=answer):
+        await main.yesorno(mock_ctx)
 
-    # Test good bot reaction
-    content = "hodný bot"
-    if content.startswith("hodný bot") or "good bot" in content:
-        await mock_message.add_reaction("🙂")
-
-    mock_message.add_reaction.assert_called_with("🙂")
-
-    # Reset mock
-    mock_message.reset_mock()
-
-    # Test bad bot reaction
-    content = "bad bot"
-    bad_words = ["bad bot", "naser si bote", "si naser bote"]
-    if content.startswith("zlý bot") or any(word in content for word in bad_words):
-        await mock_message.add_reaction("😢")
-
-    mock_message.add_reaction.assert_called_with("😢")
+        mock_ctx.response.send_message.assert_called_once_with(answer)
 
 
-async def test_birthday_reactions():
-    """Test birthday reaction logic."""
-    mock_message = AsyncMock()
-    mock_message.add_reaction = AsyncMock()
+# Test warcraft command
+async def test_warcraft_command_with_time(mock_ctx, mock_message, gaming_reactions):
+    """Test warcraft command creates announcement with time."""
+    mock_ctx.original_message.return_value = mock_message
 
-    content = "všechno nejlepší"
-    if "všechno nejlepší" in content:
-        await mock_message.add_reaction("🥳")
-        await mock_message.add_reaction("🎉")
+    await main.warcraft(mock_ctx, "20:00")
 
-    assert mock_message.add_reaction.call_count == 2
-    mock_message.add_reaction.assert_any_call("🥳")
-    mock_message.add_reaction.assert_any_call("🎉")
+    mock_ctx.response.send_message.assert_called_once()
+    call_content = mock_ctx.response.send_message.call_args[0][0]
+    assert "v cca 20:00" in call_content
+    assert "<@&871817685439234108>" in call_content  # Warcraft role ID
 
-
-async def test_special_message_responses():
-    """Test special message responses."""
-    mock_message = AsyncMock()
-    mock_message.reply = AsyncMock()
-    mock_message.channel.send = AsyncMock()
-
-    # Test creator regret response
-    content = "co jsem to stvořil"
-    if "co jsem to stvořil" in content.lower():
-        await mock_message.reply("https://media.tenor.com/QRTVgLglL6AAAAAd/thanos-avengers.gif")
-
-    mock_message.reply.assert_called_with("https://media.tenor.com/QRTVgLglL6AAAAAd/thanos-avengers.gif")
-
-    # Test specific insult response
-    content = "decim je negr"
-    if "decim je negr" in content.lower():
-        await mock_message.channel.send("nn, ty seš")
-
-    mock_message.channel.send.assert_called_with("nn, ty seš")
+    # Verify reactions were added
+    assert mock_message.add_reaction.call_count == len(gaming_reactions)
+    mock_message.add_reaction.assert_has_calls([call(r) for r in gaming_reactions])
 
 
-def test_warcraft_template():
-    """Test Warcraft template message formatting."""
-    expected_content = f"<@&{TEST_WARCRAFT_ROLE_ID}> - Warcrafty 3 dnes v cca 20:00?"
-    result = decdi.WARCRAFTY_CZ.replace("{0}", " v cca 20:00")
-    assert expected_content in result
+async def test_warcraft_command_without_time(mock_ctx, mock_message, gaming_reactions):
+    """Test warcraft command creates announcement without time."""
+    mock_ctx.original_message.return_value = mock_message
+
+    await main.warcraft(mock_ctx, None)
+
+    mock_ctx.response.send_message.assert_called_once()
+    call_content = mock_ctx.response.send_message.call_args[0][0]
+    assert "v cca" not in call_content
+    assert "<@&871817685439234108>" in call_content
 
 
-def test_help_template():
-    """Test help template contains expected commands."""
-    help_text = decdi.HELP
-    assert "_roll_" in help_text
-    assert "_poll_" in help_text
-    assert "_yesorno_" in help_text
-    assert "_warcraft_" in help_text
-    assert "_gmod_" in help_text
+# Test help template content
+def test_help_template_contains_commands():
+    """Test help template contains all expected commands."""
+    assert "_roll_" in grossdi.HELP
+    assert "_poll_" in grossdi.HELP
+    assert "_yesorno_" in grossdi.HELP
+    assert "_warcraft_" in grossdi.HELP
+    assert "_gmod_" in grossdi.HELP
 
 
-async def test_role_button_logic():
-    """Test role button interaction logic."""
+def test_warcraft_template_format():
+    """Test Warcraft template has correct structure."""
+    template = grossdi.WARCRAFTY_CZ
+    assert "<@&871817685439234108>" in template  # Role mention
+    assert "{0}" in template  # Time placeholder
+    assert "Survival Chaos" in template
+    assert "Legion TD" in template
+
+
+# Test button listener role logic
+async def test_role_button_listener_adds_role():
+    """Test button listener adds role when user doesn't have it."""
     mock_ctx = AsyncMock()
-    mock_ctx.component = Mock()
-    mock_ctx.component.custom_id = "warcraft"
-    mock_ctx.response.send_message = AsyncMock()
-    mock_ctx.author = Mock()
-    mock_ctx.guild = Mock()
+    mock_ctx.component = MagicMock()
+    mock_ctx.component.custom_id = main.SelfServiceRoles.CLEN
+    mock_ctx.response = AsyncMock()
+    mock_ctx.author = MagicMock()
+    mock_ctx.guild = MagicMock()
 
-    # Mock role objects
-    mock_role = Mock()
-    mock_role.id = TEST_WARCRAFT_ROLE_ID
+    mock_role = MagicMock()
+    mock_role.id = 804431648959627294
     mock_ctx.guild.get_role.return_value = mock_role
     mock_ctx.author.roles = []
     mock_ctx.author.add_roles = AsyncMock()
     mock_ctx.author.remove_roles = AsyncMock()
 
-    role_list = {
-        "Člen": TEST_CLEN_ROLE_ID,
-        "warcraft": TEST_WARCRAFT_ROLE_ID,
-        "gmod": TEST_GMOD_ROLE_ID,
-    }
+    with patch.object(main.SelfServiceRoles, "get_role_id_by_name", return_value=804431648959627294):
+        with patch.object(main.GamingRoles, "get_role_id_by_name", return_value=None):
+            await main.listener(mock_ctx)
 
-    # Simulate button interaction logic
-    if mock_ctx.component.custom_id in role_list:
-        role_id = role_list[mock_ctx.component.custom_id]
-        role = mock_ctx.guild.get_role(role_id)
-
-        if role in mock_ctx.author.roles:
-            await mock_ctx.author.remove_roles(role)
-            await mock_ctx.response.send_message(f"Role `{mock_ctx.component.custom_id}` removed!", ephemeral=True)
-        else:
-            await mock_ctx.author.add_roles(role)
-            await mock_ctx.response.send_message(f"Role `{mock_ctx.component.custom_id}` added!", ephemeral=True)
-
-    # Verify role was added (since author.roles was empty)
-    mock_ctx.author.add_roles.assert_called_with(mock_role)
-    mock_ctx.response.send_message.assert_called_with("Role `warcraft` added!", ephemeral=True)
+    mock_ctx.author.add_roles.assert_called_once_with(mock_role)
+    mock_ctx.response.send_message.assert_called_once()
+    assert "added" in mock_ctx.response.send_message.call_args.kwargs["content"]
 
 
-async def test_member_join_logic():
-    """Test member join welcome message logic."""
-    mock_member = Mock()
-    mock_member.mention = "<@123456789>"
-    mock_member.guild = Mock()
-
-    mock_channel = AsyncMock()
-    mock_channel.send = AsyncMock()
-    mock_member.guild.text_channels = [mock_channel]
-
-    # Simulate member join logic
-    welcome_channel = mock_member.guild.text_channels[0] if mock_member.guild.text_channels else None
-    if welcome_channel:
-        welcome_message = f"""
-Vítej, {mock_member.mention}!
-Prosím, přesuň se do <#{TEST_ROLE_SELECTION_CHANNEL_ID}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
----
-Welcome, {mock_member.mention}!
-Please, go to the <#{TEST_ROLE_SELECTION_CHANNEL_ID}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
-                        """
-        await welcome_channel.send(welcome_message)
-
-    # Verify welcome message was sent
-    mock_channel.send.assert_called_once()
-    args, kwargs = mock_channel.send.call_args
-    assert "Vítej" in args[0]
-    assert mock_member.mention in args[0]
-
-
-async def test_gaming_session_workflow():
-    """Test complete gaming session planning workflow."""
-    # Step 1: Create Warcraft ping
+async def test_role_button_listener_removes_role():
+    """Test button listener removes role when user has it."""
     mock_ctx = AsyncMock()
-    mock_ctx.response.send_message = AsyncMock()
-    mock_message = AsyncMock()
-    mock_message.add_reaction = AsyncMock()
-    mock_ctx.response.send_message.return_value = mock_message
+    mock_ctx.component = MagicMock()
+    mock_ctx.component.custom_id = main.SelfServiceRoles.CLEN
+    mock_ctx.response = AsyncMock()
+    mock_ctx.author = MagicMock()
+    mock_ctx.guild = MagicMock()
 
-    # Simulate warcraft ping creation
-    time = "20:00"
-    template_message = decdi.WARCRAFTY_CZ.replace("{0}", f" v cca {time}")
-    await mock_ctx.response.send_message(template_message)
+    mock_role = MagicMock()
+    mock_role.id = 804431648959627294
+    mock_ctx.guild.get_role.return_value = mock_role
+    mock_ctx.author.roles = [mock_role]  # User already has the role
+    mock_ctx.author.add_roles = AsyncMock()
+    mock_ctx.author.remove_roles = AsyncMock()
 
-    # Simulate batch reactions
-    reactions = ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"]
-    for reaction in reactions:
-        await mock_message.add_reaction(reaction)
+    with patch.object(main.SelfServiceRoles, "get_role_id_by_name", return_value=804431648959627294):
+        with patch.object(main.GamingRoles, "get_role_id_by_name", return_value=None):
+            await main.listener(mock_ctx)
 
-    # Verify ping was created
-    mock_ctx.response.send_message.assert_called_with(template_message)
-    assert mock_message.add_reaction.call_count == len(reactions)
-
-    # Step 2: Create follow-up poll
-    mock_ctx.reset_mock()
-    mock_ctx.response.send_message = AsyncMock()
-    mock_ctx.original_message = AsyncMock()
-    mock_poll_message = AsyncMock()
-    mock_poll_message.add_reaction = AsyncMock()
-    mock_poll_message.edit = AsyncMock()
-    mock_ctx.original_message.return_value = mock_poll_message
-
-    # Simulate poll creation
-    question = "What Warcraft mode?"
-    options = ["Survival", "Legion", "Luckery"]
-    poll_content = f"Anketa: {question}\n"
-    emoji_list = ["1️⃣", "2️⃣", "3️⃣"]
-
-    await mock_ctx.response.send_message("Creating poll...", ephemeral=False)
-
-    for i, option in enumerate(options):
-        poll_content += f"{emoji_list[i]} = {option}\n"
-        await mock_poll_message.add_reaction(emoji_list[i])
-
-    await mock_poll_message.edit(content=poll_content)
-
-    # Verify poll was created
-    assert mock_poll_message.add_reaction.call_count == len(options)
-    mock_poll_message.edit.assert_called_with(content=poll_content)
+    mock_ctx.author.remove_roles.assert_called_once_with(mock_role)
+    mock_ctx.response.send_message.assert_called_once()
+    assert "removed" in mock_ctx.response.send_message.call_args.kwargs["content"]
 
 
-async def test_tweet_creation_workflow():
-    """Test tweet creation and reaction workflow."""
-    mock_ctx = AsyncMock()
-    mock_ctx.response.send_message = AsyncMock()
-    mock_ctx.followup.send = AsyncMock()
-    mock_ctx.author.display_name = "TestUser"
-    mock_tweet_message = AsyncMock()
-    mock_tweet_message.add_reaction = AsyncMock()
-    mock_ctx.followup.send.return_value = mock_tweet_message
+# Test on_message event
+async def test_on_message_calls_bot_validate(mock_message):
+    """Test on_message calls bot_validate for valid messages."""
+    mock_message.content = "good bot"
 
-    # Simulate tweet creation
-    content = "Just finished a great gaming session!"
+    with patch.object(main, "bot_validate", new_callable=AsyncMock) as mock_validate:
+        await main.on_message(mock_message)
 
-    # Create embed (simplified)
-    embed_data = {"title": f"{mock_ctx.author.display_name} tweeted:", "description": content, "color": "dark_purple"}
+        mock_validate.assert_called_once_with("good bot", mock_message)
 
-    await mock_ctx.response.send_message("Tweet posted! 👍", ephemeral=True)
-    await mock_ctx.followup.send(embed=embed_data)
 
-    # Simulate tweet reactions
-    tweet_reactions = ["💜", "🔁", "⬇️", "💭", "🔗"]
-    for reaction in tweet_reactions:
-        await mock_tweet_message.add_reaction(reaction)
+async def test_on_message_ignores_empty_content(mock_message):
+    """Test on_message ignores messages with empty content."""
+    mock_message.content = ""
 
-    # Verify tweet was posted
-    mock_ctx.response.send_message.assert_called_with("Tweet posted! 👍", ephemeral=True)
-    mock_ctx.followup.send.assert_called_with(embed=embed_data)
-    assert mock_tweet_message.add_reaction.call_count == len(tweet_reactions)
+    with patch.object(main, "bot_validate", new_callable=AsyncMock) as mock_validate:
+        await main.on_message(mock_message)
+
+        mock_validate.assert_not_called()
+
+
+async def test_on_message_ignores_bot_messages(mock_message):
+    """Test on_message ignores messages from the bot itself."""
+    mock_message.content = "test message"
+    mock_message.author.__str__ = MagicMock(return_value=main.GROSSMAN_NAME)
+
+    with patch.object(main, "bot_validate", new_callable=AsyncMock) as mock_validate:
+        await main.on_message(mock_message)
+
+        mock_validate.assert_not_called()

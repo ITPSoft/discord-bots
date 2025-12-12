@@ -1,5 +1,5 @@
-import asyncio
 import functools
+import inspect
 import logging
 import os
 import subprocess
@@ -105,6 +105,6 @@ def validate_param(func: Callable) -> Callable:
                     msg = f"{param_name}: {msg}"
                 raise commands.BadArgument(msg) from e
 
-        return async_converter if asyncio.iscoroutinefunction(func) else sync_converter
+        return async_converter if inspect.iscoroutinefunction(func) else sync_converter
 
     return param_wrapper
