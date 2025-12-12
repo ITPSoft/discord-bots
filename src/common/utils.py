@@ -16,8 +16,9 @@ def get_commit_hash() -> str:
 
     Returns commit hash from GIT_COMMIT_HASH env var (Docker) or git command (local dev).
     """
+    short_hash_len = 7    # consistent with GitHub. GitLab uses 8.
     if commit_hash := os.environ.get("GIT_COMMIT_HASH"):
-        return commit_hash[:8]
+        return commit_hash[:short_hash_len]
 
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -25,7 +26,7 @@ def get_commit_hash() -> str:
         text=True,
     )
     if result.returncode == 0:
-        return result.stdout.strip()[:8]
+        return result.stdout.strip()[:short_hash_len]
     return "unknown"
 
 
