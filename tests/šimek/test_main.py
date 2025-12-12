@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, patch, call
 
 import pytest
+from common.constants import KEKWR
 from šimek import main
 
 
@@ -17,12 +18,16 @@ from šimek import main
         # Windows problem
         (
             "mám velký problém s windows",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>"],
+            [
+                f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"
+            ],
             [],
         ),
         (
             "mé windows mají velký problém",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>"],
+            [
+                f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"
+            ],
             [],
         ),
         # Nvidia driver issue

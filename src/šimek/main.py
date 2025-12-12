@@ -6,7 +6,7 @@ import re
 
 import disnake
 
-from common.constants import GIDS, Channel, ŠIMEK_NAME
+from common.constants import GIDS, Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
 from common.utils import has_any, has_all, get_commit_hash
 from common import discord_logging
@@ -186,7 +186,7 @@ async def manage_response(m: Message):
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
     if m.channel.id == Channel.ECONPOLIPERO:
-        if has_any(mess, [":KekWR:", ":KekW:"]):
+        if has_any(mess, [KEKWR, ":KekW:"]):
             await do_response(
                 "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",
                 m,
@@ -220,7 +220,9 @@ async def manage_response(m: Message):
             await do_response("🙂", m, chance=1, reaction=True)
         case _ if has_all(mess, ["problém", "windows"]):
             await do_response(
-                "Radikální řešení :point_right: https://fedoraproject.org/workstation/download <:kekWR:1063089161587933204>", m, chance=1
+                f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}",
+                m,
+                chance=1,
             )
         case _ if has_all(mess, ["nvidia", "driver", "linux"]):
             await do_response("Nemůžu za to, že si neumíš vybrat distro, smh", m, chance=2)
@@ -328,7 +330,7 @@ async def manage_response(m: Message):
                 chance=50000,
             )
 
-            await do_response(f"{random.choice(RANDOM_EMOJIS)}",m,reaction=True,chance=1000)
+            await do_response(f"{random.choice(RANDOM_EMOJIS)}", m, reaction=True, chance=1000)
 
 
 @client.event
