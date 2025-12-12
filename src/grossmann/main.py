@@ -27,7 +27,7 @@ from disnake.ext.commands import Param, InteractionBot, default_member_permissio
 from disnake.ui import Button
 from dotenv import load_dotenv
 from grossmann import grossmanndict as grossdi
-from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW
+from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME
 from grossmann.utils import batch_react, send_http_response, validate_image_url, validate_waifu_category
 
 # preload all useful stuff
@@ -109,7 +109,7 @@ async def bot_validate(content: str, m: Message):
 
 async def twitter_pero(anonym: bool, content: str, ctx: ApplicationCommandInteraction, image_url: str | None):
     twitterpero = client.get_channel(Channel.TWITTERPERO)
-    sentfrom = f"Sent from #{ctx.channel.name}"
+    sent_from = f"Sent from #{ctx.channel.name}"
 
     if anonym:
         random_city = "Void"
@@ -138,14 +138,14 @@ async def twitter_pero(anonym: bool, content: str, ctx: ApplicationCommandIntera
         embed = Embed(title=f"{random_name} tweeted:", description=f"{content}", color=Colour.dark_purple())
         if result is not None:
             embed.set_thumbnail(url=result["picture"]["medium"])
-        sentfrom = f"Sent from {random_city} (#{ctx.channel.name})"
+        sent_from = f"Sent from {random_city} (#{ctx.channel.name})"
     else:
         embed = Embed(title=f"{ctx.author.display_name} tweeted:", description=f"{content}", color=Colour.dark_purple())
         embed.set_thumbnail(url=ctx.author.avatar)
 
     if image_url is not None:
         embed.set_image(url=image_url)
-    embed.add_field(name="_", value=sentfrom, inline=True)
+    embed.add_field(name="_", value=sent_from, inline=True)
     await ctx.response.send_message(content="Tweet posted! 👍", ephemeral=True)
     m = await twitterpero.send(embed=embed)
     await batch_react(m, ["💜", "🔁", "⬇️", "💭", "🔗"])
@@ -296,13 +296,7 @@ async def on_reaction_add(reaction: Reaction, user: Member | User):
 @client.event
 async def on_member_join(member: Member):
     welcome_channel = client.get_channel(Channel.WELCOMEPERO)
-    await welcome_channel.send(f"""
-Vítej, {member.mention}!
-Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
----
-Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
-                        """)
-    pass
+    await welcome_channel.send(WELCOME.substitute(member=member.mention))
 
 
 @client.listen("on_button_click")
@@ -440,10 +434,7 @@ async def game_ping(
     message_content = grossdi.GAME_EN
     # role_id = str(DiscordGamingRoles(role).role_id)
     role = DiscordGamingTestingRoles(game)
-    message_content = message_content.replace("{0}", str(role.role_id))
-    message_content = message_content.replace("{1}", str(role.value))
-    message_content = message_content.replace("{2}", f" at {time}")
-    message_content = message_content.replace("{3}", note)
+    message_content = grossdi.GAME_EN.substitute(role_id=role.role_id, game=role.value, time=time, note=note)
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()

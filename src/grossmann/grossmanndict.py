@@ -1,4 +1,14 @@
+from string import Template
+
 from common.constants import Channel
+
+WELCOME = Template("""
+Vítej, $member!
+Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
+---
+Welcome, $member!
+Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
+""")
 
 HELP = r"""
     ***Bot commands:***
@@ -38,8 +48,8 @@ Chceme hrát:
 :question: - Něco jiného? Napište jako reply.
 """
 
-GAME_EN = """
-<@&{0}> Shall we play {1} today{2}?.
+GAME_EN = Template("""
+<@&$role_id> Shall we play $game today at $time?.
 
 Will you join?
 :white_check_mark: Yes
@@ -47,8 +57,8 @@ Will you join?
 :thinking: Maybe
 :orthodox_cross: Yes, but later.
 
-{3}
-"""
+$note
+""")
 
 # based on https://waifu.pics/docs
 WAIFU_CATEGORIES = {

@@ -279,6 +279,7 @@ async def test_member_join_logic():
 Vítej, {mock_member.mention}!
 Prosím, přesuň se do <#{TEST_ROLE_SELECTION_CHANNEL_ID}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
 ---
+Welcome, {mock_member.mention}!
 Please, go to the <#{TEST_ROLE_SELECTION_CHANNEL_ID}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
                         """
         await welcome_channel.send(welcome_message)
