@@ -77,7 +77,7 @@ from šimek.morphodita_utils import find_self_reference, needs_help, Token
         ),
         ("Jinak jsem teda ready, modpack se pustí v klidu, mám stable 60fps, tak asi cajk", (True, "teda ready")),
         ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
-        ("hej neodpověděl jsem, jelikož tam vůbec žádnou podobu nevidím ", (False, "")),
+        ("true, zafixoval jsem se na 3 protože half life 3 a bg3", (False, "se na 3 protože half life 3 a bg3")),
         (
             "Já. Dostal jsem ji jednou k vánocům, myslím. Kolega svolal deskohraní a nedorazil, tak jsem tím nakazil ostatní. ",
             (False, "ji jednou k vánocům"),
