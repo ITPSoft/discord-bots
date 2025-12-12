@@ -111,10 +111,7 @@ async def test_roll_command(mock_ctx, roll_range, expected_max):
         await main.roll(mock_ctx, roll_range)
 
         mock_randint.assert_called_once_with(0, expected_max)
-        mock_ctx.response.send_message.assert_called_once()
-        call_args = mock_ctx.response.send_message.call_args[0][0]
-        assert "3" in call_args
-        assert f"d{roll_range}" in call_args
+        mock_ctx.response.send_message.assert_called_once_with("You rolled 3 (Used d3).")
 
 
 async def test_roll_command_default_range(mock_ctx):
