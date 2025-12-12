@@ -131,12 +131,15 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     """
     # safeguard against all role tags
     if random.randint(1, chance) == 1:
-        reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
-        if reaction:
-            await m.add_reaction(reply)
-        else:
-            await m.reply(reply)
-        last_reaction_time[m.channel.id] = dt.datetime.now()
+        try:
+            reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
+            if reaction:
+                await m.add_reaction(reply)
+            else:
+                await m.reply(reply)
+            last_reaction_time[m.channel.id] = dt.datetime.now()
+        except Exception as e:
+            logger.exception(f"Failed to send {reply=}, {reaction=}", exc_info=e)
 
 
 async def manage_response(m: Message):
@@ -252,7 +255,7 @@ async def manage_response(m: Message):
             await do_response(f"Tvoje máma je {jsi_who}.", m, chance=8)
         case "negr":
             await do_response(":pensive:", m, chance=10)
-            await do_response(":+1:", m, chance=30)
+            await do_response("👍", m, chance=30)
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
         case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
@@ -280,7 +283,7 @@ async def manage_response(m: Message):
                 chance=1,
             )
         case "business" | "byznys":
-            await do_response(":+1:", m, chance=1, reaction=True)
+            await do_response("👍", m, chance=1, reaction=True)
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com":
@@ -313,7 +316,7 @@ async def manage_response(m: Message):
                         [
                             'Mňau',
                             'víš co? raději drž hubu, protože z tohohle jsem chytil rakovinu varlat',
-                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý :+1:',
+                            'dissnul bych tě, ale budu hodnej, takže uhhh to bude dobrý 👍',
                             'https://www.youtube.com/watch?v=kyg1uxOsAUY',
                         ]
                     )

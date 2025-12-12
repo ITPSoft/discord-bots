@@ -19,7 +19,6 @@ HELP = r"""
     /_today_
         Tells you which international day it is today.
     """
-# todo: zkusit help generovat
 WARCRAFTY_CZ = """
 <@&871817685439234108> - Warcrafty 3 dnes{0}?
 React with attendance:
