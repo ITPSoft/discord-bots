@@ -58,11 +58,11 @@ format-code = ["_ruff_lint", "_ruff_format"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 # there is no simple way to share part of them and change other part
-#addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short"]
+addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short"]
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format"]
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy", "--cov=src", "--cov-report=html"]
-addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--cov=src", "--cov-report=html"]
+#addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--cov=src", "--cov-report=html"]
 
 [build-system]
 requires = ["uv_build>=0.9.13,<0.10.0"]

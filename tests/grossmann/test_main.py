@@ -201,50 +201,21 @@ def test_warcraft_template_format():
 
 
 # Test button listener role logic
-async def test_role_button_listener_adds_role():
+async def test_role_button_listener_adds_role(mock_ctx, mock_role):
     """Test button listener adds role when user doesn't have it."""
-    mock_ctx = AsyncMock()
-    mock_ctx.component = MagicMock()
-    mock_ctx.component.custom_id = main.SelfServiceRoles.CLEN
-    mock_ctx.response = AsyncMock()
-    mock_ctx.author = MagicMock()
-    mock_ctx.guild = MagicMock()
-
-    mock_role = MagicMock()
-    mock_role.id = 804431648959627294
-    mock_ctx.guild.get_role.return_value = mock_role
-    mock_ctx.author.roles = []
-    mock_ctx.author.add_roles = AsyncMock()
-    mock_ctx.author.remove_roles = AsyncMock()
-
-    with patch.object(main.SelfServiceRoles, "get_role_id_by_name", return_value=804431648959627294):
-        with patch.object(main.GamingRoles, "get_role_id_by_name", return_value=None):
-            await main.listener(mock_ctx)
+    mock_ctx.author.roles = []  # User doesn't have the role
+    await main.listener(mock_ctx)
 
     mock_ctx.author.add_roles.assert_called_once_with(mock_role)
     mock_ctx.response.send_message.assert_called_once()
     assert "added" in mock_ctx.response.send_message.call_args.kwargs["content"]
 
 
-async def test_role_button_listener_removes_role():
+async def test_role_button_listener_removes_role(mock_ctx, mock_role):
     """Test button listener removes role when user has it."""
-    mock_ctx = AsyncMock()
-    mock_ctx.component = MagicMock()
-    mock_ctx.component.custom_id = main.SelfServiceRoles.CLEN
-    mock_ctx.response = AsyncMock()
-    mock_ctx.author = MagicMock()
-    mock_ctx.guild = MagicMock()
-
-    mock_role = MagicMock()
-    mock_role.id = 804431648959627294
-    mock_ctx.guild.get_role.return_value = mock_role
     mock_ctx.author.roles = [mock_role]  # User already has the role
-    mock_ctx.author.add_roles = AsyncMock()
-    mock_ctx.author.remove_roles = AsyncMock()
 
-    with patch.object(main.SelfServiceRoles, "get_role_id_by_name", return_value=804431648959627294):
-        with patch.object(main.GamingRoles, "get_role_id_by_name", return_value=None):
-            await main.listener(mock_ctx)
+    await main.listener(mock_ctx)
 
     mock_ctx.author.remove_roles.assert_called_once_with(mock_role)
     mock_ctx.response.send_message.assert_called_once()

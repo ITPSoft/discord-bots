@@ -3,27 +3,43 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aioresponses import aioresponses
+from common.utils import SelfServiceRoles
 
 from common import http
 from common.constants import Channel
 
 
-@pytest.fixture
-def mock_ctx():
+@pytest.fixture(scope="function")
+def mock_role():
+    role = MagicMock()
+    role.id = SelfServiceRoles.CLEN.role_id
+    return role
+
+@pytest.fixture(scope="function")
+def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""
+
     ctx = AsyncMock()
     ctx.response = AsyncMock()
     ctx.response.send_message = AsyncMock()
+    ctx.component = MagicMock()
+    ctx.component.custom_id = SelfServiceRoles.CLEN
     ctx.send = AsyncMock()
     ctx.original_response = AsyncMock()
     ctx.original_message = AsyncMock()
     ctx.author = MagicMock()
+    ctx.author.roles = []
+    ctx.author.add_roles = AsyncMock()
+    ctx.author.remove_roles = AsyncMock()
     ctx.author.display_name = "TestUser"
     ctx.author.avatar = "https://example.com/avatar.png"
     ctx.channel = MagicMock()
     ctx.channel.name = "test-channel"
     ctx.channel.id = 12345
     ctx.guild = MagicMock()
+
+    ctx.guild.get_role.return_value = mock_role
+
     return ctx
 
 

@@ -18,16 +18,12 @@ from šimek import main
         # Windows problem
         (
             "mám velký problém s windows",
-            [
-                f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"
-            ],
+            [f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"],
             [],
         ),
         (
             "mé windows mají velký problém",
-            [
-                f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"
-            ],
+            [f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"],
             [],
         ),
         # Nvidia driver issue
