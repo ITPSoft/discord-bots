@@ -11,27 +11,21 @@ Welcome, $member!
 Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
 """)
 
-HELP = r"""
-    ***Bot commands:***
-    _arguments in \{\} are optional, arguments with \[\] are required_
-    /_bothelp_ or _commands_
-        Shows help.
-    /_ping_
-        Shows bot's ping and API latency.
-    /_roll_ \{number\}
-        Rolls a random number between 1 and \{number\}. Defaults number to 100,
-        if not specified.
-    /_yesorno_
-        Answers a question with yes or no.
-    /_warcraft_ \{time\}
-        Creates a warcraft play session announcement from template.
-    /_gmod_ \{time\}
-        Creates a gmod play session announcement from template.
-    /_poll_ [name_of_poll] [option_1] [option2] \{option3\} \{option4\} \{option5\}
-        Use underscores as spaces. Bot will automatically edit them for you.
-    /_today_
-        Tells you which international day it is today.
-    """
+HELP = {
+    "/poll [opt1] [opt2] {opt3} {opt4} {opt5}": "Vytvoří anketu podle 2 až 5 argumentů.",
+    "/roll {počet stěn}": "Hodí kostkou s počtem stěn daným v argumentu, výchozí je 6.",
+    "/tweet [text] {url obrázku} {anonym}": "Pošle 'tweet' do kanálu #twitter-pero.",
+    "/ping_grossmann": "Zkontroluje Grossmannovu latenci.",
+    "/yesorno": "Odpoví náhodně ano/ne.",
+    "/warcraft_ping {čas}": "Zmíní roli Warcraft a otevře plánovací menu.",
+    "/game_ping [role] [čas] {jazyk CZ/EN} {poznámka}": "Zmíní roli jakékoliv hry.",
+    "/createrolewindow": "Otevře menu pro výběr rolí.",
+    "/iwantcat": "Pošle náhodný kočkobrázek.",
+    "/iwantfox": "Pošle náhodný liškobrázek.",
+    "/waifu": "Pošle náhodný láskobrázek.",
+    "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný."
+}
+
 WARCRAFTY_CZ = Template(f"""
 {GamingRoles.WARCRAFT.role_tag} - Warcrafty 3 dnes$time?
 React with attendance:
