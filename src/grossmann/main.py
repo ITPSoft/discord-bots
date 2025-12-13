@@ -286,7 +286,7 @@ async def listener(ctx: MessageInteraction):
 # Show all available commands
 @client.slash_command(description="Show all available commands", guild_ids=GIDS)
 @default_member_permissions(administrator=True)  # only for admins until updated, not that useful for slash commands
-async def decimhelp(ctx: ApplicationCommandInteraction):
+async def help(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(grossdi.HELP, ephemeral=True, delete_after=60)
 
 
