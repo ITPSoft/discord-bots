@@ -285,7 +285,6 @@ async def listener(ctx: MessageInteraction):
 ## Commands here ->
 # Show all available commands
 @client.slash_command(description="Show all available commands", guild_ids=GIDS)
-@default_member_permissions(administrator=True)  # only for admins until updated, not that useful for slash commands
 async def help(ctx: ApplicationCommandInteraction):
     help_embed = Embed(title="Grossman help", description="[argument] je povinný, {argument} je volitelný",color=disnake.Colour.teal(),)
     for command_help in grossdi.HELP:
