@@ -391,7 +391,7 @@ async def game_ping(
         converter=validate_game_role("game_role"), description="Game role tag: @rolename, use discord suggestions."
     ),
     time: str = Param(description="Time to start playing"),
-    lang: str = Param(name="lang", choices=["cz", "en"], default="en", description="Message language"),
+    lang: str = Param(name="lang", choices=["cz", "en"], default="cz", description="Message language"),
     note: str = Param(default="", description="Additional note"),
 ):
     role = GAMING_ROLES_PER_SERVER[ctx.guild_id].get_by_role_id(role_tag2id(game_role))
