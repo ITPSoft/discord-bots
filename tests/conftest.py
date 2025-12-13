@@ -6,7 +6,7 @@ from aioresponses import aioresponses
 from common.utils import SelfServiceRoles
 
 from common import http
-from common.constants import Channel
+from common.constants import Channel, Server
 
 
 @pytest.fixture(scope="function")
@@ -38,6 +38,7 @@ def mock_ctx(mock_role):
     ctx.channel.name = "test-channel"
     ctx.channel.id = 12345
     ctx.guild = MagicMock()
+    ctx.guild_id = Server.TEST_SERVER
 
     ctx.guild.get_role.return_value = mock_role
 

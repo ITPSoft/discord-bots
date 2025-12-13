@@ -3,10 +3,13 @@ from enum import IntEnum
 ŠIMEK_NAME = "šimek#3885"
 GROSSMAN_NAME = "grossmann#1086"
 
-GIDS = [
-    276720867344646144,  # kouzelníci
-    # 1420168840511492149,  # test server
-]
+
+class Server(IntEnum):
+    KOUZELNICI = 276720867344646144
+    TEST_SERVER = 1420168840511492149
+
+
+GIDS = [s.value for s in Server]
 
 
 class Channel(IntEnum):

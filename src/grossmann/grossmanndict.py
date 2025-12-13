@@ -49,13 +49,25 @@ Chceme hrát:
 """
 
 GAME_EN = Template("""
-<@&$role_id> Shall we play $game today at $time?.
+<@&$role_id> Shall we play $game today at $time?
 
 Will you join?
 :white_check_mark: Yes
 :negative_squared_cross_mark: No
 :thinking: Maybe
 :orthodox_cross: Yes, but later.
+
+$note
+""")
+
+GAME_CZ = Template("""
+<@&$role_id> Zahrajeme si $game dnes v $time?
+
+Přidáš se?
+:white_check_mark: Ano
+:negative_squared_cross_mark: Ne
+:thinking: Možná
+:orthodox_cross: Ano, ale později.
 
 $note
 """)

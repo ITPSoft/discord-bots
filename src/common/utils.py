@@ -6,8 +6,10 @@ import subprocess
 from collections.abc import Iterable, Callable
 from enum import Enum
 from functools import lru_cache
+from typing import Self
 from urllib.parse import urlparse
 
+from common.constants import Server
 from disnake.ext import commands
 
 logger = logging.getLogger(__name__)
@@ -108,11 +110,22 @@ class BaseRoleEnum(Enum):
     def role_id(self) -> int:
         return self._role_id
 
+    @property
+    def role_tag(self) -> str:
+        return f"<@&{self._role_id}>"
+
     @classmethod
-    def get_role_id_by_name(cls, name: str) -> "int | None":
+    def get_role_id_by_name(cls, name: str) -> int | None:
         for member in cls:
             if member._role_name == name:
                 return member._role_id
+        return None
+
+    @classmethod
+    def get_by_role_id(cls, role_id: int) -> Self | None:
+        for member in cls:
+            if member._role_id == role_id:
+                return member
         return None
 
 
@@ -160,3 +173,6 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 
     WARCRAFT = ("warcraft", 1422634691969945830)
     VALORANT = ("valorant", 1422634814095228928)
+
+
+GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}

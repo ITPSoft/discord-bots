@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 
 from common.constants import HALL_OF_FAME_EMOJIS
+from common.utils import DiscordGamingTestingRoles
 from grossmann import grossmanndict as grossdi
 from grossmann import main
 from grossmann.utils import batch_react
@@ -495,17 +496,17 @@ async def test_on_member_join_sends_welcome():
 
 
 # Test game_ping command
-async def test_game_ping_command(mock_ctx, mock_message):
-    """Test game_ping command creates announcement with reactions."""
+async def test_game_ping_command_english(mock_ctx, mock_message):
+    """Test game_ping command creates announcement with reactions in English."""
     mock_ctx.original_message.return_value = mock_message
 
-    game = main.DiscordGamingTestingRoles.WARCRAFT
-    await main.game_ping(mock_ctx, game, "20:00", "Let's play!")
+    await main.game_ping(mock_ctx, DiscordGamingTestingRoles.WARCRAFT.role_tag, "20:00", "en", "Let's play!")
 
     mock_ctx.response.send_message.assert_called_once()
     call_content = mock_ctx.response.send_message.call_args[0][0]
     assert "20:00" in call_content
     assert "Let's play!" in call_content
+    assert "Shall we play" in call_content
 
     # Verify reactions
     expected_reactions = ["✅", "❎", "🤔", "☦️"]
@@ -513,12 +514,23 @@ async def test_game_ping_command(mock_ctx, mock_message):
     mock_message.add_reaction.assert_has_calls([call(r) for r in expected_reactions])
 
 
+async def test_game_ping_command_czech(mock_ctx, mock_message):
+    """Test game_ping command creates announcement with reactions in Czech."""
+    mock_ctx.original_message.return_value = mock_message
+
+    await main.game_ping(mock_ctx, DiscordGamingTestingRoles.VALORANT.role_tag, "21:00", "cz", "")
+
+    mock_ctx.response.send_message.assert_called_once()
+    call_content = mock_ctx.response.send_message.call_args[0][0]
+    assert "21:00" in call_content
+    assert "Zahrajeme si" in call_content
+
+
 async def test_game_ping_command_without_note(mock_ctx, mock_message):
     """Test game_ping command works without note."""
     mock_ctx.original_message.return_value = mock_message
 
-    game = main.DiscordGamingTestingRoles.VALORANT
-    await main.game_ping(mock_ctx, game, "21:00", "")
+    await main.game_ping(mock_ctx, DiscordGamingTestingRoles.VALORANT.role_tag, "21:00", "en", "")
 
     mock_ctx.response.send_message.assert_called_once()
 

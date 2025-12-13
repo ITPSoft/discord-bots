@@ -10,7 +10,7 @@ from common.http import (
     get_http_session,
     close_http_session,
 )
-from common.utils import has_any, get_commit_hash, SelfServiceRoles, GamingRoles, DiscordGamingTestingRoles
+from common.utils import has_any, get_commit_hash, SelfServiceRoles, GamingRoles, GAMING_ROLES_PER_SERVER
 from disnake import (
     Message,
     ApplicationCommandInteraction,
@@ -27,8 +27,15 @@ from disnake.ext.commands import Param, InteractionBot, default_member_permissio
 from disnake.ui import Button
 from dotenv import load_dotenv
 from grossmann import grossmanndict as grossdi
-from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME
-from grossmann.utils import batch_react, send_http_response, validate_image_url, validate_waifu_category
+from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME, GAME_EN, GAME_CZ
+from grossmann.utils import (
+    batch_react,
+    send_http_response,
+    validate_image_url,
+    validate_waifu_category,
+    validate_game_role,
+    role_tag2id,
+)
 
 # preload all useful stuff
 load_dotenv()
@@ -381,23 +388,21 @@ async def warcraft(ctx: ApplicationCommandInteraction, start_time: str | None = 
 
 
 @client.slash_command(name="game_ping", description="Pings any game", guild_ids=GIDS)
-# todo: dodělat validace
 async def game_ping(
     ctx: ApplicationCommandInteraction,
-    # role: DiscordGamingRoles,
-    game: DiscordGamingTestingRoles,
-    time: str,
-    note: str = "",
+    game_role: str = Param(
+        converter=validate_game_role("game_role"), description="Game role tag: @rolename, use discord suggestions."
+    ),
+    time: str = Param(description="Time to play"),
+    lang: str = Param(name="lang", choices=["cz", "en"], default="en", description="Message language"),
+    note: str = Param(default="", description="Additional note"),
 ):
-    # send z templaty
-    message_content = grossdi.GAME_EN
-    # role_id = str(DiscordGamingRoles(role).role_id)
-    role = DiscordGamingTestingRoles(game)
-    message_content = grossdi.GAME_EN.substitute(role_id=role.role_id, game=role.value, time=time, note=note)
+    role = GAMING_ROLES_PER_SERVER[ctx.guild_id].get_by_role_id(role_tag2id(game_role))
+    template = GAME_CZ if lang == "cz" else GAME_EN
+    message_content = template.substitute(role_id=role.role_id, game=role.role_name, time=time, note=note)
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
-    # přidání reakcí
     await batch_react(m, ["✅", "❎", "🤔", "☦️"])
 
 

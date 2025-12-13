@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from urllib.parse import urlparse
 
 import aiohttp
@@ -14,10 +15,12 @@ from common.http import (
     ErrorResponse,
     get_http_session,
 )
-from common.utils import validate_param
+from common.utils import validate_param, GAMING_ROLES_PER_SERVER
 from grossmann.grossmanndict import WAIFU_CATEGORIES
 
 logger = logging.getLogger(__name__)
+
+ROLE_TAG_RE = re.compile(r"<@&(\d{10,30})>")
 
 
 # useful functions/methods
@@ -95,3 +98,22 @@ def validate_waifu_category(ctx: ApplicationCommandInteraction, argument: str) -
         raise BadArgument(f"'{argument}' není v typu '{content_type}'. Vyber si z: {', '.join(valid_subcategories)}")
 
     return argument
+
+
+def is_valid_role_tag(role_tag: str) -> bool:
+    return ROLE_TAG_RE.fullmatch(role_tag) is not None
+
+
+def role_tag2id(role_tag: str) -> int:
+    m = ROLE_TAG_RE.fullmatch(role_tag)
+    assert m is not None
+    return int(m.group(1))
+
+
+@validate_param
+def validate_game_role(ctx: ApplicationCommandInteraction, game_role: str) -> str:
+    if not is_valid_role_tag(game_role):
+        raise BadArgument(f"'{game_role}' není role, použij @role, discord je našeptává.")
+    if GAMING_ROLES_PER_SERVER[ctx.guild_id].get_by_role_id(role_tag2id(game_role)) is None:
+        raise BadArgument(f"'{game_role}' není platná herní role.")
+    return game_role
