@@ -54,7 +54,6 @@ hall_of_fame_message_ids: dict[int, datetime] = {}
 # setup_nethack_commands(client, decdi.GIDS)
 
 
-
 async def bot_validate(content: str, m: Message):
     if content.startswith("hodný bot") or "good bot" in content:
         await m.add_reaction("🙂")
@@ -261,9 +260,9 @@ async def on_member_join(member: Member):
 
 @client.listen("on_button_click")
 async def listener(ctx: MessageInteraction):
-    role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id.role_name) or GamingRoles.get_role_id_by_name(
+    role_id = SelfServiceRoles.get_role_id_by_name(
         ctx.component.custom_id.role_name
-    )
+    ) or GamingRoles.get_role_id_by_name(ctx.component.custom_id.role_name)
     logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
     if role_id is not None:
         role = ctx.guild.get_role(role_id)

@@ -15,6 +15,7 @@ def mock_role():
     role.id = SelfServiceRoles.CLEN.role_id
     return role
 
+
 @pytest.fixture(scope="function")
 def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""

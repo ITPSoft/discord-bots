@@ -46,33 +46,6 @@ def is_url(string):
     return bool(parsed.scheme) and bool(parsed.netloc)
 
 
-class BaseRoleEnum(Enum):
-    """
-    This python enum subclass is a black magic, do not touch it, I sacrificed 3 goats during full moon to make it work.
-    """
-
-    def __new__(cls, role_name, role_id):
-        obj = object.__new__(cls)
-        obj._role_name = role_name
-        obj._role_id = role_id
-        return obj
-
-    @property
-    def role_name(self) -> str:
-        return self._role_name
-
-    @property
-    def role_id(self) -> int:
-        return self._role_id
-
-    @classmethod
-    def get_role_id_by_name(cls, name: str) -> "int | None":
-        for member in cls:
-            if member._role_name == name:
-                return member._role_id
-        return None
-
-
 def validate_param(func: Callable) -> Callable:
     """
     Decorator that returns a function accepting parameter name for enriching BadArgument error messages.
@@ -111,6 +84,36 @@ def validate_param(func: Callable) -> Callable:
         return async_converter if inspect.iscoroutinefunction(func) else sync_converter
 
     return param_wrapper
+
+
+class BaseRoleEnum(Enum):
+    """
+    This python enum subclass is a black magic, do not touch it, I sacrificed 3 goats during full moon to make it work.
+    """
+
+    _role_name: str
+    _role_id: int
+
+    def __new__(cls, role_name, role_id):
+        obj = object.__new__(cls)
+        obj._role_name = role_name
+        obj._role_id = role_id
+        return obj
+
+    @property
+    def role_name(self) -> str:
+        return self._role_name
+
+    @property
+    def role_id(self) -> int:
+        return self._role_id
+
+    @classmethod
+    def get_role_id_by_name(cls, name: str) -> "int | None":
+        for member in cls:
+            if member._role_name == name:
+                return member._role_id
+        return None
 
 
 class SelfServiceRoles(BaseRoleEnum):
