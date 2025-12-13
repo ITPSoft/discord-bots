@@ -15,15 +15,15 @@ HELP = {
     "/poll [opt1] [opt2] {opt3} {opt4} {opt5}": "Vytvoří anketu podle 2 až 5 argumentů.",
     "/roll {počet stěn}": "Hodí kostkou s počtem stěn daným v argumentu, výchozí je 6.",
     "/tweet [text] {url obrázku} {anonym}": "Pošle 'tweet' do kanálu #twitter-pero.",
-    "/ping_grossmann": "Zkontroluje Grossmannovu latenci.",
+    # "/ping_grossmann": "Zkontroluje Grossmannovu latenci.",   # jen pro adminy
     "/yesorno": "Odpoví náhodně ano/ne.",
     "/warcraft_ping {čas}": "Zmíní roli Warcraft a otevře plánovací menu.",
     "/game_ping [role] [čas] {jazyk CZ/EN} {poznámka}": "Zmíní roli jakékoliv hry.",
-    "/createrolewindow": "Otevře menu pro výběr rolí.",
+    # "/createrolewindow": "Otevře menu pro výběr rolí.",   # jen pro adminy
     "/iwantcat": "Pošle náhodný kočkobrázek.",
     "/iwantfox": "Pošle náhodný liškobrázek.",
     "/waifu": "Pošle náhodný láskobrázek.",
-    "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný."
+    "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný.",
 }
 
 WARCRAFTY_CZ = Template(f"""

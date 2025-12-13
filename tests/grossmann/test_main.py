@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 
 from common.constants import HALL_OF_FAME_EMOJIS
-from common.utils import DiscordGamingTestingRoles
+from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles
 from grossmann import grossmanndict as grossdi
 from grossmann import main
 from grossmann.utils import batch_react
@@ -179,17 +179,13 @@ async def test_warcraft_command_without_time(mock_ctx, mock_message, gaming_reac
     mock_ctx.response.send_message.assert_called_once()
     call_content = mock_ctx.response.send_message.call_args[0][0]
     assert "v cca" not in call_content
-    assert "<@&871817685439234108>" in call_content
+    assert GamingRoles.WARCRAFT.role_tag in call_content
 
 
 # Test help template content
 def test_help_template_contains_commands():
     """Test help template contains all expected commands."""
-    assert "_roll_" in grossdi.HELP
-    assert "_poll_" in grossdi.HELP
-    assert "_yesorno_" in grossdi.HELP
-    assert "_warcraft_" in grossdi.HELP
-    assert "_gmod_" in grossdi.HELP
+    assert has_all("".join(grossdi.HELP), ["/roll", "/poll", "/yesorno", "/warcraft", "/xkcd"])
 
 
 # Test button listener role logic

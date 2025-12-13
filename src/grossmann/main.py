@@ -286,7 +286,11 @@ async def listener(ctx: MessageInteraction):
 # Show all available commands
 @client.slash_command(description="Show all available commands", guild_ids=GIDS)
 async def help(ctx: ApplicationCommandInteraction):
-    help_embed = Embed(title="Grossman help", description="[argument] je povinný, {argument} je volitelný",color=disnake.Colour.teal(),)
+    help_embed = Embed(
+        title="Grossman help",
+        description="[argument] je povinný, {argument} je volitelný",
+        color=disnake.Colour.teal(),
+    )
     for command_help in grossdi.HELP:
         help_embed.add_field(name=command_help, value=grossdi.HELP[command_help], inline=False)
     await ctx.response.send_message(embed=help_embed, delete_after=60)
