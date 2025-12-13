@@ -1,3 +1,15 @@
+from string import Template
+
+from common.constants import Channel
+
+WELCOME = Template("""
+Vítej, $member!
+Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
+---
+Welcome, $member!
+Please, go to the <#{Channel.ROLES}> channel and select your roles. Don't forget the 'Člen'/Member role to see other channels!
+""")
+
 HELP = r"""
     ***Bot commands:***
     _arguments in \{\} are optional, arguments with \[\] are required_
@@ -36,8 +48,8 @@ Chceme hrát:
 :question: - Něco jiného? Napište jako reply.
 """
 
-GAME_EN = """
-<@&{0}> Shall we play {1} today{2}?.
+GAME_EN = Template("""
+<@&$role_id> Shall we play $game today at $time?
 
 Will you join?
 :white_check_mark: Yes
@@ -45,5 +57,63 @@ Will you join?
 :thinking: Maybe
 :orthodox_cross: Yes, but later.
 
-{3}
-"""
+$note
+""")
+
+GAME_CZ = Template("""
+<@&$role_id> Zahrajeme si $game dnes v $time?
+
+Přidáš se?
+:white_check_mark: Ano
+:negative_squared_cross_mark: Ne
+:thinking: Možná
+:orthodox_cross: Ano, ale později.
+
+$note
+""")
+
+# based on https://waifu.pics/docs
+WAIFU_CATEGORIES = {
+    "sfw": [
+        "waifu",
+        "neko",
+        "shinobu",
+        "megumin",
+        "bully",
+        "cuddle",
+        "cry",
+        "hug",
+        "awoo",
+        "kiss",
+        "lick",
+        "pat",
+        "smug",
+        "bonk",
+        "yeet",
+        "blush",
+        "smile",
+        "wave",
+        "highfive",
+        "handhold",
+        "nom",
+        "bite",
+        "glomp",
+        "slap",
+        "kick",
+        "happy",
+        "wink",
+        "poke",
+        "dance",
+        "cringe",
+        # commented out options valid for API but unwanted
+        # "kill"
+    ],
+    "nsfw": [
+        "waifu",
+        "neko",
+        "trap",
+        "blowjob",
+    ],
+}
+
+WAIFU_ALLOWED_NSFW = [Channel.NSFW]

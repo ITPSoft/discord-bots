@@ -61,9 +61,12 @@ async def prepare_http_response(url: str, resp_key: str) -> Response:
                     case "application/json":
                         result = (await api_call.json())[resp_key]
                         return TextResponse(api_call.status, result)
+            elif api_call.status == 404:  # show error but don't log
+                return ErrorResponse(api_call.status)
             else:
+                logger.error(f"HTTP error response: {api_call.status=} for {url=}")
                 return ErrorResponse(api_call.status)
     except Exception as exc:
-        logger.error(f"Encountered exception: {exc}")
+        logger.error(f"Encountered exception when calling {url=}", exc_info=exc)
         return ErrorResponse(0)
     return ErrorResponse(0)

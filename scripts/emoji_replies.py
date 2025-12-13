@@ -8,6 +8,7 @@ from disnake import Client
 
 from common.constants import Channel
 from šimek.main import TOKEN
+from šimek.šimekdict import RANDOM_EMOJIS
 
 
 async def main():
@@ -18,7 +19,7 @@ async def main():
     await client.wait_until_ready()
     channel = await client.fetch_channel(Channel.BOT_TESTING.value)
     assert channel is not None
-    m = await channel.fetch_message(1448960611298836550)
+    m = await channel.fetch_message(1449173781481525279)
     assert m is not None
     await m.add_reaction("🙂")
     await m.add_reaction("😔")
@@ -28,6 +29,8 @@ async def main():
     await m.add_reaction("😖")
     await m.add_reaction("👍")
     # await m.add_reaction(":+1:")  # this raises unknown emoji
+    for emoji in RANDOM_EMOJIS:
+        await m.add_reaction(emoji)
 
     # Cleanly shut down
     await client.close()

@@ -2,7 +2,7 @@
 # ============================================
 # STAGE 1: Build stage with uv
 # ============================================
-FROM python:3.13-slim AS build
+FROM python:3.14-slim AS build
 
 # Build argument for git commit hash
 ARG GIT_COMMIT_HASH=unknown
@@ -42,7 +42,7 @@ COPY pyproject.toml uv.lock README.md /app/
 # Do not change the build process unless you manually
 # check the hashes of individual layers using https://github.com/wagoodman/dive
 # ============================================
-FROM python:3.13-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 # Pass build arg to runtime stage
 ARG GIT_COMMIT_HASH=unknown

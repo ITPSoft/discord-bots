@@ -1,59 +1,10 @@
 """Basic smoke tests for Šimek Discord bot."""
 
-from collections.abc import Generator
-from typing import Any
-from unittest.mock import AsyncMock, patch, MagicMock, call
+from unittest.mock import AsyncMock, patch, call
 
 import pytest
-
-from common import http
+from common.constants import KEKWR
 from šimek import main
-
-
-@pytest.fixture()
-def first_rand_answer() -> Generator[MagicMock, Any, None]:
-    # Use the same mock object for both patches
-    with patch("random.choice") as mock_choice:
-        mock_choice.side_effect = lambda x: x[0]  # force random to return first element
-        yield mock_choice
-
-
-@pytest.fixture()
-def always_answer() -> Generator[MagicMock, Any, None]:
-    # Create a single mock object
-    # Use the same mock object for both patches
-    with patch("random.randint") as mock_randint:
-        mock_randint.return_value = 1  # so the probability triggers always in tests
-        yield mock_randint
-
-
-@pytest.fixture(autouse=True)
-async def cleanup_http_session():
-    """Ensure HTTP session is cleaned up after each test."""
-    yield
-    await http.close_http_session()
-
-
-@pytest.fixture(scope="function")
-def mock_message():
-    """Create a mock Message object."""
-    message = AsyncMock()
-    message.channel.id = 932301697836003358  # bot-testing
-
-    # Mock channel.history() as an async generator
-    async def mock_history(*args, **kwargs):
-        # Return some sample messages for markov chain generation
-        mock_msg1 = AsyncMock()
-        mock_msg1.content = "hello world test"
-        mock_msg2 = AsyncMock()
-        mock_msg2.content = "world test again"
-        mock_msg3 = AsyncMock()
-        mock_msg3.content = "some other message"
-        for msg in [mock_msg1, mock_msg2, mock_msg3]:
-            yield msg
-
-    message.channel.history = MagicMock(return_value=mock_history())
-    return message
 
 
 @pytest.mark.parametrize(
@@ -67,12 +18,12 @@ def mock_message():
         # Windows problem
         (
             "mám velký problém s windows",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"],
+            [f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"],
             [],
         ),
         (
             "mé windows mají velký problém",
-            ["Radikální řešení :point_right: https://fedoraproject.org/workstation/download :kekWR:"],
+            [f"Radikální řešení :point_right: https://fedoraproject.org/workstation/download {KEKWR}"],
             [],
         ),
         # Nvidia driver issue
@@ -173,29 +124,22 @@ async def test_business(mock_message, always_answer):
     assert "příště raději napiš 'byznys'" in mock_message.reply.call_args[0][0]
 
 
-async def test_mama_joke_api(mock_message, always_answer):
+async def test_mama_joke_api(mock_message, always_answer, m):
     """Test yo mama joke API call."""
     main.COOLDOWN = -1
     mock_message.content = "tvoje mama"
-
-    # Mock the HTTP session
-    mock_response = MagicMock()
-    mock_response.status = 200
-    mock_response.json = AsyncMock(return_value={"joke": "Yo mama so fat..."})
-    mock_response.content_type = "application/json"
-
-    # Create a proper async context manager
-    mock_context_manager = MagicMock()
-    mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session = MagicMock()
-    mock_session.get = MagicMock(return_value=mock_context_manager)
-
-    with patch("common.http.get_http_session", return_value=mock_session):
-        await main.manage_response(mock_message)
-
-    mock_message.reply.assert_called_once_with("Yo mama so fat...")
+    m.get(
+        "https://yomama-jokes.com/api/random",
+        payload={
+            "id": 126,
+            "joke": "Yo mama is so old she remembers when the Mayans published their calendar.",
+            "category": "old",
+        },
+    )
+    await main.manage_response(mock_message)
+    mock_message.reply.assert_called_once_with(
+        "Yo mama is so old she remembers when the Mayans published their calendar."
+    )
 
 
 async def test_jsem_self_reference(mock_message, always_answer):

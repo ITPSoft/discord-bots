@@ -1,10 +1,15 @@
 from enum import IntEnum
 
+ŠIMEK_NAME = "šimek#3885"
+GROSSMAN_NAME = "grossmann#1086"
 
-GIDS = [
-    276720867344646144,  # kouzelníci
-    # 1420168840511492149,  # test server
-]
+
+class Server(IntEnum):
+    KOUZELNICI = 276720867344646144
+    TEST_SERVER = 1420168840511492149
+
+
+GIDS = [s.value for s in Server]
 
 
 class Channel(IntEnum):
@@ -37,3 +42,29 @@ class Channel(IntEnum):
     HALL_OF_FAME = 1276805111506796605
     ROLES = 1314388851304955904
     NETHACK = 1381296005441523885
+    NSFW = 276789712318889984
+
+
+KEKW = "<:kekw:940326430028488794>"
+
+KEKW2 = "<:kekW:940324801585741844>"
+KEKWR = "<:kekWR:1063089161587933204>"
+PEPELA = "<:pepela:940324919739314216>"
+HALL_OF_FAME_EMOJIS = [
+    "⭐",
+    "👍",
+    "😀",
+    "😃",
+    "😄",
+    "😁",
+    "😆",
+    "😅",
+    "😂",
+    "🤣",
+    KEKW,
+    KEKW2,
+    KEKWR,
+    PEPELA,
+    "<:pog:940324188172976170>",
+    "<:kekface:1097817686148386856>",
+]

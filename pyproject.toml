@@ -3,7 +3,7 @@ name = "discord-bots"
 version = "0.1.0"
 description = "Šimek&Grossmann bots."
 readme = "README.md"
-requires-python = ">=3.13,<4.0"
+requires-python = ">=3.14,<4.0"
 dependencies = [
     "aiohttp>=3.11.11,<4.0.0",
     "discord-handler>=0.0.5",
@@ -21,6 +21,7 @@ dev = [
     "pytest-ruff>=0.3.1,<0.6.0",
     "pytest-cov>=7.0.0,<7.1.0",
     "notebook>=7.5.0",
+    "aioresponses>=0.7.8",
 ]
 nethack = [
     "pexpect>=4.9.0",
@@ -58,9 +59,10 @@ asyncio_mode = "auto"
 pythonpath = ["src"]
 # there is no simple way to share part of them and change other part
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short"]
-addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format"]
-#addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
+#addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format"]
+addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy"]
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--mypy", "--cov=src", "--cov-report=html"]
+#addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--cov=src", "--cov-report=html"]
 
 [build-system]
 requires = ["uv_build>=0.9.13,<0.10.0"]
