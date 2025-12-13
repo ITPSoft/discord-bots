@@ -8,7 +8,7 @@ from discord_handler import DiscordHandler
 from disnake import ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot, Context, CommandError, UserInputError
 
-fs = "%(asctime)s:{}:%(name)s:%(levelname)s:%(message).100s".format(socket.gethostname())  # max 100 chars of message
+fs = "%(asctime)s:{}:%(name)s:%(levelname)s:%(message).200s".format(socket.gethostname())  # max 200 chars of message
 
 
 def configure_logging(client: InteractionBot, level=logging.INFO):
