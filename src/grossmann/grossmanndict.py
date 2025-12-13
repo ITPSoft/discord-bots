@@ -1,8 +1,9 @@
 from string import Template
 
 from common.constants import Channel
+from common.utils import GamingRoles
 
-WELCOME = Template("""
+WELCOME = Template(f"""
 Vítej, $member!
 Prosím, přesuň se do <#{Channel.ROLES}> a naklikej si role. Nezapomeň na roli Člen, abys viděl i ostatní kanály!
 ---
@@ -31,8 +32,8 @@ HELP = r"""
     /_today_
         Tells you which international day it is today.
     """
-WARCRAFTY_CZ = """
-<@&871817685439234108> - Warcrafty 3 dnes{0}?
+WARCRAFTY_CZ = Template(f"""
+{GamingRoles.WARCRAFT.role_tag} - Warcrafty 3 dnes$time?
 React with attendance:
 :white_check_mark: Ano
 :negative_squared_cross_mark: Ne
@@ -46,7 +47,7 @@ Chceme hrát:
 :five: - Luckery/Uther Party/Temple Escape
 :six: - Objevovat nové mapy.
 :question: - Něco jiného? Napište jako reply.
-"""
+""")
 
 GAME_EN = Template("""
 <@&$role_id> Shall we play $game today at $time?

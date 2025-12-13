@@ -95,11 +95,13 @@ class BaseRoleEnum(Enum):
 
     _role_name: str
     _role_id: int
+    _button_label: str
 
-    def __new__(cls, role_name, role_id):
+    def __new__(cls, role_name, role_id, button_label=None):
         obj = object.__new__(cls)
         obj._role_name = role_name
         obj._role_id = role_id
+        obj._button_label = button_label if button_label is not None else role_name
         return obj
 
     @property
@@ -109,6 +111,10 @@ class BaseRoleEnum(Enum):
     @property
     def role_id(self) -> int:
         return self._role_id
+
+    @property
+    def button_label(self) -> str:
+        return self._button_label
 
     @property
     def role_tag(self) -> str:
@@ -135,44 +141,46 @@ class SelfServiceRoles(BaseRoleEnum):
     CLEN = ("Člen", 804431648959627294)
     OSTRAVAK = ("Ostravák", 988431391807131690)
     PRAZAK = ("Pražák", 998636130511630386)
-    BRNAK = ("brnak", 1105227159712309391)
-    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797)
-    CARFAG = ("carfag", 1057281159509319800)
+    BRNAK = ("Brňák", 1105227159712309391)
+    CARFAG = ("carfag", 1057281159509319800, "Carfag-péro")
+    # ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")  # https://github.com/ITPSoft/discord-bots/issues/81
 
 
 class GamingRoles(BaseRoleEnum):
     """Seznam herních rolí pro tagy"""
 
-    WARCRAFT = ("warcraft", 871817685439234108)
-    GMOD = ("gmod", 951457356221394975)
-    VALORANT = ("valorant", 991026818054225931)
-    KYOUDAI = ("kyoudai", 1031510557163008010)
-    LOLKO = ("lolko", 994302892561399889)
-    DOTA2 = ("dota2", 994303445735587991)
-    CSGO = ("csgo", 994303566082740224)
-    SEA_OF_THIEVES = ("sea of thieves", 994303863643451442)
+    WARCRAFT = ("warcraft", 871817685439234108, "Warcraft 3")
+    GMOD = ("gmod", 951457356221394975, "Garry's Mod")
+    VALORANT = ("valorant", 991026818054225931, "Valorant")
+    KYOUDAI = ("kyoudai", 1031510557163008010, "Kyoudai (Yakuza/Mahjong)")
+    LOLKO = ("lolko", 994302892561399889, "LoL")
+    DOTA2 = ("dota2", 994303445735587991, "Dota 2")
+    CSGO = ("csgo", 994303566082740224, "CS:GO")
+    SEA_OF_THIEVES = ("sea of thieves", 994303863643451442, "Sea of Thieves")
     MINECRAFT = ("Minecraft", 1049052005341069382)
-    DARK_AND_DARKER = ("Dark and Darker", 1054111346733617222)
-    GOLFISTI = ("golfisti", 1076931268555587645)
+    DARK_AND_DARKER = ("Dark and Darker", 1054111346733617222, "Dark and Darker")
+    GOLFISTI = ("golfisti", 1076931268555587645, "Golf With Your Friends")
     WOWKO = ("WoWko", 1120426868697473024)
-    ROCKANDSTONE = ("kámen a šutr", 1107334623983312897)
-    HOTS = ("hots", 1140376580800118835)
+    ROCKANDSTONE = ("kámen a šutr", 1107334623983312897, "ROCK AND STONE (Deep rock Gal.)")
+    HOTS = ("hots", 1140376580800118835, "Heroes of the Storm")
     GTAONLINE = ("GTA Online", 1189322955063316551)
     WARFRAME = ("Warframe", 1200135734590451834)
-    HELLDIVERS = ("helldivers", 1228002980754751621)
-    VOIDBOYS = ("voidboys", 1281326981878906931)
-    THEFINALS = ("finalnici", 1242187454837035228)
-    BEYOND_ALL_REASON = ("BeyondAllReason", 1358445521227874424)
+    HELLDIVERS = ("helldivers", 1228002980754751621, "Helldivers II")
+    VOIDBOYS = ("voidboys", 1281326981878906931, "Void Crew")
+    THEFINALS = ("finalnici", 1242187454837035228, "Finálníci (the Finals)")
+    BEYOND_ALL_REASON = ("BeyondAllReason", 1358445521227874424, "Beyond All Reason")
     VALHEIM = ("valheim", 1356164640152883241)
-    ARC_RAIDERS = ("ArcRaiders", 1432779821183930401)
+    ARC_RAIDERS = ("ArcRaiders", 1432779821183930401, "Arc Raiders")
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
+    BAROTRAUMA = ("barotrauma", 1405232484987437106)
+    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797, "Magic The Gathering")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
     """Testing role enum for game pings"""
 
-    WARCRAFT = ("warcraft", 1422634691969945830)
-    VALORANT = ("valorant", 1422634814095228928)
+    WARCRAFT = ("warcraft", 1422634691969945830, "Warcraft 3")
+    VALORANT = ("valorant", 1422634814095228928, "Valorant")
 
 
 GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}

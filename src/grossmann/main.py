@@ -24,7 +24,7 @@ from disnake import (
     Intents,
 )
 from disnake.ext.commands import Param, InteractionBot, default_member_permissions
-from disnake.ui import Button
+from disnake.ui import Button, View
 from dotenv import load_dotenv
 from grossmann import grossmanndict as grossdi
 from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME, GAME_EN, GAME_CZ
@@ -112,7 +112,7 @@ async def twitter_pero(anonym: bool, content: str, ctx: ApplicationCommandIntera
     await batch_react(m, ["💜", "🔁", "⬇️", "💭", "🔗"])
 
 
-async def send_role_picker(ctx):
+async def send_role_picker(ctx: ApplicationCommandInteraction):
     embed = Embed(
         title="Role picker",
         description="Here you can pick your roles:",
@@ -127,54 +127,45 @@ async def send_role_picker(ctx):
     )
     gamingembed.add_field(name="Zde jsou role na získání tagovacích rolí na hry.", value="_")
 
-    await ctx.response.send_message(content="Done!", ephemeral=True)
-
+    role_rows = [
+        [SelfServiceRoles.CLEN],
+        [SelfServiceRoles.PRAZAK, SelfServiceRoles.OSTRAVAK, SelfServiceRoles.BRNAK],
+        [SelfServiceRoles.CARFAG],  # další péra strkejte sem
+    ]
+    row_colors = [
+        ButtonStyle.red,
+        ButtonStyle.green,
+        ButtonStyle.blurple,
+    ]
+    role_rows_inv = {role: row for row, roles in enumerate(role_rows) for role in roles}
+    self_service_buttons = [
+        Button(
+            label=role.button_label,
+            style=row_colors[role_rows_inv[role]],
+            custom_id=role.role_name,
+            row=role_rows_inv[role],
+        )
+        for role in SelfServiceRoles
+    ]
+    # view needs to be used so rows have some effect
+    view = View()
+    for b in self_service_buttons:
+        view.add_item(b)
     await ctx.channel.send(
         embed=embed,
-        components=[
-            Button(label="Člen", style=ButtonStyle.grey, custom_id=SelfServiceRoles.CLEN, row=0),
-            Button(label="Pražák", style=ButtonStyle.green, custom_id=SelfServiceRoles.PRAZAK, row=1),
-            Button(label="Ostravák", style=ButtonStyle.green, custom_id=SelfServiceRoles.OSTRAVAK, row=1),
-            Button(label="Brňák", style=ButtonStyle.green, custom_id=SelfServiceRoles.BRNAK, row=1),
-            Button(label="Carfag-péro", style=ButtonStyle.grey, custom_id=SelfServiceRoles.CARFAG, row=2),
-        ],
+        view=view,
     )
-    await ctx.channel.send(
-        embed=gamingembed,
-        components=[
-            Button(label="Warcraft 3", style=ButtonStyle.blurple, custom_id=GamingRoles.WARCRAFT),
-            Button(label="Wowko", style=ButtonStyle.blurple, custom_id=GamingRoles.WOWKO),
-            Button(label="Garry's Mod", style=ButtonStyle.blurple, custom_id=GamingRoles.GMOD),
-            Button(label="Valorant", style=ButtonStyle.blurple, custom_id=GamingRoles.VALORANT),
-            Button(label="LoL", style=ButtonStyle.blurple, custom_id=GamingRoles.LOLKO),
-            Button(label="Dota 2", style=ButtonStyle.blurple, custom_id=GamingRoles.DOTA2),
-            Button(label="CS:GO", style=ButtonStyle.blurple, custom_id=GamingRoles.CSGO),
-            Button(label="Sea of Thieves", style=ButtonStyle.blurple, custom_id=GamingRoles.SEA_OF_THIEVES),
-            Button(label="Kyoudai (Yakuza/Mahjong)", style=ButtonStyle.blurple, custom_id=GamingRoles.KYOUDAI),
-            Button(label="Minecraft", style=ButtonStyle.blurple, custom_id=GamingRoles.MINECRAFT),
-            Button(label="Dark and Darker", style=ButtonStyle.blurple, custom_id=GamingRoles.DARK_AND_DARKER),
-            Button(label="Golf With Your Friends", style=ButtonStyle.blurple, custom_id=GamingRoles.GOLFISTI),
-            Button(
-                label="ROCK AND STONE (Deep rock Gal.)", style=ButtonStyle.blurple, custom_id=GamingRoles.ROCKANDSTONE
-            ),
-            Button(label="Heroes of the Storm", style=ButtonStyle.blurple, custom_id=GamingRoles.HOTS),
-            Button(label="GTA V online", style=ButtonStyle.blurple, custom_id=GamingRoles.GTAONLINE),
-            Button(label="Warframe", style=ButtonStyle.blurple, custom_id=GamingRoles.WARFRAME),
-            Button(label="Helldivers II", style=ButtonStyle.blurple, custom_id=GamingRoles.HELLDIVERS),
-            Button(label="Void Crew", style=ButtonStyle.blurple, custom_id=GamingRoles.VOIDBOYS),
-            Button(label="Finálníci (the Finals)", style=ButtonStyle.blurple, custom_id=GamingRoles.THEFINALS),
-            Button(label="Beyond All Reason", style=ButtonStyle.blurple, custom_id=GamingRoles.BEYOND_ALL_REASON),
-            Button(label="Valheim", style=ButtonStyle.blurple, custom_id=GamingRoles.VALHEIM),
-            Button(
-                label="Mariáš The Gathering",
-                style=ButtonStyle.blurple,
-                custom_id=SelfServiceRoles.MAGIC_THE_GATHERING,
-                row=1,
-            ),
-            Button(label="Friendslop", style=ButtonStyle.blurple, custom_id=GamingRoles.FRIENDSLOP),
-            Button(label="Arc Raiders", style=ButtonStyle.blurple, custom_id=GamingRoles.ARC_RAIDERS),
-        ],
-    )
+
+    # Build gaming role buttons dynamically from the server's gaming roles enum
+    gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
+    gaming_buttons = [
+        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=role.role_name)
+        for role in gaming_roles_enum
+    ]
+
+    await ctx.channel.send(embed=gamingembed, components=gaming_buttons)
+
+    await ctx.response.send_message(content="Done!", ephemeral=True)
 
 
 #########################
@@ -267,12 +258,15 @@ async def on_member_join(member: Member):
 
 @client.listen("on_button_click")
 async def listener(ctx: MessageInteraction):
-    role_id = SelfServiceRoles.get_role_id_by_name(
-        ctx.component.custom_id.role_name
-    ) or GamingRoles.get_role_id_by_name(ctx.component.custom_id.role_name)
+    gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
+    role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or gaming_roles_enum.get_role_id_by_name(
+        ctx.component.custom_id
+    )
     logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
     if role_id is not None:
         role = ctx.guild.get_role(role_id)
+        if role.position > ctx.me.top_role.position:
+            raise Exception(f"Role `{ctx.component.custom_id}` is higher than bot role, something is messed up")
         if role in ctx.author.roles:
             await ctx.author.remove_roles(role)
             await ctx.response.send_message(content=f"Role `{ctx.component.custom_id}` removed!", ephemeral=True)
@@ -377,9 +371,12 @@ async def yesorno(ctx: ApplicationCommandInteraction):
 
 
 @client.slash_command(name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS)
-async def warcraft(ctx: ApplicationCommandInteraction, start_time: str | None = None):
+async def warcraft(
+    ctx: ApplicationCommandInteraction,
+    start_time: str | None = Param(default=None, description="Time to start playing"),
+):
     # send z templaty
-    message_content = grossdi.WARCRAFTY_CZ.replace("{0}", f" v cca {start_time}" if start_time else "")
+    message_content = grossdi.WARCRAFTY_CZ.substitute(time=f" v cca {start_time}" if start_time else "")
 
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
@@ -393,7 +390,7 @@ async def game_ping(
     game_role: str = Param(
         converter=validate_game_role("game_role"), description="Game role tag: @rolename, use discord suggestions."
     ),
-    time: str = Param(description="Time to play"),
+    time: str = Param(description="Time to start playing"),
     lang: str = Param(name="lang", choices=["cz", "en"], default="en", description="Message language"),
     note: str = Param(default="", description="Additional note"),
 ):

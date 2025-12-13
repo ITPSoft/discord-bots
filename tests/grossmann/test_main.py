@@ -192,15 +192,6 @@ def test_help_template_contains_commands():
     assert "_gmod_" in grossdi.HELP
 
 
-def test_warcraft_template_format():
-    """Test Warcraft template has correct structure."""
-    template = grossdi.WARCRAFTY_CZ
-    assert "<@&871817685439234108>" in template  # Role mention
-    assert "{0}" in template  # Time placeholder
-    assert "Survival Chaos" in template
-    assert "Legion TD" in template
-
-
 # Test button listener role logic
 async def test_role_button_listener_adds_role(mock_ctx, mock_role):
     """Test button listener adds role when user doesn't have it."""

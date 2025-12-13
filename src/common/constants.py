@@ -1,3 +1,4 @@
+import os
 from enum import IntEnum
 
 ŠIMEK_NAME = "šimek#3885"
@@ -9,7 +10,34 @@ class Server(IntEnum):
     TEST_SERVER = 1420168840511492149
 
 
-GIDS = [s.value for s in Server]
+_DEFAULT_GIDS = frozenset(s.value for s in Server)
+
+
+def _get_gids() -> list[int]:
+    """Get guild IDs from env var or use defaults.
+
+    Env var DISCORD_GUILD_IDS accepts comma-separated guild IDs.
+    Values must be a subset of the Server enum values.
+    """
+    env_value = os.environ.get("DISCORD_GUILD_IDS")
+    if not env_value:
+        return list(_DEFAULT_GIDS)
+
+    try:
+        parsed_ids = [int(gid.strip()) for gid in env_value.split(",")]
+    except ValueError as e:
+        raise ValueError(f"DISCORD_GUILD_IDS must contain comma-separated integers: {e}") from e
+
+    invalid_ids = set(parsed_ids) - _DEFAULT_GIDS
+    if invalid_ids:
+        raise ValueError(
+            f"DISCORD_GUILD_IDS contains invalid guild IDs: {invalid_ids}. Allowed values: {sorted(_DEFAULT_GIDS)}"
+        )
+
+    return parsed_ids
+
+
+GIDS = _get_gids()
 
 
 class Channel(IntEnum):

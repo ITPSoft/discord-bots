@@ -17,9 +17,6 @@ TEST_CHANNEL_ID = 67890
 TEST_ADMIN_ROLE_ID = 11111
 TEST_ALLOWED_CHANNEL_ID = 22222
 
-# Test role IDs (using actual IDs from the bot for consistency in tests)
-TEST_WARCRAFT_ROLE_ID = 871817685439234108
-
 
 @pytest.fixture
 def mock_ctx_with_message(mock_ctx, mock_message):

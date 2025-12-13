@@ -67,4 +67,6 @@ COPY --from=build --chown=app:app /app/pyproject.toml /app/uv.lock /app/README.m
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PIP_NO_CACHE_DIR=1
 
+LABEL authors="Matej.Racinsky,Dusik,Skaven"
+
 USER app
