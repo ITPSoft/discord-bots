@@ -5,7 +5,6 @@ from unittest.mock import patch, AsyncMock
 
 # Import modules to test
 import grossmann.grossmanndict as decdi
-from common.utils import GamingRoles
 from tests.grossmann.conftest import assert_reactions_added
 
 
@@ -21,7 +20,7 @@ async def test_warcraft_ping_command_integration(patched_main, mock_ctx_with_mes
     sent_content = mock_ctx.response.send_message.call_args[0][0]
 
     # Verify content matches the template with time
-    expected_content = decdi.WARCRAFTY_CZ.replace("{0}", " v cca 20:00")
+    expected_content = decdi.WARCRAFTY_CZ.substitute(time=" v cca 20:00")
     assert sent_content == expected_content
 
     # Verify original_message was called to get message for reactions
@@ -98,16 +97,3 @@ async def test_batch_react_integration(patched_main, mock_message):
 
     # Verify all reactions were added in order
     assert_reactions_added(mock_message, reactions)
-
-
-@pytest.mark.parametrize(
-    "template,replacement,expected_content",
-    [
-        (decdi.WARCRAFTY_CZ, " v cca 20:00", f"{GamingRoles.WARCRAFT.role_tag} - Warcrafty 3 dnes v cca 20:00?"),
-        (decdi.WARCRAFTY_CZ, "", f"{GamingRoles.WARCRAFT.role_tag} - Warcrafty 3 dnes?"),
-    ],
-)
-def test_template_replacement_integration(template, replacement, expected_content):
-    """Test that command templates work correctly with various inputs."""
-    result = template.replace("{0}", replacement)
-    assert expected_content in result

@@ -13,6 +13,7 @@ from common.constants import Channel, Server
 def mock_role():
     role = MagicMock()
     role.id = SelfServiceRoles.CLEN.role_id
+    role.position = 42
     return role
 
 
@@ -24,8 +25,9 @@ def mock_ctx(mock_role):
     ctx.response = AsyncMock()
     ctx.response.send_message = AsyncMock()
     ctx.component = MagicMock()
-    ctx.component.custom_id = SelfServiceRoles.CLEN
+    ctx.component.custom_id = SelfServiceRoles.CLEN.role_name
     ctx.send = AsyncMock()
+    ctx.me.top_role.position = 69
     ctx.original_response = AsyncMock()
     ctx.original_message = AsyncMock()
     ctx.author = MagicMock()

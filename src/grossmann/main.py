@@ -139,8 +139,12 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     ]
     role_rows_inv = {role: row for row, roles in enumerate(role_rows) for role in roles}
     self_service_buttons = [
-        Button(label=role.button_label, style=row_colors[role_rows_inv[role]], custom_id=role.role_name,
-               row=role_rows_inv[role])
+        Button(
+            label=role.button_label,
+            style=row_colors[role_rows_inv[role]],
+            custom_id=role.role_name,
+            row=role_rows_inv[role],
+        )
         for role in SelfServiceRoles
     ]
     # view needs to be used so rows have some effect
@@ -155,8 +159,8 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     # Build gaming role buttons dynamically from the server's gaming roles enum
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     gaming_buttons = [
-        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=role.role_name) for role in
-        gaming_roles_enum
+        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=role.role_name)
+        for role in gaming_roles_enum
     ]
 
     await ctx.channel.send(embed=gamingembed, components=gaming_buttons)
@@ -256,7 +260,8 @@ async def on_member_join(member: Member):
 async def listener(ctx: MessageInteraction):
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or gaming_roles_enum.get_role_id_by_name(
-        ctx.component.custom_id)
+        ctx.component.custom_id
+    )
     logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
     if role_id is not None:
         role = ctx.guild.get_role(role_id)
@@ -368,7 +373,7 @@ async def yesorno(ctx: ApplicationCommandInteraction):
 @client.slash_command(name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS)
 async def warcraft(
     ctx: ApplicationCommandInteraction,
-    start_time: str | None = Param(default=None, description="Time to start playing")
+    start_time: str | None = Param(default=None, description="Time to start playing"),
 ):
     # send z templaty
     message_content = grossdi.WARCRAFTY_CZ.substitute(time=f" v cca {start_time}" if start_time else "")

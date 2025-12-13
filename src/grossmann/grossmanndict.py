@@ -1,6 +1,7 @@
 from string import Template
 
 from common.constants import Channel
+from common.utils import GamingRoles
 
 WELCOME = Template(f"""
 Vítej, $member!
@@ -31,8 +32,8 @@ HELP = r"""
     /_today_
         Tells you which international day it is today.
     """
-WARCRAFTY_CZ = Template("""
-<@&871817685439234108> - Warcrafty 3 dnes$time?
+WARCRAFTY_CZ = Template(f"""
+{GamingRoles.WARCRAFT.role_tag} - Warcrafty 3 dnes$time?
 React with attendance:
 :white_check_mark: Ano
 :negative_squared_cross_mark: Ne
