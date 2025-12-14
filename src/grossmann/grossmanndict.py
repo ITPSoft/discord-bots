@@ -24,6 +24,7 @@ HELP = {
     "/iwantfox": "Pošle náhodný liškobrázek.",
     "/waifu": "Pošle náhodný láskobrázek.",
     "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný.",
+    "/pause_me [hours]": "Pozastaví na [hours] hodin přístup k serveru, užitečné, pokud se potřebujete soustředit.",
 }
 
 WARCRAFTY_CZ = Template(f"""

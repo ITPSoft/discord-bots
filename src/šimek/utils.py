@@ -1,23 +1,21 @@
 import asyncio
 import datetime as dt
 import logging
-import os
 import re
-import threading
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any, Callable, TypeVar
-from collections import defaultdict, Counter
-import pickle
 import random
 
+from common.persistence import load_pickle, save_pickle_async
+
 T = TypeVar("T")
-MARKOV_FILE = "data/šimek/markov_trigram.pkl"
+MARKOV_FILE = Path(__file__).parent.parent.parent / "data" / "šimek" / "markov_trigram.pkl"
 
 # CPU-heavy věci budeme dělat v separátním threadu
 executor = ThreadPoolExecutor(max_workers=1)
 
-# Semaphore for save operations - ensures only one save at a time
-_save_semaphore = threading.Semaphore(1)
 # Cached trigram counts (initialized at module load)
 _markov_cache: dict = {}
 _cache_initialized = False
@@ -88,42 +86,14 @@ def build_trigram_counts(messages):
     return markov_counts
 
 
-def _save_trigram_counts_sync(markov_counts, filename=MARKOV_FILE):
-    """Save trigram counts synchronously with semaphore protection."""
-    acquired = _save_semaphore.acquire(blocking=False)
-    if not acquired:
-        # Another save is in progress, skip this one
-        return
-    try:
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, "wb") as f:
-            pickle.dump(markov_counts, f)
-        logger.info("Saved trigrams to cache")
-    except Exception as e:
-        logger.warning(f"Failed to save trigram counts: {e}")
-    finally:
-        _save_semaphore.release()
-
-
-def save_trigram_counts_async(markov_counts, filename=MARKOV_FILE):
-    """Save trigram counts in a background thread, non-blocking."""
-    # Make a copy to avoid race conditions
-    counts_copy = dict(markov_counts)
-    executor.submit(_save_trigram_counts_sync, counts_copy, filename)
-
-
 def load_trigram_counts(filename=MARKOV_FILE):
     """Load trigram counts from file into global cache. Call once at bot start."""
     global _markov_cache, _cache_initialized
     if _cache_initialized:
         return _markov_cache
-    try:
-        with open(filename, "rb") as f:
-            _markov_cache = pickle.load(f)
+    _markov_cache = load_pickle(filename, default={})
+    if _markov_cache:
         logger.info("Loaded trigrams from cache")
-    except Exception as e:
-        logger.warning(f"Failed to load markov cache: {e}")
-        _markov_cache = {}
     _cache_initialized = True
     return _markov_cache
 
@@ -139,7 +109,7 @@ def markov_chain(messages, max_words=20):
         else:
             _markov_cache[key] = counter
     # Save asynchronously in background thread
-    save_trigram_counts_async(_markov_cache)
+    save_pickle_async(MARKOV_FILE, dict(_markov_cache))
     markov_counts = _markov_cache
 
     if not markov_counts:

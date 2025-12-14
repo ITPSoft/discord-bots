@@ -11,7 +11,15 @@ from common.http import (
     get_http_session,
     close_http_session,
 )
-from common.utils import has_any, SelfServiceRoles, GamingRoles, GAMING_ROLES_PER_SERVER, ping_function, ping_content
+from common.utils import (
+    has_any,
+    SelfServiceRoles,
+    GamingRoles,
+    GAMING_ROLES_PER_SERVER,
+    ping_function,
+    ping_content,
+    get_paused_role_id,
+)
 from disnake import (
     Message,
     ApplicationCommandInteraction,
@@ -25,10 +33,17 @@ from disnake import (
     Intents,
 )
 from disnake.ext.commands import Param, InteractionBot, default_member_permissions
+from disnake.ext import tasks
 from disnake.ui import Button, View
 from dotenv import load_dotenv
 from grossmann import grossmanndict as grossdi
 from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME, GAME_EN, GAME_CZ
+from grossmann.pause_persistence import (
+    add_paused_user,
+    remove_expired_pauses,
+    get_paused_users,
+    get_user_pause,
+)
 from grossmann.utils import (
     batch_react,
     send_http_response,
@@ -180,6 +195,11 @@ async def on_ready():
     global hall_of_fame_message_ids
     # Preload last 50 message IDs from hall of fame channel
     await hall_of_fame_history_fetching()
+    # Restore paused roles for users who were paused before restart
+    await restore_paused_users()
+    # Start the background task to check for expired pauses
+    if not check_expired_pauses.is_running():
+        check_expired_pauses.start()
     logger.info(f"{client.user} has connected to Discord!")
 
 
@@ -200,6 +220,60 @@ async def hall_of_fame_history_fetching():
         if len(hall_of_fame_message_ids) > 50:
             sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1], reverse=True)
             hall_of_fame_message_ids = dict(sorted_items[:50])
+
+
+async def restore_paused_users():
+    """Restore paused roles for users who were paused before bot restart."""
+    paused_users = get_paused_users()
+
+    for pause in paused_users:
+        # Skip already expired pauses (they'll be cleaned up by the task)
+        if pause.is_expired():
+            continue
+
+        guild = client.get_guild(pause.guild_id)
+        if not guild:
+            continue
+
+        role_id = get_paused_role_id(pause.guild_id)
+        role = guild.get_role(role_id)
+        if not role:
+            logger.warning(f"Paused role not found in guild {pause.guild_id}")
+            continue
+
+        try:
+            member = await guild.fetch_member(pause.user_id)
+            if role not in member.roles:
+                await member.add_roles(role, reason="Restoring pause after bot restart")
+                logger.info(f"Restored paused role for user {pause.user_id} in guild {pause.guild_id}")
+        except disnake.NotFound:
+            logger.warning(f"User {pause.user_id} not found in guild {pause.guild_id}")
+        except disnake.Forbidden:
+            logger.error(f"No permission to add paused role to user {pause.user_id}")
+
+
+@tasks.loop(minutes=1)
+async def check_expired_pauses():
+    """Background task to check and remove expired pauses."""
+    expired = remove_expired_pauses()
+
+    for pause in expired:
+        if not (guild := client.get_guild(pause.guild_id)):
+            continue
+
+        role_id = get_paused_role_id(pause.guild_id)
+        if not (role := guild.get_role(role_id)):
+            continue
+
+        try:
+            member = await guild.fetch_member(pause.user_id)
+            if role in member.roles:
+                await member.remove_roles(role, reason="Pause period expired")
+                logger.info(f"Removed expired pause for user {pause.user_id} in guild {pause.guild_id}")
+        except disnake.NotFound:
+            logger.warning(f"User {pause.user_id} not found in server {pause.guild_id}")
+        except disnake.Forbidden:
+            logger.error(f"No permission to remove paused role from user {pause.user_id}")
 
 
 @client.event
@@ -457,6 +531,48 @@ async def xkcd(
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
 
 
+@client.slash_command(
+    name="pause_me",
+    description="Give yourself pause from this server for few hours. THERE IS NO WAY BACK UNTIL TIME EXPIRES.",
+    guild_ids=GIDS,
+)
+async def pause_me(
+    ctx: ApplicationCommandInteraction,
+    hours: int = Param(gt=0, le=24 * 60, description="Number of hours to pause."),
+):
+    """Assign the Paused role to a user for a specified duration."""
+    logger.info(f"Pause requested by {ctx.author.name} in server {ctx.guild_id}")
+    role_id = get_paused_role_id(ctx.guild_id)
+    role = ctx.guild.get_role(role_id)
+    user = ctx.author
+
+    if not role:
+        await ctx.response.send_message("Paused role not configured for this server.", ephemeral=True)
+        return
+
+    if role.position >= ctx.me.top_role.position:
+        await ctx.response.send_message("I cannot manage the Paused role (it's higher than my role).", ephemeral=True)
+        return
+
+    # Check if user is already paused
+    existing_pause = get_user_pause(user.id, ctx.guild_id)
+    if existing_pause:
+        await ctx.response.send_message(
+            f"{user.mention} is already paused until {existing_pause.expires_at_datetime().strftime('%Y-%m-%d %H:%M:%S')}. ",
+            ephemeral=True,
+        )
+        return
+
+    # Add the role and persist
+    await user.add_roles(role, reason=f"Paused themselves for {hours} hours")
+    expires_at = add_paused_user(user.id, ctx.guild_id, hours)
+
+    await ctx.response.send_message(
+        f"✅ You have been paused until {expires_at.strftime('%Y-%m-%d %H:%M:%S')} ({hours} hours)."
+    )
+    logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
+
+
 ## Admin commands here ->
 
 
@@ -500,9 +616,9 @@ async def ping(ctx: ApplicationCommandInteraction):
     await ping_function(client, ctx)
 
 
-@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=GIDS)
+@client.slash_command(name="fetchrole", description="Fetch guild roles (admin only)", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
-async def fetchrole(ctx: ApplicationCommandInteraction):
+async def fetch_roles(ctx: ApplicationCommandInteraction):
     # useful for debugging, quickly gives IDs
     roles = await ctx.guild.fetch_roles()
     role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])

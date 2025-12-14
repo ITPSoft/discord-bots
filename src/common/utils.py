@@ -195,3 +195,20 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 
 
 GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}
+
+
+class SpecialRoles(BaseRoleEnum):
+    """Single-instance role IDs for specific functionality."""
+
+    PAUSED = ("Paused", 1449758326304014438)
+
+
+class SpecialTestingRoles(BaseRoleEnum):
+    PAUSED = ("Paused", 1449757350482280641)
+
+
+def get_paused_role_id(guild_id: int) -> int:
+    """Get the Paused role ID for a specific guild."""
+    if guild_id == Server.TEST_SERVER:
+        return SpecialTestingRoles.PAUSED.role_id
+    return SpecialRoles.PAUSED.role_id
