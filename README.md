@@ -23,11 +23,13 @@ Spiritual successor of [DecimBOT](https://github.com/Skavenlord58/DecimBot2).
 
 An automation bot for Discord.
 
-This bot will be used to automate Šimek&Grossmann's tasks in order to reduce overhead in the messy script I wrote for him.
+This bot will be used to automate Šimek&Grossmann's tasks to reduce overhead in the messy script I wrote for him.
 
-## Bot configuration
+## Bot configuration and setup
 
-See [configuration doc](bot_configuration.md).
+See [discord setup](discord_setup.md) to see which roles are needed for everything to work. 
+
+See [configuration doc](bot_configuration.md) for some more notes.
 
 ## Setup and Environment
 
