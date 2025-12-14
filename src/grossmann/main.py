@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+import textwrap
 from datetime import datetime
 
 import disnake
@@ -10,7 +11,7 @@ from common.http import (
     get_http_session,
     close_http_session,
 )
-from common.utils import has_any, get_commit_hash, SelfServiceRoles, GamingRoles, GAMING_ROLES_PER_SERVER
+from common.utils import has_any, SelfServiceRoles, GamingRoles, GAMING_ROLES_PER_SERVER, ping_function, ping_content
 from disnake import (
     Message,
     ApplicationCommandInteraction,
@@ -204,6 +205,8 @@ async def hall_of_fame_history_fetching():
 @client.event
 async def on_message(m: Message):
     content = m.content.lower()
+    if m.guild and m.guild.id not in GIDS:
+        return
     if not content:
         return
     elif str(m.author) == GROSSMAN_NAME:
@@ -252,12 +255,16 @@ async def on_reaction_add(reaction: Reaction, user: Member | User):
 # on_member_join - happens when a new member joins guild
 @client.event
 async def on_member_join(member: Member):
+    if member.guild.id not in GIDS:
+        return
     welcome_channel = client.get_channel(Channel.WELCOMEPERO)
     await welcome_channel.send(WELCOME.substitute(member=member.mention))
 
 
 @client.listen("on_button_click")
 async def listener(ctx: MessageInteraction):
+    if ctx.guild and ctx.guild.id not in GIDS:
+        return
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or gaming_roles_enum.get_role_id_by_name(
         ctx.component.custom_id
@@ -282,7 +289,7 @@ async def listener(ctx: MessageInteraction):
 #########################
 
 
-## Commands here ->
+## User commands here ->
 # Show all available commands
 @client.slash_command(description="Show all available commands", guild_ids=GIDS)
 async def help(ctx: ApplicationCommandInteraction):
@@ -294,24 +301,6 @@ async def help(ctx: ApplicationCommandInteraction):
     for command_help in grossdi.HELP:
         help_embed.add_field(name=command_help, value=grossdi.HELP[command_help], inline=False)
     await ctx.response.send_message(embed=help_embed, delete_after=60)
-
-
-# debug command
-@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=GIDS)
-@default_member_permissions(administrator=True)
-async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
-    response = "Last messages forwarded to hall of fame ids and times:\n"
-    for message_id, sent_time in hall_of_fame_message_ids.items():
-        response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-    await ctx.response.send_message(response)
-
-
-# debug command/trolling
-@client.slash_command(description="Say something as the bot (admin only)", guild_ids=GIDS)
-@default_member_permissions(administrator=True)
-async def say(ctx: ApplicationCommandInteraction, message: str):
-    await ctx.response.send_message("Message sent!")
-    await ctx.channel.send(message)
 
 
 # poll creation, takes up to five arguments
@@ -362,14 +351,6 @@ async def tweet(
     await twitter_pero(anonym, content, ctx, media)
 
 
-@client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
-@default_member_permissions(administrator=True)
-async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(
-        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
-    )
-
-
 @client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=GIDS)
 async def yesorno(ctx: ApplicationCommandInteraction):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
@@ -407,21 +388,6 @@ async def game_ping(
     await ctx.response.send_message(message_content)
     m = await ctx.original_message()
     await batch_react(m, ["✅", "❎", "🤔", "☦️"])
-
-
-@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=GIDS)
-@default_member_permissions(administrator=True)
-async def fetchrole(ctx: ApplicationCommandInteraction):
-    # useful for debugging, quickly gives IDs
-    roles = await ctx.guild.fetch_roles()
-    role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
-    await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
-
-
-@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=GIDS)
-@default_member_permissions(administrator=True)
-async def command(ctx: ApplicationCommandInteraction):
-    await send_role_picker(ctx)
 
 
 @client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=GIDS)
@@ -489,6 +455,64 @@ async def xkcd(
     else:
         url = "https://xkcd.com/info.0.json"
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
+
+
+## Admin commands here ->
+
+
+# debug command
+@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
+    response = forwarded_fames()
+    await ctx.response.send_message(response)
+
+
+def forwarded_fames() -> str:
+    response = "Last messages forwarded to hall of fame ids and times:\n"
+    for message_id, sent_time in hall_of_fame_message_ids.items():
+        response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    return response
+
+
+@client.slash_command(name="debug_grossmann", description="check šimek latency", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def debug_dump(ctx: ApplicationCommandInteraction):
+    response = textwrap.dedent(f"""
+        {ping_content(client)}
+        {GIDS=}
+        {forwarded_fames()}
+    """)
+    await ctx.response.send_message(response)
+
+
+# debug command/trolling
+@client.slash_command(description="Say something as the bot (admin only)", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def say(ctx: ApplicationCommandInteraction, message: str):
+    await ctx.response.send_message("Message sent!")
+    await ctx.channel.send(message)
+
+
+@client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def ping(ctx: ApplicationCommandInteraction):
+    await ping_function(client, ctx)
+
+
+@client.slash_command(description="Fetch guild roles (admin only)", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def fetchrole(ctx: ApplicationCommandInteraction):
+    # useful for debugging, quickly gives IDs
+    roles = await ctx.guild.fetch_roles()
+    role_list = "\n".join([f"{role.name} (ID: {role.id})" for role in roles])
+    await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
+
+
+@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def command(ctx: ApplicationCommandInteraction):
+    await send_role_picker(ctx)
 
 
 #########################

@@ -3,15 +3,16 @@ import logging
 import os
 import random
 import re
+import textwrap
 
 import disnake
 
 from common.constants import GIDS, Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
-from common.utils import has_any, has_all, get_commit_hash
+from common.utils import has_any, has_all, ping_function, ping_content
 from common import discord_logging
-from disnake import Message, ApplicationCommandInteraction
-from disnake.ext.commands import InteractionBot, default_member_permissions
+from disnake import Message, ApplicationCommandInteraction, Forbidden
+from disnake.ext.commands import InteractionBot, default_member_permissions, Param
 from dotenv import load_dotenv
 from šimek import šimekdict
 from šimek.šimekdict import RANDOM_EMOJIS
@@ -44,10 +45,9 @@ REPLIES = (
     "Perhaps.",
     "Možná.",
     "Pravděpodobně.",
-    "bruh",
-    "nemám tušení",
-)  # repeated ano/ne/perhaps to give it more common occurrence
-
+    "Bruh.",
+    "Nemám tušení.",
+)  # repeated ano/ne/perhaps to give it a more common occurrence
 
 ALLOW_CHANNELS = [
     Channel.BOT_DEBUG_GENERAL,
@@ -78,24 +78,50 @@ CUSTOM_COOLDOWNS = {
 last_reaction_time: dict[int, dt.datetime] = {}
 
 
-@client.slash_command(description="Show last reaction times")
+@client.slash_command(description="Show last reaction times", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def show_last_reaction_times(inter: ApplicationCommandInteraction):
+    await inter.response.send_message(last_reaction_times())
+
+
+def last_reaction_times() -> str:
     response = "Last reaction times per channel:\n"
     for channel_id, time in last_reaction_time.items():
         channel = client.get_channel(channel_id)
         if channel:
             time_ago = format_time_ago(time)
             response += f"{channel.name}: {time.strftime('%Y-%m-%d %H:%M:%S')} ({time_ago})\n"
-    await inter.response.send_message(response)
+    return response
 
 
 @client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
-    await ctx.response.send_message(
-        f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
-    )
+    await ping_function(client, ctx)
+
+
+@client.slash_command(name="debug_šimek", description="check šimek latency", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def debug_dump(ctx: ApplicationCommandInteraction):
+    response = textwrap.dedent(f"""
+        {ping_content(client)}
+        {GIDS=}
+        {last_reaction_times()}
+    """)
+    await ctx.response.send_message(response)
+
+
+# debug command/trolling
+@client.slash_command(name="respond_šimek", description="Respond something as šimek (admin only)", guild_ids=GIDS)
+@default_member_permissions(administrator=True)
+async def respond(
+    ctx: ApplicationCommandInteraction,
+    message: str,
+    chance: int = Param(default=1, gt=0, description="Chance to respond"),
+    reaction: bool = Param(default=False, description="React instead of replying"),
+):
+    target_msg = await ctx.channel.send("debug message")  # reply-able message
+    await do_response(message, target_msg, chance=chance, reaction=reaction)
 
 
 # on_ready event - happens when bot connects to Discord API
@@ -104,7 +130,7 @@ async def on_ready():
     logger.info(f"{client.user} has connected to Discord!")
 
 
-# we use a evil class magic to hack match case to check for substrings istead of exact matches
+# we use an evil class magic to hack match case to check for substrings istead of exact matches
 # https://stackoverflow.com/a/78046484
 class Substring(str):
     def __eq__(self, other):
@@ -123,7 +149,7 @@ def cooldown(channel_id: int):
     return COOLDOWN
 
 
-async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
+async def do_response(reply: str, m: Message, *, chance: int = 10, reaction: bool = False):
     """
     reply: str - text or emoji to reply with
     m: Message - message object to reply to
@@ -133,26 +159,32 @@ async def do_response(reply: str, m: Message, *, chance=10, reaction=False):
     # safeguard against all role tags
     if random.randint(1, chance) == 1:
         try:
-            reply = re.sub(r"<@!?&?\d+>", "<nějaká role>", reply)
+            reply = remove_mentions(reply)
             if reaction:
                 await m.add_reaction(reply)
             else:
                 await m.reply(reply)
             last_reaction_time[m.channel.id] = dt.datetime.now()
+        except Forbidden:
+            logger.warning(f"Tried to post {reply=} to {m.content=} in {m.channel.name=}, but it's not allowed")
         except Exception as e:
             logger.exception(f"Failed to send {reply=}, {reaction=}", exc_info=e)
 
 
+def remove_mentions(reply: str) -> str:
+    return re.sub(r"<@!?&?\d+>|@everyone|@here", "`někdo`", reply)
+
+
 async def manage_response(m: Message):
-    # grok feature is above all other and will trigger anywhere
+    # grok feature is above all others and will trigger anywhere
     response = ""
     mess = m.content.lower()
 
     now = dt.datetime.now()
-    # higher priority than rest
+    # higher priority than the rest
     if "drž hubu" in mess and m.reference and m.reference.resolved and m.reference.resolved.author == client.user:
         await do_response("ok", m, chance=1)
-        last_reaction_time[m.channel.id] = now + dt.timedelta(minutes=5)  # 5 minute timeout after being told to shut up
+        last_reaction_time[m.channel.id] = now + dt.timedelta(minutes=5)  # 5-minute timeout after being told to shut up
         return  # skip setting the time again at the end of the function
 
     last_time = last_reaction_time.get(m.channel.id)
@@ -173,15 +205,18 @@ async def manage_response(m: Message):
         messages = []
         async for msg in m.channel.history(limit=50, before=m):
             if msg.content:
-                msg.content = msg.content.replace("@", "")  # remove bot mentions
+                msg.content = remove_mentions(msg.content)  # remove bot mentions
                 msg.content = msg.content.replace(",", "")  # cleanup
                 if msg.author == client.user:  # throw away messages from itself
                     continue
                 messages.append(msg.content)
         response = f"{random.choice(REPLIES)} Protože "
         response += markov_chain(messages, max_words=random.randint(15, 40))
-        await m.reply(response)
-        last_reaction_time[m.channel.id] = dt.datetime.now()
+        try:
+            await m.reply(response)
+            last_reaction_time[m.channel.id] = dt.datetime.now()
+        except Forbidden:
+            logger.warning(f"Tried to post {response=} to {m.content=} in {m.channel.name=}, but it's not allowed")
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
@@ -340,6 +375,8 @@ async def on_message(m: Message):
     logger.debug(
         f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
     )
+    if m.guild and m.guild.id not in GIDS:
+        return
     if not m.content:
         return
     if str(m.author) == ŠIMEK_NAME:

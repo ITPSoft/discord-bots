@@ -9,6 +9,9 @@ from functools import lru_cache
 from typing import Self
 from urllib.parse import urlparse
 
+from disnake import ApplicationCommandInteraction
+from disnake.ext.commands import InteractionBot
+
 from common.constants import Server
 from disnake.ext import commands
 
@@ -86,6 +89,14 @@ def validate_param(func: Callable) -> Callable:
         return async_converter if inspect.iscoroutinefunction(func) else sync_converter
 
     return param_wrapper
+
+
+def ping_content(client: InteractionBot):
+    return f"Pong! API Latency is {round(client.latency * 1000)}ms. Commit: {get_commit_hash()}"
+
+
+async def ping_function(client: InteractionBot, ctx: ApplicationCommandInteraction):
+    await ctx.response.send_message(ping_content(client))
 
 
 class BaseRoleEnum(Enum):

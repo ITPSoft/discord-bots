@@ -158,8 +158,11 @@ async def test_jsem_self_reference(mock_message, always_answer):
 @pytest.mark.parametrize(
     "mention,expected",
     [
-        ("<@&123456789>", "Hello <nějaká role>"),
-        ("<@123456789>", "Hello <nějaká role>"),
+        ("<@&123456789>", "Hello `někdo`"),
+        ("<@123456789>", "Hello `někdo`"),
+        ("<@!123456789>", "Hello `někdo`"),
+        ("@here", "Hello `někdo`"),
+        ("@everyone", "Hello `někdo`"),
     ],
 )
 async def test_do_response_escaping(mock_message, always_answer, mention, expected):
