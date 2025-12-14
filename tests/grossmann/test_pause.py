@@ -158,20 +158,20 @@ class TestPauseCommand:
         mock_ctx_for_pause.author.add_roles = AsyncMock()
 
         with patch.object(main, "get_paused_role_id", return_value=mock_paused_role.id):
-            await main.pause_me(mock_ctx_for_pause, 2.0)
+            await main.pause_me(mock_ctx_for_pause, 2)
 
         mock_ctx_for_pause.author.add_roles.assert_called_once()
         mock_ctx_for_pause.response.send_message.assert_called_once()
         call_content = mock_ctx_for_pause.response.send_message.call_args[0][0]
-        assert "has been paused" in call_content
-        assert "2.0 hours" in call_content
+        assert "have been paused" in call_content
+        assert "2 hours" in call_content
 
     async def test_pause_command_role_not_configured(self, mock_ctx_for_pause, temp_pause_file):
         """Test pause command when role is not configured."""
         mock_ctx_for_pause.guild.get_role.return_value = None
 
         with patch.object(main, "get_paused_role_id", return_value=0):
-            await main.pause_me(mock_ctx_for_pause, 2.0)
+            await main.pause_me(mock_ctx_for_pause, 2)
 
         mock_ctx_for_pause.response.send_message.assert_called_once()
         call_kwargs = mock_ctx_for_pause.response.send_message.call_args[1]
@@ -184,7 +184,7 @@ class TestPauseCommand:
         mock_ctx_for_pause.me.top_role.position = 50
 
         with patch.object(main, "get_paused_role_id", return_value=mock_paused_role.id):
-            await main.pause_me(mock_ctx_for_pause, 2.0)
+            await main.pause_me(mock_ctx_for_pause, 2)
 
         mock_ctx_for_pause.response.send_message.assert_called_once()
         call_kwargs = mock_ctx_for_pause.response.send_message.call_args[1]
@@ -197,7 +197,7 @@ class TestPauseCommand:
         pp.add_paused_user(mock_ctx_for_pause.author.id, mock_ctx_for_pause.guild_id, 1.0)
 
         with patch.object(main, "get_paused_role_id", return_value=mock_paused_role.id):
-            await main.pause_me(mock_ctx_for_pause, 2.0)
+            await main.pause_me(mock_ctx_for_pause, 2)
 
         call_kwargs = mock_ctx_for_pause.response.send_message.call_args[1]
         assert call_kwargs.get("ephemeral") is True
