@@ -592,6 +592,18 @@ def forwarded_fames() -> str:
     return response
 
 
+def paused_users() -> str:
+    response = "Paused users:\n"
+    paused = get_paused_users()
+    if not paused:
+        response += "No users are currently paused.\n"
+    else:
+        for pause in paused:
+            expires_at = pause.expires_at_datetime().strftime("%Y-%m-%d %H:%M:%S")
+            response += f"User ID {pause.user_id} in guild {pause.guild_id}: expires at {expires_at}\n"
+    return response
+
+
 @client.slash_command(name="debug_grossmann", description="check šimek latency", guild_ids=GIDS)
 @default_member_permissions(administrator=True)
 async def debug_dump(ctx: ApplicationCommandInteraction):
@@ -599,6 +611,7 @@ async def debug_dump(ctx: ApplicationCommandInteraction):
         {ping_content(client)}
         {GIDS=}
         {forwarded_fames()}
+        {paused_users()}
     """)
     await ctx.response.send_message(response)
 
