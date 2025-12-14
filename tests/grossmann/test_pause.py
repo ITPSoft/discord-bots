@@ -15,7 +15,12 @@ def temp_pause_file(tmp_path):
     """Create a temporary pause file for testing."""
     pause_file = tmp_path / "paused_users.json"
     with patch.object(pp, "_get_pause_file_path", return_value=pause_file):
+        # Reset and reinitialize cache with the patched path
+        pp._reset_cache()
+        pp._init_cache()
         yield pause_file
+        # Clean up cache after test
+        pp._reset_cache()
 
 
 @pytest.fixture
@@ -44,21 +49,19 @@ def mock_ctx_for_pause(mock_paused_role):
 class TestPausePersistence:
     """Tests for pause_persistence module."""
 
-    def test_load_paused_users_empty_file(self, temp_pause_file):
+    def test_get_paused_users_empty_file(self, temp_pause_file):
         """Test loading from non-existent file returns empty list."""
-        result = pp.load_paused_users()
+        result = pp.get_paused_users()
         assert result == []
 
-    def test_save_and_load_paused_users(self, temp_pause_file):
-        """Test saving and loading paused users."""
-        users = [PausedUser(user_id=123, guild_id=456, expires_at=1700000000.0)]
-        pp.save_paused_users(users)
+    def test_add_and_get_paused_users(self, temp_pause_file):
+        """Test adding and getting paused users."""
+        pp.add_paused_user(123, 456, 1.0)
 
-        result = pp.load_paused_users()
+        result = pp.get_paused_users()
         assert len(result) == 1
         assert result[0].user_id == 123
         assert result[0].guild_id == 456
-        assert result[0].expires_at == 1700000000.0
 
     def test_add_paused_user(self, temp_pause_file):
         """Test adding a paused user."""
@@ -68,7 +71,7 @@ class TestPausePersistence:
 
             expires_at = pp.add_paused_user(123, 456, 2.0)
 
-        result = pp.load_paused_users()
+        result = pp.get_paused_users()
         assert len(result) == 1
         assert result[0].user_id == 123
         assert result[0].guild_id == 456
@@ -80,7 +83,7 @@ class TestPausePersistence:
         pp.add_paused_user(123, 456, 1.0)
         pp.add_paused_user(123, 456, 5.0)
 
-        result = pp.load_paused_users()
+        result = pp.get_paused_users()
         assert len(result) == 1
         assert result[0].user_id == 123
 
@@ -91,7 +94,7 @@ class TestPausePersistence:
         removed = pp.remove_paused_user(123, 456)
 
         assert removed is True
-        assert pp.load_paused_users() == []
+        assert pp.get_paused_users() == []
 
     def test_remove_paused_user_not_exists(self, temp_pause_file):
         """Test removing a user who is not paused."""
@@ -101,11 +104,10 @@ class TestPausePersistence:
     def test_get_expired_pauses(self, temp_pause_file):
         """Test getting expired pauses."""
         now = datetime.now().timestamp()
-        users = [
-            PausedUser(user_id=1, guild_id=100, expires_at=now - 100),  # expired
-            PausedUser(user_id=2, guild_id=100, expires_at=now + 3600),  # not expired
-        ]
-        pp.save_paused_users(users)
+        # Add expired user (expires 100 seconds ago)
+        pp._paused_users_cache.append(PausedUser(user_id=1, guild_id=100, expires_at=now - 100))
+        # Add non-expired user (expires in 1 hour)
+        pp._paused_users_cache.append(PausedUser(user_id=2, guild_id=100, expires_at=now + 3600))
 
         expired = pp.get_expired_pauses()
 
@@ -115,18 +117,17 @@ class TestPausePersistence:
     def test_remove_expired_pauses(self, temp_pause_file):
         """Test removing expired pauses."""
         now = datetime.now().timestamp()
-        users = [
-            PausedUser(user_id=1, guild_id=100, expires_at=now - 100),  # expired
-            PausedUser(user_id=2, guild_id=100, expires_at=now + 3600),  # not expired
-        ]
-        pp.save_paused_users(users)
+        # Add expired user (expires 100 seconds ago)
+        pp._paused_users_cache.append(PausedUser(user_id=1, guild_id=100, expires_at=now - 100))
+        # Add non-expired user (expires in 1 hour)
+        pp._paused_users_cache.append(PausedUser(user_id=2, guild_id=100, expires_at=now + 3600))
 
         removed = pp.remove_expired_pauses()
 
         assert len(removed) == 1
         assert removed[0].user_id == 1
 
-        remaining = pp.load_paused_users()
+        remaining = pp.get_paused_users()
         assert len(remaining) == 1
         assert remaining[0].user_id == 2
 
@@ -209,8 +210,7 @@ class TestBackgroundTask:
     async def test_check_expired_pauses_removes_role(self, temp_pause_file):
         """Test that expired pauses are processed and roles removed."""
         now = datetime.now().timestamp()
-        users = [PausedUser(user_id=123, guild_id=456, expires_at=now - 100)]
-        pp.save_paused_users(users)
+        pp._paused_users_cache.append(PausedUser(user_id=123, guild_id=456, expires_at=now - 100))
 
         mock_role = MagicMock()
         mock_role.id = 999
@@ -228,13 +228,12 @@ class TestBackgroundTask:
             await main.check_expired_pauses()
 
         mock_member.remove_roles.assert_called_once()
-        assert pp.load_paused_users() == []
+        assert pp.get_paused_users() == []
 
     async def test_restore_paused_users_on_startup(self, temp_pause_file):
         """Test that paused users are restored when bot starts."""
         now = datetime.now().timestamp()
-        users = [PausedUser(user_id=123, guild_id=456, expires_at=now + 3600)]  # not expired
-        pp.save_paused_users(users)
+        pp._paused_users_cache.append(PausedUser(user_id=123, guild_id=456, expires_at=now + 3600))
 
         mock_role = MagicMock()
         mock_role.id = 999
@@ -256,8 +255,7 @@ class TestBackgroundTask:
     async def test_restore_paused_users_skips_expired(self, temp_pause_file):
         """Test that expired pauses are not restored on startup."""
         now = datetime.now().timestamp()
-        users = [PausedUser(user_id=123, guild_id=456, expires_at=now - 100)]  # already expired
-        pp.save_paused_users(users)
+        pp._paused_users_cache.append(PausedUser(user_id=123, guild_id=456, expires_at=now - 100))
 
         mock_guild = MagicMock()
         mock_guild.get_role.return_value = MagicMock()

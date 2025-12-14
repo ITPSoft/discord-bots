@@ -41,7 +41,7 @@ from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOM
 from grossmann.pause_persistence import (
     add_paused_user,
     remove_expired_pauses,
-    load_paused_users,
+    get_paused_users,
     get_user_pause,
 )
 from grossmann.utils import (
@@ -224,7 +224,7 @@ async def hall_of_fame_history_fetching():
 
 async def restore_paused_users():
     """Restore paused roles for users who were paused before bot restart."""
-    paused_users = load_paused_users()
+    paused_users = get_paused_users()
 
     for pause in paused_users:
         # Skip already expired pauses (they'll be cleaned up by the task)
