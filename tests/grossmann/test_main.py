@@ -7,6 +7,7 @@ import pytest
 
 from common.constants import HALL_OF_FAME_EMOJIS
 from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles
+from ..conftest import MOCK_MESSAGE_ID
 from grossmann import grossmanndict as grossdi
 from grossmann import main
 from grossmann.utils import batch_react
@@ -383,7 +384,7 @@ async def test_on_reaction_add_forwards_to_hall_of_fame(mock_message):
     mock_reaction.emoji = "⭐"
 
     # Set up message with enough reactions
-    mock_message.id = 12345678
+
     mock_message.guild = MagicMock()
     mock_message.channel = MagicMock()
 
@@ -429,7 +430,6 @@ async def test_on_reaction_add_ignores_below_threshold(mock_message):
     reaction_obj.emoji = "⭐"
     reaction_obj.count = 5  # Below threshold
     mock_message.reactions = [reaction_obj]
-    mock_message.id = 99999
 
     mock_hall_channel = MagicMock()
 
@@ -451,11 +451,10 @@ async def test_on_reaction_add_ignores_already_forwarded(mock_message):
     reaction_obj.emoji = "⭐"
     reaction_obj.count = 15
     mock_message.reactions = [reaction_obj]
-    mock_message.id = 77777
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = MagicMock()
-        main.hall_of_fame_message_ids = {77777: datetime.now()}
+        main.hall_of_fame_message_ids = {MOCK_MESSAGE_ID: datetime.now()}
 
         await main.on_reaction_add(mock_reaction, MagicMock())
 

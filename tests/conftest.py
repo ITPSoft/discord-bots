@@ -8,6 +8,8 @@ from common.utils import SelfServiceRoles
 from common import http
 from common.constants import Channel, Server
 
+MOCK_MESSAGE_ID = 12345678
+
 
 @pytest.fixture(scope="function")
 def mock_role():
@@ -30,27 +32,16 @@ def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""
 
     ctx = AsyncMock()
-    ctx.response = AsyncMock()
-    ctx.response.send_message = AsyncMock()
-    ctx.component = MagicMock()
     ctx.component.custom_id = SelfServiceRoles.CLEN.role_name
-    ctx.send = AsyncMock()
     ctx.me.top_role.position = 69
-    ctx.original_response = AsyncMock()
-    ctx.original_message = AsyncMock()
-    ctx.author = MagicMock()
     ctx.author.roles = []
-    ctx.author.add_roles = AsyncMock()
-    ctx.author.remove_roles = AsyncMock()
     ctx.author.display_name = "TestUser"
     ctx.author.avatar = "https://example.com/avatar.png"
-    ctx.channel = MagicMock()
     ctx.channel.name = "test-channel"
     ctx.channel.id = 12345
     ctx.guild = MagicMock()
     ctx.guild_id = Server.TEST_SERVER
     ctx.guild.id = Server.TEST_SERVER
-
     ctx.guild.get_role.return_value = mock_role
 
     return ctx
@@ -60,13 +51,11 @@ def mock_ctx(mock_role):
 def mock_message():
     """Create a mock Message object."""
     message = AsyncMock()
-    message.add_reaction = AsyncMock()
-    message.edit = AsyncMock()
-    message.author = MagicMock()
-    message.author.__str__ = MagicMock(return_value="TestUser#1234")
+    message.author.__str__.return_value = "TestUser#1234"
     message.content = ""
     message.channel.id = Channel.BOT_TESTING
     message.guild.id = Server.TEST_SERVER
+    message.id = MOCK_MESSAGE_ID
 
     # Mock channel.history() as an async generator
     async def mock_history(*args, **kwargs):
