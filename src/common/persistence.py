@@ -8,6 +8,7 @@ import logging
 import pickle
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -29,47 +30,55 @@ def _get_semaphore(file_path: str) -> threading.Semaphore:
         return _file_semaphores[file_path]
 
 
-def _save_json_sync(file_path: str, data: Any) -> None:
-    """Save data as JSON synchronously with semaphore protection."""
+@contextmanager
+def _atomic_save(file_path: str, format_name: str):
     semaphore = _get_semaphore(file_path)
     if not semaphore.acquire(blocking=False):
-        return  # Another save in progress, skip
+        yield None  # Another save in progress, skip
+        return
 
     try:
         path = Path(file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        logger.debug(f"Saved JSON to {file_path}")
+        yield path
+        logger.debug(f"Saved {format_name} to {file_path}")
     except OSError as e:
-        logger.warning(f"Failed to save JSON to {file_path}: {e}")
+        logger.warning(f"Failed to save {format_name} to {file_path}: {e}")
     finally:
         semaphore.release()
+
+
+@contextmanager
+def _safe_load(file_path: str, format_name: str, errors: tuple):
+    path = Path(file_path)
+    if not path.exists():
+        yield None
+        return
+
+    try:
+        yield path
+    except errors as e:
+        logger.error(f"Failed to load {format_name} from {file_path}: {e}")
+
+
+def _save_json_sync(file_path: str, data: Any) -> None:
+    with _atomic_save(file_path, "JSON") as path:
+        if path:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
 
 
 def _save_pickle_sync(file_path: str, data: Any) -> None:
-    """Save data as pickle synchronously with semaphore protection."""
-    semaphore = _get_semaphore(file_path)
-    if not semaphore.acquire(blocking=False):
-        return  # Another save in progress, skip
-
-    try:
-        path = Path(file_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
-        logger.debug(f"Saved pickle to {file_path}")
-    except OSError as e:
-        logger.warning(f"Failed to save pickle to {file_path}: {e}")
-    finally:
-        semaphore.release()
+    with _atomic_save(file_path, "pickle") as path:
+        if path:
+            with open(path, "wb") as f:
+                pickle.dump(data, f)
 
 
 def save_json_async(file_path: str, data: Any) -> None:
     """Save data as JSON in a background thread, non-blocking.
 
     If a save is already in progress for this file, this call is skipped.
-    The next mutation will persist the data anyway.
     """
     _executor.submit(_save_json_sync, file_path, data)
 
@@ -78,34 +87,23 @@ def save_pickle_async(file_path: str, data: Any) -> None:
     """Save data as pickle in a background thread, non-blocking.
 
     If a save is already in progress for this file, this call is skipped.
-    The next mutation will persist the data anyway.
     """
     _executor.submit(_save_pickle_sync, file_path, data)
 
 
 def load_json(file_path: str, default: Any = None) -> Any:
     """Load JSON from file, returning default if file doesn't exist or is invalid."""
-    path = Path(file_path)
-    if not path.exists():
-        return default
-
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        logger.error(f"Failed to load JSON from {file_path}: {e}")
-        return default
+    with _safe_load(file_path, "JSON", (json.JSONDecodeError, OSError)) as path:
+        if path:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+    return default
 
 
 def load_pickle(file_path: str, default: Any = None) -> Any:
     """Load pickle from file, returning default if file doesn't exist or is invalid."""
-    path = Path(file_path)
-    if not path.exists():
-        return default
-
-    try:
-        with open(path, "rb") as f:
-            return pickle.load(f)
-    except (pickle.PickleError, OSError) as e:
-        logger.error(f"Failed to load pickle from {file_path}: {e}")
-        return default
+    with _safe_load(file_path, "pickle", (pickle.PickleError, OSError)) as path:
+        if path:
+            with open(path, "rb") as f:
+                return pickle.load(f)
+    return default
