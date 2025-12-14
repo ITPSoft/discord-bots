@@ -463,11 +463,8 @@ async def test_on_reaction_add_ignores_already_forwarded(mock_message):
 
 
 # Test on_member_join event
-async def test_on_member_join_sends_welcome():
+async def test_on_member_join_sends_welcome(mock_member):
     """Test on_member_join sends welcome message."""
-    mock_member = MagicMock()
-    mock_member.mention = "<@987654321>"
-
     mock_welcome_channel = AsyncMock()
     mock_welcome_channel.send = AsyncMock()
 

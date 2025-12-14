@@ -18,6 +18,14 @@ def mock_role():
 
 
 @pytest.fixture(scope="function")
+def mock_member():
+    member = MagicMock()
+    member.mention = "<@987654321>"
+    member.guild.id = Server.TEST_SERVER
+    return member
+
+
+@pytest.fixture(scope="function")
 def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""
 
@@ -41,6 +49,7 @@ def mock_ctx(mock_role):
     ctx.channel.id = 12345
     ctx.guild = MagicMock()
     ctx.guild_id = Server.TEST_SERVER
+    ctx.guild.id = Server.TEST_SERVER
 
     ctx.guild.get_role.return_value = mock_role
 
@@ -57,6 +66,7 @@ def mock_message():
     message.author.__str__ = MagicMock(return_value="TestUser#1234")
     message.content = ""
     message.channel.id = Channel.BOT_TESTING
+    message.guild.id = Server.TEST_SERVER
 
     # Mock channel.history() as an async generator
     async def mock_history(*args, **kwargs):

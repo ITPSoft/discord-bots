@@ -25,6 +25,9 @@ An automation bot for Discord.
 
 This bot will be used to automate Šimek&Grossmann's tasks in order to reduce overhead in the messy script I wrote for him.
 
+## Bot configuration
+
+See [configuration doc](bot_configuration.md).
 
 ## Setup and Environment
 
