@@ -568,7 +568,8 @@ async def pause_me(
     expires_at = add_paused_user(user.id, ctx.guild_id, hours)
 
     await ctx.response.send_message(
-        f"✅ You have been paused until {expires_at.strftime('%Y-%m-%d %H:%M:%S')} ({hours} hours)."
+        f"✅ You have been paused until {expires_at.strftime('%Y-%m-%d %H:%M:%S')} ({hours} hours).",
+        ephemeral=True,
     )
     logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
 
