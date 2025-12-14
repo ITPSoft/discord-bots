@@ -21,7 +21,11 @@ The `/pause` command allows admins to temporarily restrict a user's activity on 
 
 ### Step 2: Configure Role Permissions
 
-In the **Permissions** tab, **DENY** all permissions.
+1. Navigate to each category in your server
+2. Click **Permissions** → **Advanced Permissions**
+3. Add the Paused role to the permissions list
+4. Disable the **View Channels** permission for the Paused role
+5. Repeat for all categories
 
 ### Step 3: Get the Role ID
 
