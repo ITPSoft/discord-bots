@@ -51,9 +51,9 @@ def _get_pause_file_path() -> Path:
 
 def _load_from_file() -> list[PausedUser]:
     """Load paused users from file."""
-    data = load_json(str(_get_pause_file_path()), default={})
+    data = load_json(_get_pause_file_path(), default=[])
     try:
-        return [cattrs.structure(entry, PausedUser) for entry in data.get("paused_users", [])]
+        return [cattrs.structure(entry, PausedUser) for entry in data]
     except Exception as e:
         logger.error(f"Failed to parse paused users: {e}")
         return []
@@ -61,8 +61,7 @@ def _load_from_file() -> list[PausedUser]:
 
 def _save_async() -> None:
     """Save current cache state in a background thread, non-blocking."""
-    data = {"paused_users": [cattrs.unstructure(p) for p in _paused_users_cache]}
-    save_json_async(str(_get_pause_file_path()), data)
+    save_json_async(_get_pause_file_path(), [cattrs.unstructure(p) for p in _paused_users_cache])
 
 
 def _init_cache() -> None:

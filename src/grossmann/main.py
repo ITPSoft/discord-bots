@@ -531,20 +531,17 @@ async def xkcd(
     await send_http_response(ctx, url, "img", "No such xkcd comics with this ID found.")
 
 
-## Admin commands here ->
-
-
 @client.slash_command(
     name="pause_me",
     description="Give yourself pause from this server for few hours. THERE IS NO WAY BACK UNTIL TIME EXPIRES.",
     guild_ids=GIDS,
 )
-@default_member_permissions(administrator=True)
 async def pause_me(
     ctx: ApplicationCommandInteraction,
     hours: int = Param(gt=0, le=24 * 60, description="Number of hours to pause."),
 ):
     """Assign the Paused role to a user for a specified duration."""
+    logger.info(f"Pause requested by {ctx.author.name} in server {ctx.guild_id}")
     role_id = get_paused_role_id(ctx.guild_id)
     role = ctx.guild.get_role(role_id)
     user = ctx.author
@@ -567,13 +564,15 @@ async def pause_me(
         return
 
     # Add the role and persist
-    await user.add_roles(role, reason=f"Paused by {ctx.author} for {hours} hours")
+    await user.add_roles(role, reason=f"Paused themselves for {hours} hours")
     expires_at = add_paused_user(user.id, ctx.guild_id, hours)
 
     await ctx.response.send_message(
-        f"✅ {user.mention} has been paused until {expires_at.strftime('%Y-%m-%d %H:%M:%S')} ({hours} hours)."
+        f"✅ You have been paused until {expires_at.strftime('%Y-%m-%d %H:%M:%S')} ({hours} hours)."
     )
-    logger.info(f"User {user.id} paused by {ctx.author.id} for {hours} hours in server {ctx.guild_id}")
+    logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
+
+## Admin commands here ->
 
 
 # debug command

@@ -11,7 +11,7 @@ import random
 from common.persistence import load_pickle, save_pickle_async
 
 T = TypeVar("T")
-MARKOV_FILE = str(Path(__file__).parent.parent.parent / "data" / "šimek" / "markov_trigram.pkl")
+MARKOV_FILE = Path(__file__).parent.parent.parent / "data" / "šimek" / "markov_trigram.pkl"
 
 # CPU-heavy věci budeme dělat v separátním threadu
 executor = ThreadPoolExecutor(max_workers=1)
