@@ -196,6 +196,10 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 
 GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}
 
+class ChamberRoles(BaseRoleEnum):
+    """Private-ish roles requiring access appeal poll"""
+    ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
+    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekonpolipéro")
 
 class SpecialRoles(BaseRoleEnum):
     """Single-instance role IDs for specific functionality."""
