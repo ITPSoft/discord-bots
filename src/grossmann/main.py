@@ -167,10 +167,8 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     view = View()
     for b in self_service_buttons:
         view.add_item(b)
-    await ctx.channel.send(
-        embed=embed,
-        view=view,
-    )
+
+    await ctx.channel.send(embed=embed, view=view)
 
     # Build gaming role buttons dynamically from the server's gaming roles enum
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
