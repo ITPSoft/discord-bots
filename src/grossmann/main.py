@@ -366,9 +366,13 @@ async def button_role_picker(ctx: MessageInteraction):
     else:
         raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
 
+@dataclasses.dataclass
+class Voting:
+    allow: int
+    deny: int
+    voters: list[int]
 
-# (user_id, role_id) -> {"for": int, "against": int}
-appeal_votes: dict[tuple[int, int], dict[str, int]] = {}
+appeal_votes: dict[tuple[int, int], Voting] = {}
 
 async def button_vote_access(ctx: MessageInteraction):
     ALLOW_VOTE_TRESHOLD = 5
@@ -380,20 +384,27 @@ async def button_vote_access(ctx: MessageInteraction):
     user_id = int(user_id_str)
     role_id = int(role_id_str)
 
+    voting_key = (user_id, role_id)
+
+    if ctx.author.id in appeal_votes[voting_key].voters:
+        await ctx.send(content=f"Už jsi hlasoval/a :(", ephemeral=True)
+        return
+
     if action == "appeal_allow":
-        appeal_votes[(user_id, role_id)]["allow"] += 1
+        appeal_votes[voting_key].allow += 1
     else:
-        appeal_votes[(user_id, role_id)]["deny"] += 1
+        appeal_votes[voting_key].deny += 1
 
     await ctx.send("Hlas započítán", ephemeral=True)
+    appeal_votes[voting_key].voters.append(ctx.author.id)
 
     embed = ctx.message.embeds[0]
     embed.clear_fields()
-    embed.add_field(name="Pro", value=appeal_votes[(user_id, role_id)]["allow"], inline=True)
-    embed.add_field(name="Proti", value=appeal_votes[(user_id, role_id)]["deny"], inline=True)
+    embed.add_field(name="Pro", value=appeal_votes[voting_key].allow, inline=True)
+    embed.add_field(name="Proti", value=appeal_votes[voting_key].deny, inline=True)
     await ctx.message.edit(embed=embed)
 
-    if appeal_votes[(user_id, role_id)]["allow"] - appeal_votes[(user_id, role_id)]["deny"] >= ALLOW_VOTE_TRESHOLD:
+    if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= ALLOW_VOTE_TRESHOLD:
         target_user = ctx.guild.get_member(user_id)
         match role_id:
             case ChamberRoles.ITPERO.role_id:
@@ -405,7 +416,7 @@ async def button_vote_access(ctx: MessageInteraction):
                 channel = client.get_channel(Channel.ECONPOLIPERO)
                 await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {target_user.mention}")
         await ctx.message.delete(delay=20)
-        appeal_votes.pop((user_id, role_id))
+        appeal_votes.pop(voting_key)
 
 
 #########################
@@ -664,7 +675,7 @@ async def request_role(ctx: ApplicationCommandInteraction,
         )
     ]
 
-    appeal_votes[(ctx.author.id, role_id)] = {"allow": 0, "deny": 0}
+    appeal_votes[(ctx.author.id, role_id)] = Voting(allow=0, deny=0, voters=[])
     await channel.send(embed=embed, components=buttons)
 
 
