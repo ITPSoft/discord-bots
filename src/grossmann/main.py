@@ -15,6 +15,7 @@ from common.utils import (
     has_any,
     SelfServiceRoles,
     GamingRoles,
+    ChamberRoles,
     GAMING_ROLES_PER_SERVER,
     ping_function,
     ping_content,
@@ -373,32 +374,38 @@ async def button_vote_access(ctx: MessageInteraction):
     if not cid.startswith("appeal_"):
         return
 
-    action, user_id_str, role_id_str = ctx.component.custom_id.split(":", 2)
+    action, role_id_str, user_id_str = ctx.component.custom_id.split(":", 2)
     user_id = int(user_id_str)
     role_id = int(role_id_str)
 
     if action == "appeal_allow":
+        logging.info(f"Author id: {ctx.author.id}, role id: {role_id}")
+        logging.info(f"Allow: {appeal_votes[(user_id, role_id)]["allow"]}, deny: {appeal_votes[(user_id, role_id)]["deny"]}")
         appeal_votes[(user_id, role_id)]["allow"] += 1
     else:
         appeal_votes[(user_id, role_id)]["deny"] += 1
 
     if appeal_votes[(user_id, role_id)]["allow"] - appeal_votes[(user_id, role_id)]["deny"] >= 3:
+        logging.info(f"adding role")
         user = ctx.guild.get_member(user_id)
-        match int(role_id_str):
-            case ChamberRoles.ITPERO:
+        match role_id:
+            case ChamberRoles.ITPERO.role_id:
+                logging.info(f"chamber itpero")
                 await user.add_roles(ctx.guild.get_role(ChamberRoles.ITPERO.role_id))
                 channel = client.get_channel(Channel.IT_PERO)
                 await channel.send(f"Vítej v <#{Channel.IT_PERO}>, {user.mention}")
-            case ChamberRoles.ECONPOLIPERO:
+            case ChamberRoles.ECONPOLIPERO.role_id:
+                logging.info(f"chamber econpero")
                 await user.add_roles(ctx.guild.get_role(ChamberRoles.ECONPOLIPERO.role_id))
                 channel = client.get_channel(Channel.ECONPOLIPERO)
                 await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {user.mention}")
-
-
-    embed = ctx.message.embeds[0]
-    embed.clear_fields()
-    embed.add_field(name="Pro", value=appeal_votes[(user_id, role_id)]["allow"], inline=True)
-    embed.add_field(name="Proti", value=appeal_votes[(user_id, role_id)]["deny"], inline=True)
+        ctx.message.delete(delay=30)
+    else:
+        embed = ctx.message.embeds[0]
+        embed.clear_fields()
+        embed.add_field(name="Pro", value=appeal_votes[(user_id, role_id)]["allow"], inline=True)
+        embed.add_field(name="Proti", value=appeal_votes[(user_id, role_id)]["deny"], inline=True)
+        await ctx.message.edit(embed=embed)
 
 
 #########################
