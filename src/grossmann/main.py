@@ -3,6 +3,7 @@ import os
 import random
 import textwrap
 from datetime import datetime
+import dataclasses
 
 import disnake
 from common import discord_logging
@@ -15,6 +16,7 @@ from common.utils import (
     has_any,
     SelfServiceRoles,
     GamingRoles,
+    ChamberRoles,
     GAMING_ROLES_PER_SERVER,
     ping_function,
     ping_content,
@@ -167,10 +169,8 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     view = View()
     for b in self_service_buttons:
         view.add_item(b)
-    await ctx.channel.send(
-        embed=embed,
-        view=view,
-    )
+
+    await ctx.channel.send(embed=embed, view=view)
 
     # Build gaming role buttons dynamically from the server's gaming roles enum
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
@@ -339,6 +339,15 @@ async def on_member_join(member: Member):
 async def listener(ctx: MessageInteraction):
     if ctx.guild and ctx.guild.id not in GIDS:
         return
+
+    match ctx.channel_id:
+        case Channel.ROLES:
+            await button_role_picker(ctx)
+        case Channel.ECONPOLIPERO | Channel.IT_PERO:
+            await button_vote_access(ctx)
+
+
+async def button_role_picker(ctx: MessageInteraction):
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or gaming_roles_enum.get_role_id_by_name(
         ctx.component.custom_id
@@ -356,6 +365,60 @@ async def listener(ctx: MessageInteraction):
             await ctx.response.send_message(content=f"Role `{ctx.component.custom_id}` added!", ephemeral=True)
     else:
         raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
+
+
+@dataclasses.dataclass
+class Voting:
+    allow: int
+    deny: int
+    voters: list[int]
+
+
+appeal_votes: dict[tuple[int, int], Voting] = {}
+
+
+async def button_vote_access(ctx: MessageInteraction):
+    cid = ctx.component.custom_id
+    if not cid.startswith("appeal_"):
+        return
+
+    action, role_id_str, user_id_str = cid.split(":", 2)
+    user_id = int(user_id_str)
+    role_id = int(role_id_str)
+
+    voting_key = (user_id, role_id)
+
+    if ctx.author.id in appeal_votes[voting_key].voters:
+        await ctx.send(content="Už jsi hlasoval/a :(", ephemeral=True)
+        return
+
+    if action == "appeal_allow":
+        appeal_votes[voting_key].allow += 1
+    else:
+        appeal_votes[voting_key].deny += 1
+
+    await ctx.send("Hlas započítán", ephemeral=True)
+    appeal_votes[voting_key].voters.append(ctx.author.id)
+
+    embed = ctx.message.embeds[0]
+    embed.clear_fields()
+    embed.add_field(name="Pro", value=appeal_votes[voting_key].allow, inline=True)
+    embed.add_field(name="Proti", value=appeal_votes[voting_key].deny, inline=True)
+    await ctx.message.edit(embed=embed)
+
+    if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= grossdi.ACCESS_VOTE_TRESHOLD:
+        target_user = ctx.guild.get_member(user_id)
+        match role_id:
+            case ChamberRoles.ITPERO.role_id:
+                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ITPERO.role_id))
+                channel = client.get_channel(Channel.IT_PERO)
+                await channel.send(f"Vítej v <#{Channel.IT_PERO}>, {target_user.mention}")
+            case ChamberRoles.ECONPOLIPERO.role_id:
+                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ECONPOLIPERO.role_id))
+                channel = client.get_channel(Channel.ECONPOLIPERO)
+                await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {target_user.mention}")
+        await ctx.message.delete(delay=20)
+        appeal_votes.pop(voting_key)
 
 
 #########################
@@ -572,6 +635,49 @@ async def pause_me(
         ephemeral=True,
     )
     logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
+
+
+@client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
+async def request_role(
+    ctx: ApplicationCommandInteraction,
+    requested_channel: str = Param(name="channel", choices=["Ekon-poli-péro", "ITPéro"]),
+):
+    match requested_channel:
+        case "ITPéro":
+            channel = client.get_channel(Channel.IT_PERO) or await client.fetch_channel(Channel.IT_PERO)
+            role_id = ChamberRoles.ITPERO.role_id
+        case "Ekon-poli-péro":
+            channel = client.get_channel(Channel.ECONPOLIPERO) or await client.fetch_channel(Channel.ECONPOLIPERO)
+            role_id = ChamberRoles.ECONPOLIPERO.role_id
+        case _:
+            return
+
+    if ctx.guild.get_role(role_id) in ctx.author.roles:
+        await ctx.response.send_message("Tuto roli už máš...", ephemeral=True)
+        return
+
+    await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
+
+    embed = Embed(
+        title="Žádost o přístup",
+        description=f"@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti.",
+        color=Colour.magenta(),
+    )
+    embed.set_author(name=ctx.author.global_name, icon_url=ctx.author.avatar)
+    embed.add_field(name="Pro", value=0, inline=True)
+    embed.add_field(name="Proti", value=0, inline=True)
+
+    buttons = [
+        Button(
+            label="Povolit",
+            style=ButtonStyle.success,
+            custom_id=f"appeal_allow:{role_id}:{ctx.author.id}",
+        ),
+        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"),
+    ]
+
+    appeal_votes[(ctx.author.id, role_id)] = Voting(allow=0, deny=0, voters=[])
+    await channel.send(embed=embed, components=buttons)
 
 
 ## Admin commands here ->

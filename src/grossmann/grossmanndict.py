@@ -25,6 +25,7 @@ HELP = {
     "/waifu": "Pošle náhodný láskobrázek.",
     "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný.",
     "/pause_me [hours]": "Pozastaví na [hours] hodin přístup k serveru, užitečné, pokud se potřebujete soustředit.",
+    "/request_role": "Požádá o přidání do uzavřenějších kanálů.",
 }
 
 WARCRAFTY_CZ = Template(f"""
@@ -67,6 +68,8 @@ Přidáš se?
 
 $note
 """)
+
+ACCESS_VOTE_TRESHOLD = 5
 
 # based on https://waifu.pics/docs
 WAIFU_CATEGORIES = {

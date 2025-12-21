@@ -193,6 +193,7 @@ def test_help_template_contains_commands():
 async def test_role_button_listener_adds_role(mock_ctx, mock_role):
     """Test button listener adds role when user doesn't have it."""
     mock_ctx.author.roles = []  # User doesn't have the role
+    mock_ctx.channel_id = 1314388851304955904
     await main.listener(mock_ctx)
 
     mock_ctx.author.add_roles.assert_called_once_with(mock_role)
@@ -203,6 +204,7 @@ async def test_role_button_listener_adds_role(mock_ctx, mock_role):
 async def test_role_button_listener_removes_role(mock_ctx, mock_role):
     """Test button listener removes role when user has it."""
     mock_ctx.author.roles = [mock_role]  # User already has the role
+    mock_ctx.channel_id = 1314388851304955904
 
     await main.listener(mock_ctx)
 

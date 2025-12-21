@@ -154,7 +154,6 @@ class SelfServiceRoles(BaseRoleEnum):
     PRAZAK = ("Pražák", 998636130511630386)
     BRNAK = ("Brňák", 1105227159712309391)
     CARFAG = ("carfag", 1057281159509319800, "Carfag-péro")
-    # ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")  # https://github.com/ITPSoft/discord-bots/issues/81
 
 
 class GamingRoles(BaseRoleEnum):
@@ -195,6 +194,13 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 
 
 GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}
+
+
+class ChamberRoles(BaseRoleEnum):
+    """Private-ish roles requiring access appeal poll"""
+
+    ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
+    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekonpolipéro")  # TODO create actual role and remove placeholder ID
 
 
 class SpecialRoles(BaseRoleEnum):
