@@ -386,7 +386,7 @@ async def button_vote_access(ctx: MessageInteraction):
     voting_key = (user_id, role_id)
 
     if ctx.author.id in appeal_votes[voting_key].voters:
-        await ctx.send(content=f"Už jsi hlasoval/a :(", ephemeral=True)
+        await ctx.send(content="Už jsi hlasoval/a :(", ephemeral=True)
         return
 
     if action == "appeal_allow":
