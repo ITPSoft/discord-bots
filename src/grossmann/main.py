@@ -571,6 +571,38 @@ async def pause_me(
     )
     logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
 
+@client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
+async def request_role(ctx: ApplicationCommandInteraction, requested_channel: str = Param(name="channel", choices=["Ekon-poli-péro", "ITPéro"])):
+    embed = Embed(
+        title="Žádost o přístup",
+        description=f"@{ctx.author.name} požádal/a o přístup.",
+        color=Colour.magenta(),
+    )
+    embed.set_author(name=ctx.author.global_name, icon_url=ctx.author.avatar)
+
+    buttons = [
+        Button(
+            label="Povolit",
+            style=ButtonStyle.success,
+            custom_id="allow"
+        ),
+        Button(
+            label="Zamítnout",
+            style=ButtonStyle.danger,
+            custom_id="deny"
+        )
+    ]
+
+    match requested_channel:
+        case "ITPéro":
+            channel = client.get_channel(Channel.IT_PERO) or await client.fetch_channel(Channel.IT_PERO)
+        case "Ekon-poli-péro":
+            channel = client.get_channel(Channel.ECONPOLIPERO) or await client.fetch_channel(Channel.ECONPOLIPERO)
+        case _ :
+            return
+    await channel.send(embed=embed, components=buttons)
+    await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
+
 
 ## Admin commands here ->
 
