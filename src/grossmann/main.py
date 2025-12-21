@@ -380,11 +380,12 @@ async def button_vote_access(ctx: MessageInteraction):
 
     if action == "appeal_allow":
         logging.info(f"Author id: {ctx.author.id}, role id: {role_id}")
-        logging.info(f"Allow: {appeal_votes[(user_id, role_id)]["allow"]}, deny: {appeal_votes[(user_id, role_id)]["deny"]}")
         appeal_votes[(user_id, role_id)]["allow"] += 1
     else:
         appeal_votes[(user_id, role_id)]["deny"] += 1
 
+    logging.info(
+        f"Allow: {appeal_votes[(user_id, role_id)]["allow"]}, deny: {appeal_votes[(user_id, role_id)]["deny"]}")
     if appeal_votes[(user_id, role_id)]["allow"] - appeal_votes[(user_id, role_id)]["deny"] >= 3:
         logging.info(f"adding role")
         user = ctx.guild.get_member(user_id)
@@ -636,6 +637,12 @@ async def request_role(ctx: ApplicationCommandInteraction,
         case _:
             return
 
+    if ctx.guild.get_role(role_id) in ctx.author.roles:
+        await ctx.response.send_message("Tuto roli už máš...", ephemeral=True)
+        return
+
+    await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
+
     embed = Embed(
         title="Žádost o přístup",
         description=f"@{ctx.author.name} požádal/a o přístup.",
@@ -649,19 +656,18 @@ async def request_role(ctx: ApplicationCommandInteraction,
         Button(
             label="Povolit",
             style=ButtonStyle.success,
-            custom_id=f"appeal_allow:{role}:{ctx.author.id}",
+            custom_id=f"appeal_allow:{role_id}:{ctx.author.id}",
         ),
         Button(
             label="Zamítnout",
             style=ButtonStyle.danger,
-            custom_id=f"appeal_deny:{role}:{ctx.author.id}"
+            custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"
         )
     ]
 
-    appeal_votes[(ctx.author.id, role)] = {"allow": 0, "deny": 0}
-
+    appeal_votes[(ctx.author.id, role_id)] = {"allow": 0, "deny": 0}
     await channel.send(embed=embed, components=buttons)
-    await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
+
 
 
 ## Admin commands here ->
