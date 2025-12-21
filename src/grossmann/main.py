@@ -370,43 +370,41 @@ async def button_role_picker(ctx: MessageInteraction):
 appeal_votes: dict[tuple[int, int], dict[str, int]] = {}
 
 async def button_vote_access(ctx: MessageInteraction):
+    ALLOW_VOTE_TRESHOLD = 5
     cid = ctx.component.custom_id
     if not cid.startswith("appeal_"):
         return
 
-    action, role_id_str, user_id_str = ctx.component.custom_id.split(":", 2)
+    action, role_id_str, user_id_str = cid.split(":", 2)
     user_id = int(user_id_str)
     role_id = int(role_id_str)
 
     if action == "appeal_allow":
-        logging.info(f"Author id: {ctx.author.id}, role id: {role_id}")
         appeal_votes[(user_id, role_id)]["allow"] += 1
     else:
         appeal_votes[(user_id, role_id)]["deny"] += 1
 
-    logging.info(
-        f"Allow: {appeal_votes[(user_id, role_id)]["allow"]}, deny: {appeal_votes[(user_id, role_id)]["deny"]}")
-    if appeal_votes[(user_id, role_id)]["allow"] - appeal_votes[(user_id, role_id)]["deny"] >= 3:
-        logging.info(f"adding role")
-        user = ctx.guild.get_member(user_id)
+    await ctx.send("Hlas započítán", ephemeral=True)
+
+    embed = ctx.message.embeds[0]
+    embed.clear_fields()
+    embed.add_field(name="Pro", value=appeal_votes[(user_id, role_id)]["allow"], inline=True)
+    embed.add_field(name="Proti", value=appeal_votes[(user_id, role_id)]["deny"], inline=True)
+    await ctx.message.edit(embed=embed)
+
+    if appeal_votes[(user_id, role_id)]["allow"] - appeal_votes[(user_id, role_id)]["deny"] >= ALLOW_VOTE_TRESHOLD:
+        target_user = ctx.guild.get_member(user_id)
         match role_id:
             case ChamberRoles.ITPERO.role_id:
-                logging.info(f"chamber itpero")
-                await user.add_roles(ctx.guild.get_role(ChamberRoles.ITPERO.role_id))
+                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ITPERO.role_id))
                 channel = client.get_channel(Channel.IT_PERO)
-                await channel.send(f"Vítej v <#{Channel.IT_PERO}>, {user.mention}")
+                await channel.send(f"Vítej v <#{Channel.IT_PERO}>, {target_user.mention}")
             case ChamberRoles.ECONPOLIPERO.role_id:
-                logging.info(f"chamber econpero")
-                await user.add_roles(ctx.guild.get_role(ChamberRoles.ECONPOLIPERO.role_id))
+                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ECONPOLIPERO.role_id))
                 channel = client.get_channel(Channel.ECONPOLIPERO)
-                await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {user.mention}")
-        ctx.message.delete(delay=30)
-    else:
-        embed = ctx.message.embeds[0]
-        embed.clear_fields()
-        embed.add_field(name="Pro", value=appeal_votes[(user_id, role_id)]["allow"], inline=True)
-        embed.add_field(name="Proti", value=appeal_votes[(user_id, role_id)]["deny"], inline=True)
-        await ctx.message.edit(embed=embed)
+                await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {target_user.mention}")
+        await ctx.message.delete(delay=20)
+        appeal_votes.pop((user_id, role_id))
 
 
 #########################
@@ -630,10 +628,10 @@ async def request_role(ctx: ApplicationCommandInteraction,
     match requested_channel:
         case "ITPéro":
             channel = client.get_channel(Channel.IT_PERO) or await client.fetch_channel(Channel.IT_PERO)
-            role = ChamberRoles.ITPERO
+            role_id = ChamberRoles.ITPERO.role_id
         case "Ekon-poli-péro":
             channel = client.get_channel(Channel.ECONPOLIPERO) or await client.fetch_channel(Channel.ECONPOLIPERO)
-            role = ChamberRoles.ECONPOLIPERO
+            role_id = ChamberRoles.ECONPOLIPERO.role_id
         case _:
             return
 
