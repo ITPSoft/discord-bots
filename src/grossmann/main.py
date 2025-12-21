@@ -366,13 +366,16 @@ async def button_role_picker(ctx: MessageInteraction):
     else:
         raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
 
+
 @dataclasses.dataclass
 class Voting:
     allow: int
     deny: int
     voters: list[int]
 
+
 appeal_votes: dict[tuple[int, int], Voting] = {}
+
 
 async def button_vote_access(ctx: MessageInteraction):
     cid = ctx.component.custom_id
@@ -633,9 +636,12 @@ async def pause_me(
     )
     logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
 
+
 @client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
-async def request_role(ctx: ApplicationCommandInteraction,
-                       requested_channel: str = Param(name="channel", choices=["Ekon-poli-péro", "ITPéro"])):
+async def request_role(
+    ctx: ApplicationCommandInteraction,
+    requested_channel: str = Param(name="channel", choices=["Ekon-poli-péro", "ITPéro"]),
+):
     match requested_channel:
         case "ITPéro":
             channel = client.get_channel(Channel.IT_PERO) or await client.fetch_channel(Channel.IT_PERO)
@@ -667,16 +673,11 @@ async def request_role(ctx: ApplicationCommandInteraction,
             style=ButtonStyle.success,
             custom_id=f"appeal_allow:{role_id}:{ctx.author.id}",
         ),
-        Button(
-            label="Zamítnout",
-            style=ButtonStyle.danger,
-            custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"
-        )
+        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"),
     ]
 
     appeal_votes[(ctx.author.id, role_id)] = Voting(allow=0, deny=0, voters=[])
     await channel.send(embed=embed, components=buttons)
-
 
 
 ## Admin commands here ->

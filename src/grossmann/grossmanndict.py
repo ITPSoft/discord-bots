@@ -25,7 +25,7 @@ HELP = {
     "/waifu": "Pošle náhodný láskobrázek.",
     "/xkcd {ID}": "Pošle xkcd komiks s daným ID, výchozí je poslední vydaný.",
     "/pause_me [hours]": "Pozastaví na [hours] hodin přístup k serveru, užitečné, pokud se potřebujete soustředit.",
-    "/request_role": "Požádá o přidání do uzavřenějších kanálů."
+    "/request_role": "Požádá o přidání do uzavřenějších kanálů.",
 }
 
 WARCRAFTY_CZ = Template(f"""
