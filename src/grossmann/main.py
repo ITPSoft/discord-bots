@@ -654,7 +654,7 @@ async def request_role(ctx: ApplicationCommandInteraction,
 
     embed = Embed(
         title="Žádost o přístup",
-        description=f"@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více.",
+        description=f"@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti.",
         color=Colour.magenta(),
     )
     embed.set_author(name=ctx.author.global_name, icon_url=ctx.author.avatar)
