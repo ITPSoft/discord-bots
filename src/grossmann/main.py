@@ -3,6 +3,7 @@ import os
 import random
 import textwrap
 from datetime import datetime
+import dataclasses
 
 import disnake
 from common import discord_logging
