@@ -69,6 +69,8 @@ Přidáš se?
 $note
 """)
 
+ACCESS_VOTE_TRESHOLD = 5
+
 # based on https://waifu.pics/docs
 WAIFU_CATEGORIES = {
     "sfw": [

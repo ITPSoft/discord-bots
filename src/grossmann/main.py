@@ -375,7 +375,6 @@ class Voting:
 appeal_votes: dict[tuple[int, int], Voting] = {}
 
 async def button_vote_access(ctx: MessageInteraction):
-    ALLOW_VOTE_TRESHOLD = 5
     cid = ctx.component.custom_id
     if not cid.startswith("appeal_"):
         return
@@ -404,7 +403,7 @@ async def button_vote_access(ctx: MessageInteraction):
     embed.add_field(name="Proti", value=appeal_votes[voting_key].deny, inline=True)
     await ctx.message.edit(embed=embed)
 
-    if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= ALLOW_VOTE_TRESHOLD:
+    if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= grossdi.ACCESS_VOTE_TRESHOLD:
         target_user = ctx.guild.get_member(user_id)
         match role_id:
             case ChamberRoles.ITPERO.role_id:
@@ -655,7 +654,7 @@ async def request_role(ctx: ApplicationCommandInteraction,
 
     embed = Embed(
         title="Žádost o přístup",
-        description=f"@{ctx.author.name} požádal/a o přístup.",
+        description=f"@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více.",
         color=Colour.magenta(),
     )
     embed.set_author(name=ctx.author.global_name, icon_url=ctx.author.avatar)
