@@ -374,13 +374,13 @@ async def button_role_picker(ctx: MessageInteraction):
 
 
 @dataclasses.dataclass
-class Voting:
+class AccessVoting:
     allow: int
     deny: int
     voters: list[int]
 
 
-appeal_votes: dict[tuple[int, int], Voting] = {}
+appeal_votes: dict[tuple[int, int], AccessVoting] = {}
 
 
 async def button_vote_access(ctx: MessageInteraction):
@@ -731,12 +731,12 @@ async def request_role(
         Button(
             label="Povolit",
             style=ButtonStyle.success,
-            custom_id=f"appeal_allow:{role_id}:{ctx.author.id}",
+            custom_id=f"{PollType.ACCESSPOLL}:{role_id}:{ctx.author.id}:allow",
         ),
-        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"),
+        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"{PollType.ACCESSPOLL}:{role_id}:{ctx.author.id}:allow"),
     ]
 
-    appeal_votes[(ctx.author.id, role_id)] = Voting(allow=0, deny=0, voters=[])
+    appeal_votes[(ctx.author.id, role_id)] = AccessVoting(allow=0, deny=0, voters=[])
     await channel.send(embed=embed, components=buttons)
 
 
