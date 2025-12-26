@@ -183,7 +183,8 @@ class GamingRoles(BaseRoleEnum):
     ARC_RAIDERS = ("ArcRaiders", 1432779821183930401, "Arc Raiders")
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
-    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797, "Magic The Gathering")
+    MAGIC_THE_GATHERING = ("MagicTheGathering", 1327396658605981797, "Magic The Gathering")
+    TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1453909720715755682, "Table Top Simulator")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
