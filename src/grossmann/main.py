@@ -4,6 +4,7 @@ import random
 import textwrap
 from datetime import datetime
 import dataclasses
+from typing import TypeAlias
 
 import disnake
 from common import discord_logging
@@ -425,6 +426,33 @@ async def button_vote_access(ctx: MessageInteraction):
                 await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {target_user.mention}")
         await ctx.message.delete(delay=20)
         appeal_votes.pop(voting_key)
+
+# Poll vote: option - user casting the vote
+PollVote: TypeAlias = tuple[str, int]
+polls: dict[str, list[PollVote]] = {}
+
+async def anonymous_poll_resolver(ctx: MessageInteraction):
+    cid = ctx.component.custom_id
+    if not cid.startswith(ListenerType.ANONYMPOLL):
+        return
+
+    # {ListenerType.ANONYMPOLL}:{hash(f"{ctx.author.id}{question}")}:{option}
+    _, hash, option = cid.split(":", 2)
+
+    this_option_votes = [item for item in polls.get(hash) if item[0] == option]
+
+    if ctx.user.id in this_option_votes:
+        await ctx.send(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
+        return
+
+    polls.get(hash).append((option, ctx.author.id))
+    await ctx.send("Hlas započítán", ephemeral=True)
+
+    embed = ctx.message.embeds[0]
+    field = [item for item in embed.fields if item.name == option]
+    total_votes = len(this_option_votes) + 1
+    field[0].value = total_votes
+    await ctx.message.edit(embed=embed)
 
 
 #########################
