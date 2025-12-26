@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from collections.abc import Iterable, Callable
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import lru_cache
 from typing import Self
 from urllib.parse import urlparse
@@ -218,3 +218,8 @@ def get_paused_role_id(guild_id: int) -> int:
     if guild_id == Server.TEST_SERVER:
         return SpecialTestingRoles.PAUSED.role_id
     return SpecialRoles.PAUSED.role_id
+
+class ListenerType(StrEnum):
+    ROLEPICKER = "rolepicker"
+    ANONYMPOLL = "anonympoll"
+    ACCESSPOLL = "accesspoll"

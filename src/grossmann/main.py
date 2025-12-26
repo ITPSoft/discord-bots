@@ -21,6 +21,7 @@ from common.utils import (
     ping_function,
     ping_content,
     get_paused_role_id,
+    ListenerType
 )
 from disnake import (
     Message,
@@ -160,7 +161,7 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
         Button(
             label=role.button_label,
             style=row_colors[role_rows_inv[role]],
-            custom_id=role.role_name,
+            custom_id=PollType.ROLEPICKER+role.role_name,
             row=role_rows_inv[role],
         )
         for role in SelfServiceRoles
@@ -175,7 +176,7 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     # Build gaming role buttons dynamically from the server's gaming roles enum
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     gaming_buttons = [
-        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=role.role_name)
+        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=PollType.ROLEPICKER+role.role_name)
         for role in gaming_roles_enum
     ]
 
@@ -340,19 +341,23 @@ async def listener(ctx: MessageInteraction):
     if ctx.guild and ctx.guild.id not in GIDS:
         return
 
-    match ctx.channel_id:
-        case Channel.ROLES:
+    listener_type, _ = ctx.component.custom_id.split(':', 1)
+
+    match listener_type:
+        case ListenerType.ROLEPICKER:
             await button_role_picker(ctx)
-        case Channel.ECONPOLIPERO | Channel.IT_PERO:
+        case ListenerType.ACCESSPOLL:
             await button_vote_access(ctx)
+        case ListenerType.ANONYMPOLL:
+            await anonymous_poll_resolver(ctx)
 
 
 async def button_role_picker(ctx: MessageInteraction):
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
-    role_id = SelfServiceRoles.get_role_id_by_name(ctx.component.custom_id) or gaming_roles_enum.get_role_id_by_name(
-        ctx.component.custom_id
-    )
+    _, role_id_str = ctx.component.custom_id.split(":", 1) # omit listener type, get only role id
+    role_id = SelfServiceRoles.get_role_id_by_name(role_id_str) or gaming_roles_enum.get_role_id_by_name(role_id_str)
     logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
+
     if role_id is not None:
         role = ctx.guild.get_role(role_id)
         if role.position > ctx.me.top_role.position:
@@ -379,10 +384,11 @@ appeal_votes: dict[tuple[int, int], Voting] = {}
 
 async def button_vote_access(ctx: MessageInteraction):
     cid = ctx.component.custom_id
-    if not cid.startswith("appeal_"):
+    if not cid.startswith(ListenerType.ACCESSPOLL):
         return
 
-    action, role_id_str, user_id_str = cid.split(":", 2)
+    # {PollType.ACCESSPOLL}:{role_id}:{ctx.author.id}:{allow/deny}
+    _, role_id_str, user_id_str, vote_str = cid.split(":", 3)
     user_id = int(user_id_str)
     role_id = int(role_id_str)
 
@@ -392,7 +398,7 @@ async def button_vote_access(ctx: MessageInteraction):
         await ctx.send(content="Už jsi hlasoval/a :(", ephemeral=True)
         return
 
-    if action == "appeal_allow":
+    if vote_str == "allow":
         appeal_votes[voting_key].allow += 1
     else:
         appeal_votes[voting_key].deny += 1
