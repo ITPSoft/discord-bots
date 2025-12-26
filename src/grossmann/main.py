@@ -494,7 +494,7 @@ async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, opti
             )
         )
 
-    polls[poll_identifier] = []
+    polls[str(poll_identifier)] = []
     await ctx.response.send(embed=embed, components=buttons)
 
 # rolls a dice
