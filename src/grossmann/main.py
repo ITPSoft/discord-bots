@@ -451,6 +451,7 @@ async def help(ctx: ApplicationCommandInteraction):
 async def poll(
     ctx: ApplicationCommandInteraction,
     question: str,
+    anonymous: bool,
     option1: str,
     option2: str,
     option3: str | None = None,
@@ -461,6 +462,11 @@ async def poll(
     if len(options) < 2:
         await ctx.send("You must provide at least two options.", ephemeral=True)
         return
+
+    if anonymous:
+        await anonymous_poll(ctx, question, options)
+        return
+
     poll_mess = f"Anketa: {question}\n"
     await ctx.send("Creating poll...", ephemeral=False)
     m = await ctx.original_response()
@@ -470,6 +476,26 @@ async def poll(
         await m.add_reaction(emoji_list[i])
     await m.edit(content=poll_mess)
 
+# sends embedded message for anonymous voting
+# author and question are hashed not for cryptography reasons,
+# but for implementing distinguished identifier among other polls
+async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, options: list[str]) -> None:
+    poll_identifier = hash(f"{ctx.author.id}{question}")
+    embed = Embed(title=question, color=disnake.Colour.dark_green())
+    buttons = []
+
+    for option in options:
+        embed.add_field(name=option, value=0, inline=True)
+        buttons.append(
+            Button(
+                label=option,
+                style=ButtonStyle.primary,
+                custom_id=f"{ListenerType.ANONYMPOLL}:{poll_identifier}:{option}",
+            )
+        )
+
+    polls[poll_identifier] = []
+    await ctx.response.send(embed=embed, components=buttons)
 
 # rolls a dice
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
