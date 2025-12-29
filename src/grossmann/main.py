@@ -654,19 +654,15 @@ async def pause_me(
 @client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
 async def request_role(
     ctx: ApplicationCommandInteraction,
-    requested_channel: str = Param(name="channel", choices=["Ekon-poli-péro", "ITPéro"]),
+    requested_channel: str = Param(name="channel", choices=ChamberRoles.get_channel_names()),
 ):
-    match requested_channel:
-        case "ITPéro":
-            channel = client.get_channel(Channel.IT_PERO) or await client.fetch_channel(Channel.IT_PERO)
-            role_id = ChamberRoles.ITPERO.role_id
-        case "Ekon-poli-péro":
-            channel = client.get_channel(Channel.ECONPOLIPERO) or await client.fetch_channel(Channel.ECONPOLIPERO)
-            role_id = ChamberRoles.ECONPOLIPERO.role_id
-        case _:
-            return
+    role = ChamberRoles.get_by_button_label(requested_channel)
+    assert role is not None, f"Unknown role name `{requested_channel}`"
+    channel_id = role.get_channel()
+    assert channel_id is not None, f"Unknown channel name `{requested_channel}`"
+    channel = client.get_channel(channel_id) or await client.fetch_channel(channel_id)
 
-    if ctx.guild.get_role(role_id) in ctx.author.roles:
+    if ctx.guild.get_role(role.role_id) in ctx.author.roles:
         await ctx.response.send_message("Tuto roli už máš...", ephemeral=True)
         return
 
@@ -682,11 +678,11 @@ async def request_role(
     embed.add_field(name="Proti", value=0, inline=True)
 
     buttons = [
-        Button(label="Povolit", style=ButtonStyle.success, custom_id=f"appeal_allow:{role_id}:{ctx.author.id}"),
-        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"),
+        Button(label="Povolit", style=ButtonStyle.success, custom_id=f"appeal_allow:{role.role_id}:{ctx.author.id}"),
+        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role.role_id}:{ctx.author.id}"),
     ]
 
-    appeal_votes[(ctx.author.id, role_id)] = Voting(allow=0, deny=0, voters=[])
+    appeal_votes[(ctx.author.id, role.role_id)] = Voting(allow=0, deny=0, voters=[])
     await channel.send(embed=embed, components=buttons)
 
 

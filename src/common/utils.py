@@ -145,6 +145,13 @@ class BaseRoleEnum(Enum):
                 return member
         return None
 
+    @classmethod
+    def get_by_button_label(cls, button_label: str) -> Self | None:
+        for member in cls:
+            if member._button_label == button_label:
+                return member
+        return None
+
 
 class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
@@ -202,16 +209,24 @@ class ChamberRoles(BaseRoleEnum):
     """Private-ish roles requiring access appeal poll"""
 
     ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
-    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekonpolipéro")  # TODO create actual role and remove placeholder ID
+    # ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekon-poli-péro")  # TODO create actual role and remove placeholder ID
 
-    def get_channel(self):
+    def get_channel(self) -> Channel:
         match self:
             case ChamberRoles.ITPERO:
                 return Channel.IT_PERO
-            case ChamberRoles.ECONPOLIPERO:
-                return Channel.ECONPOLIPERO
+            # case ChamberRoles.ECONPOLIPERO:
+            #     return Channel.ECONPOLIPERO
             case _:
                 raise ValueError(f"Unknown chamber role: {self.role_name}")
+
+    @classmethod
+    def get_channels(cls) -> list[tuple[str, int]]:
+        return [(i.button_label, i.get_channel()) for i in cls]
+
+    @classmethod
+    def get_channel_names(cls) -> list[str]:
+        return [i[0] for i in cls.get_channels()]
 
 
 class SpecialRoles(BaseRoleEnum):
