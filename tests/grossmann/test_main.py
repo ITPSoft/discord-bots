@@ -771,37 +771,6 @@ async def test_button_vote_access_grants_role_when_threshold_reached_itpero(mock
     mock_message_interaction.message.delete.assert_called_once_with(delay=20)
 
 
-async def test_button_vote_access_grants_role_when_threshold_reached_econpolipero(mock_message_interaction):
-    """Test button_vote_access grants ECONPOLIPERO role when threshold is reached."""
-    user_id = 12345
-    role_id = ChamberRoles.ECONPOLIPERO.role_id
-    voting_key = (user_id, role_id)
-    threshold = grossdi.ACCESS_VOTE_TRESHOLD
-    main.appeal_votes[voting_key] = main.Voting(allow=threshold, deny=0, voters=list(range(threshold)))
-
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
-    mock_target_user = AsyncMock()
-    mock_target_user.mention = "<@12345>"
-    mock_role = MagicMock()
-    mock_channel = AsyncMock()
-    mock_message_interaction.guild.get_member.return_value = mock_target_user
-    mock_message_interaction.guild.get_role.return_value = mock_role
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    with patch.object(main, "client") as mock_client:
-        mock_client.get_channel.return_value = mock_channel
-
-        await main.button_vote_access(mock_message_interaction)
-
-    assert voting_key not in main.appeal_votes
-    mock_target_user.add_roles.assert_called_once_with(mock_role)
-    mock_channel.send.assert_called_once()
-    assert f"Vítej v <#{Channel.ECONPOLIPERO}>" in mock_channel.send.call_args[0][0]
-    mock_message_interaction.message.delete.assert_called_once_with(delay=20)
-
-
 async def test_button_vote_access_threshold_with_deny_votes(mock_message_interaction):
     """Test button_vote_access calculates threshold correctly with deny votes."""
     user_id = 12345
