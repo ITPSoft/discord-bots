@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from disnake import ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot
 
-from common.constants import Server
+from common.constants import Server, Channel
 from disnake.ext import commands
 
 logger = logging.getLogger(__name__)
@@ -154,6 +154,8 @@ class SelfServiceRoles(BaseRoleEnum):
     PRAZAK = ("Pražák", 998636130511630386)
     BRNAK = ("Brňák", 1105227159712309391)
     CARFAG = ("carfag", 1057281159509319800, "Carfag-péro")
+    MAGIC_THE_GATHERING = ("MagicTheGathering", 1327396658605981797, "Magic The Gathering")
+    KNIZNI_KLUB = ("knižní klub", 1455224895641227409, "Knižní klub")
 
 
 class GamingRoles(BaseRoleEnum):
@@ -183,7 +185,7 @@ class GamingRoles(BaseRoleEnum):
     ARC_RAIDERS = ("ArcRaiders", 1432779821183930401, "Arc Raiders")
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
-    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797, "Magic The Gathering")
+    TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1453909720715755682, "Table Top Simulator")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
@@ -201,6 +203,15 @@ class ChamberRoles(BaseRoleEnum):
 
     ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
     ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekonpolipéro")  # TODO create actual role and remove placeholder ID
+
+    def get_channel(self):
+        match self:
+            case ChamberRoles.ITPERO:
+                return Channel.IT_PERO
+            case ChamberRoles.ECONPOLIPERO:
+                return Channel.ECONPOLIPERO
+            case _:
+                raise ValueError(f"Unknown chamber role: {self.role_name}")
 
 
 class SpecialRoles(BaseRoleEnum):
