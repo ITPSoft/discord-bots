@@ -185,7 +185,7 @@ class GamingRoles(BaseRoleEnum):
     ARC_RAIDERS = ("ArcRaiders", 1432779821183930401, "Arc Raiders")
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
-    TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1453909720715755682, "Table Top Simulator")
+    TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1422635058996711614, "Table Top Simulator")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
