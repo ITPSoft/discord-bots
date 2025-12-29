@@ -137,7 +137,11 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
         color=Colour.light_gray(),
     )
     embed.add_field(
-        name="Zde jsou role na přístup do různých 'pér'.\nDejte si člena, abyste viděli všude jinde.", value="_"
+        name=textwrap.dedent("""
+        Dejte si roli člen, abyste viděli do většiny kanálů.
+        Dále jsou zde role na přístup do různých tematických chatů, neboli 'pér', které jsou oddělené od role člen.
+        """),
+        value="_",
     )
 
     gamingembed = Embed(
