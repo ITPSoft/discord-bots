@@ -405,10 +405,13 @@ async def button_vote_access(ctx: MessageInteraction):
         await ctx.send(content="Už jsi hlasoval/a :(", ephemeral=True)
         return
 
-    if action == "appeal_allow":
-        appeal_votes[voting_key].allow += 1
-    else:
-        appeal_votes[voting_key].deny += 1
+    match action:
+        case "appeal_allow":
+            appeal_votes[voting_key].allow += 1
+        case "appeal_deny":
+            appeal_votes[voting_key].deny += 1
+        case _:
+            raise Exception(f"Unknown action `{action}`")
 
     await ctx.send("Hlas započítán", ephemeral=True)
     appeal_votes[voting_key].voters.append(ctx.author.id)
@@ -679,11 +682,7 @@ async def request_role(
     embed.add_field(name="Proti", value=0, inline=True)
 
     buttons = [
-        Button(
-            label="Povolit",
-            style=ButtonStyle.success,
-            custom_id=f"appeal_allow:{role_id}:{ctx.author.id}",
-        ),
+        Button(label="Povolit", style=ButtonStyle.success, custom_id=f"appeal_allow:{role_id}:{ctx.author.id}"),
         Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"appeal_deny:{role_id}:{ctx.author.id}"),
     ]
 
