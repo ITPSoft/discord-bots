@@ -148,7 +148,11 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     role_rows = [
         [SelfServiceRoles.CLEN],
         [SelfServiceRoles.PRAZAK, SelfServiceRoles.OSTRAVAK, SelfServiceRoles.BRNAK],
-        [SelfServiceRoles.CARFAG],  # další péra strkejte sem
+        [
+            SelfServiceRoles.CARFAG,
+            SelfServiceRoles.KNIZNI_KLUB,
+            SelfServiceRoles.MAGIC_THE_GATHERING,
+        ],  # další péra strkejte sem, max 5 na řádek
     ]
     row_colors = [
         ButtonStyle.red,
@@ -178,8 +182,17 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
         Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=role.role_name)
         for role in gaming_roles_enum
     ]
+    # discord limits 25 components per message
+    if len(gaming_buttons) <= 25:
+        await ctx.channel.send(embed=gamingembed, components=gaming_buttons)
+    elif 25 < len(gaming_buttons) <= 50:
+        chunk1 = gaming_buttons[:25]
+        chunk2 = gaming_buttons[25:]
 
-    await ctx.channel.send(embed=gamingembed, components=gaming_buttons)
+        await ctx.channel.send(embed=gamingembed, components=chunk1)
+        await ctx.channel.send(components=chunk2)
+    else:
+        logger.error("Jste se posrali, mít víc než 50 rolí, ne?")
 
     await ctx.response.send_message(content="Done!", ephemeral=True)
 
@@ -408,15 +421,13 @@ async def button_vote_access(ctx: MessageInteraction):
 
     if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= grossdi.ACCESS_VOTE_TRESHOLD:
         target_user = ctx.guild.get_member(user_id)
-        match role_id:
-            case ChamberRoles.ITPERO.role_id:
-                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ITPERO.role_id))
-                channel = client.get_channel(Channel.IT_PERO)
-                await channel.send(f"Vítej v <#{Channel.IT_PERO}>, {target_user.mention}")
-            case ChamberRoles.ECONPOLIPERO.role_id:
-                await target_user.add_roles(ctx.guild.get_role(ChamberRoles.ECONPOLIPERO.role_id))
-                channel = client.get_channel(Channel.ECONPOLIPERO)
-                await channel.send(f"Vítej v <#{Channel.ECONPOLIPERO}>, {target_user.mention}")
+        role = ChamberRoles.get_by_role_id(role_id)
+        channel_id = role.get_channel()
+        assert role is not None, f"Unknown role ID for custom ID `{ctx.component.custom_id}`"
+        await target_user.add_roles(ctx.guild.get_role(role_id))
+        channel = client.get_channel(channel_id)
+        await channel.send(f"Vítej v <#{channel_id.value}>, {target_user.mention}")
+
         await ctx.message.delete(delay=20)
         appeal_votes.pop(voting_key)
 

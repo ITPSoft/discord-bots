@@ -63,23 +63,15 @@ def sample_poll_data():
 
 
 @pytest.fixture
-def mock_interaction():
-    """Create a mock interaction for NetHack commands."""
-    interaction = AsyncMock()
-    interaction.channel_id = TEST_ALLOWED_CHANNEL_ID
-    interaction.response = AsyncMock()
-    interaction.response.defer = AsyncMock()
-    interaction.response.send_message = AsyncMock()
-    interaction.followup = AsyncMock()
-    interaction.followup.send = AsyncMock()
-    interaction.author = AsyncMock()
-    interaction.author.roles = []
-    return interaction
+def mock_interaction(mock_ctx):
+    """Create a mock ApplicationCommandInteraction for NetHack commands."""
+    mock_ctx.channel_id = TEST_ALLOWED_CHANNEL_ID
+    return mock_ctx
 
 
 @pytest.fixture
 def mock_admin_interaction(mock_interaction):
-    """Create a mock interaction with admin role."""
+    """Create a mock ApplicationCommandInteraction with admin role."""
     admin_role = AsyncMock()
     admin_role.id = TEST_ADMIN_ROLE_ID
     mock_interaction.author.roles = [admin_role]
@@ -88,7 +80,7 @@ def mock_admin_interaction(mock_interaction):
 
 @pytest.fixture
 def mock_wrong_channel_interaction():
-    """Create a mock interaction in wrong channel."""
+    """Create a mock ApplicationCommandInteraction in wrong channel."""
     interaction = AsyncMock()
     interaction.channel_id = TEST_CHANNEL_ID  # Different from allowed channel
     interaction.response = AsyncMock()
