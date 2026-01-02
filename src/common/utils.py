@@ -209,14 +209,14 @@ class ChamberRoles(BaseRoleEnum):
     """Private-ish roles requiring access appeal poll"""
 
     ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
-    # ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekon-poli-péro")  # TODO create actual role and remove placeholder ID
+    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 1454177855943741492, "Ekon-poli-péro")
 
     def get_channel(self) -> Channel:
         match self:
             case ChamberRoles.ITPERO:
                 return Channel.IT_PERO
-            # case ChamberRoles.ECONPOLIPERO:
-            #     return Channel.ECONPOLIPERO
+            case ChamberRoles.ECONPOLIPERO:
+                return Channel.ECONPOLIPERO
             case _:
                 raise ValueError(f"Unknown chamber role: {self.role_name}")
 
