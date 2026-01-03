@@ -73,6 +73,10 @@ class Channel(IntEnum):
     NSFW = 276789712318889984
 
 
+class TestingChannel(IntEnum):
+    ILUMINATI = 1457055480747786443
+
+
 KEKW = "<:kekw:940326430028488794>"
 
 KEKW2 = "<:kekW:940324801585741844>"

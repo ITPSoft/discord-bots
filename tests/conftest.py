@@ -34,6 +34,7 @@ def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""
 
     ctx = AsyncMock()
+    ctx.id = 789654123
     ctx.response.is_done = MagicMock()
     ctx.me.top_role.position = 69
     ctx.author.roles = []

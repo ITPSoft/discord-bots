@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from common.utils import ListenerType, ChamberRoles
+from common.utils import ListenerType, KouzelniciChamberRoles
 from ..conftest import MOCK_USER_ID, MOCK_VOTER_ID
 
 # Mock environment variables for testing
@@ -18,7 +18,7 @@ TEST_GUILD_ID = 12345
 TEST_CHANNEL_ID = 67890
 TEST_ADMIN_ROLE_ID = 11111
 TEST_ALLOWED_CHANNEL_ID = 22222
-MOCK_CHAMBER_ROLE_ID = ChamberRoles.ITPERO.role_id
+MOCK_CHAMBER_ROLE_ID = KouzelniciChamberRoles.ITPERO.role_id
 
 
 @pytest.fixture
@@ -125,3 +125,24 @@ def mock_access_voting_interaction_deny(mock_message_interaction):
     )
     mock_message_interaction.author.id = MOCK_VOTER_ID
     return mock_message_interaction
+
+
+@pytest.fixture
+def mock_anonymous_poll_interaction(mock_message_interaction):
+    """Create a mock MessageInteraction for anonymous poll voting."""
+    poll_hash = str(hash(f"{MOCK_USER_ID}Test question"))
+    option = "Option1"
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_hash}:{option}"
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    mock_message_interaction.user.id = MOCK_VOTER_ID
+
+    # Setup embed with fields
+    mock_field = MagicMock()
+    mock_field.name = option
+    mock_field.value = 0
+    mock_embed = MagicMock()
+    mock_embed.to_dict.return_value = {"fields": [{"name": option, "value": 0}]}
+    mock_embed.fields = [mock_field]
+    mock_message_interaction.message.embeds = [mock_embed]
+
+    return mock_message_interaction, poll_hash, option

@@ -23,6 +23,7 @@ from common.utils import (
     ping_content,
     get_paused_role_id,
     ListenerType,
+    CHAMBER_ROLES_PER_SERVER, KouzelniciChamberRoles,
 )
 from disnake import (
     Message,
@@ -433,7 +434,8 @@ async def button_vote_access(ctx: MessageInteraction):
 
     if appeal_votes[voting_key].allow - appeal_votes[voting_key].deny >= grossdi.ACCESS_VOTE_TRESHOLD:
         target_user = ctx.guild.get_member(user_id)
-        role = ChamberRoles.get_by_role_id(role_id)
+        chamber_roles_enum = CHAMBER_ROLES_PER_SERVER.get(ctx.guild_id, KouzelniciChamberRoles)
+        role = chamber_roles_enum.get_by_role_id(role_id)
         channel_id = role.get_channel()
         assert role is not None, f"Unknown role ID for custom ID `{ctx.component.custom_id}`"
         await target_user.add_roles(ctx.guild.get_role(role_id))
@@ -449,23 +451,23 @@ async def anonymous_poll_resolver(ctx: MessageInteraction):
     if not cid.startswith(ListenerType.ANONYMPOLL):
         return
 
-    # {ListenerType.ANONYMPOLL}:{hash(f"{ctx.author.id}{question}")}:{option}
-    _, a_hash, option = cid.split(":", 2)
+    # {ListenerType.ANONYMPOLL}:{ctx.id}:{option}
+    _, ctx_id, option = cid.split(":", 2)
 
-    this_option_votes = [item for item in polls[a_hash] if item[0] == option]
+    this_option_votes = [item for item in polls[ctx_id] if item[0] == option]
 
-    if ctx.user.id in this_option_votes:
+    if ctx.user.id in [item[1] for item in this_option_votes]:
         await ctx.send(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
         return
 
-    polls[a_hash].append((option, ctx.author.id))
-    await ctx.send("Hlas započítán", ephemeral=True)
+    embed = ctx.message.embeds[0].to_dict()  # embeds are immutable, doing dict workaround
+    field = [item for item in embed["fields"] if item["name"] == option]
 
-    embed = ctx.message.embeds[0]
-    field = [item for item in embed.fields if item.name == option]
     total_votes = len(this_option_votes) + 1
-    field[0].value = total_votes
-    await ctx.message.edit(embed=embed)
+    field[0]["value"] = total_votes
+    await ctx.message.edit(embed=Embed.from_dict(embed))
+    polls[ctx_id].append((option, ctx.author.id))
+    await ctx.send("Hlas započítán", ephemeral=True)
 
 
 #########################
@@ -488,7 +490,11 @@ async def help(ctx: ApplicationCommandInteraction):
 
 
 # poll creation, takes up to five arguments
-@client.slash_command(name="poll", description="Creates a poll with given arguments.", guild_ids=GIDS)
+@client.slash_command(
+    name="poll",
+    description="Creates a poll with given arguments. Each user can select multiple answers.",
+    guild_ids=GIDS,
+)
 async def poll(
     ctx: ApplicationCommandInteraction,
     question: str,
@@ -522,7 +528,7 @@ async def poll(
 # author and question are hashed not for cryptography reasons,
 # but for implementing distinguished identifier among other polls
 async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, options: list[str]) -> None:
-    poll_identifier = hash(f"{ctx.author.id}{question}")
+    poll_identifier = ctx.id
     embed = Embed(title=question, color=disnake.Colour.dark_green())
     buttons = []
 
@@ -537,7 +543,7 @@ async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, opti
         )
 
     polls[str(poll_identifier)] = []
-    await ctx.response.send(embed=embed, components=buttons)
+    await ctx.response.send_message(embed=embed, components=buttons)
 
 
 # rolls a dice
@@ -715,9 +721,10 @@ async def pause_me(
 @client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
 async def request_role(
     ctx: ApplicationCommandInteraction,
-    requested_channel: str = Param(name="channel", choices=ChamberRoles.get_channel_names()),
+    requested_channel: str = Param(name="channel"),
 ):
-    role = ChamberRoles.get_by_button_label(requested_channel)
+    chamber_roles_enum = CHAMBER_ROLES_PER_SERVER.get(ctx.guild_id, KouzelniciChamberRoles)
+    role = chamber_roles_enum.get_by_button_label(requested_channel)
     assert role is not None, f"Unknown role name `{requested_channel}`"
     channel_id = role.get_channel()
     assert channel_id is not None, f"Unknown channel name `{requested_channel}`"
@@ -731,7 +738,10 @@ async def request_role(
 
     embed = Embed(
         title="Žádost o přístup",
-        description=f"@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti.",
+        description=textwrap.dedent(
+            f"""@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
+            Hlasujte nyní, {role.role_tag}."""
+        ),
         color=Colour.magenta(),
     )
     embed.set_author(name=ctx.author.global_name, icon_url=ctx.author.avatar)
@@ -753,6 +763,14 @@ async def request_role(
 
     appeal_votes[(ctx.author.id, role.role_id)] = AccessVoting(allow=0, deny=0, voters=[])
     await channel.send(embed=embed, components=buttons)
+
+
+@request_role.autocomplete("channel")
+async def chamber_roles_autocomplete(
+    ctx: ApplicationCommandInteraction, _: str
+):  # abusing autocomplete to have per-server defaults
+    chamber_roles_enum = CHAMBER_ROLES_PER_SERVER.get(ctx.guild_id, KouzelniciChamberRoles)
+    return chamber_roles_enum.get_channel_names()
 
 
 ## Admin commands here ->

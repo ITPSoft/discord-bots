@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
+from disnake import Embed
 
 from common.constants import HALL_OF_FAME_EMOJIS, Channel
 from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, SelfServiceRoles, ListenerType
@@ -649,6 +650,14 @@ def cleanup_appeal_votes():
     main.appeal_votes.clear()
 
 
+@pytest.fixture(autouse=True)
+def cleanup_polls():
+    """Clean up polls dictionary before and after each test."""
+    main.polls.clear()
+    yield
+    main.polls.clear()
+
+
 async def test_button_vote_access_ignores_non_appeal_custom_id(mock_message_interaction):
     """Test button_vote_access returns early if custom_id doesn't start with 'appeal_'."""
     mock_message_interaction.component.custom_id = "not_an_appeal_button"
@@ -779,3 +788,213 @@ async def test_button_vote_access_threshold_not_reached(mock_access_voting_inter
     assert main.appeal_votes[voting_key].allow == 3
     mock_access_voting_interaction_allow.guild.get_member.assert_not_called()
     mock_access_voting_interaction_allow.message.delete.assert_not_called()
+
+
+# Test anonymous poll creation
+async def test_poll_command_creates_anonymous_poll(mock_ctx):
+    """Test poll command creates anonymous poll with buttons."""
+    await main.poll(mock_ctx, "What game?", True, "Option1", "Option2", "Option3")
+
+    mock_ctx.response.send_message.assert_called_once()
+    call_kwargs = mock_ctx.response.send_message.call_args.kwargs
+    assert "embed" in call_kwargs
+    assert "components" in call_kwargs
+
+    embed = call_kwargs["embed"]
+    assert embed.title == "What game?"
+    assert len(embed.fields) == 3
+    assert embed.fields[0].name == "Option1"
+    assert str(embed.fields[0].value) == "0"
+    assert embed.fields[1].name == "Option2"
+    assert str(embed.fields[1].value) == "0"
+    assert embed.fields[2].name == "Option3"
+    assert str(embed.fields[2].value) == "0"
+
+    buttons = call_kwargs["components"]
+    assert len(buttons) == 3
+    assert buttons[0].label == "Option1"
+    assert buttons[1].label == "Option2"
+    assert buttons[2].label == "Option3"
+
+
+async def test_poll_command_anonymous_initializes_polls_dict(mock_ctx):
+    """Test poll command initializes polls dictionary for anonymous poll."""
+    question = "Test question"
+
+    await main.poll(mock_ctx, question, True, "Yes", "No")
+
+    assert mock_ctx.id in main.polls
+    assert main.polls[mock_ctx.id] == []
+
+
+async def test_poll_command_anonymous_minimum_options(mock_ctx):
+    """Test poll command creates anonymous poll with minimum two options."""
+    await main.poll(mock_ctx, "Yes or no?", True, "Yes", "No")
+
+    mock_ctx.response.send.assert_called_once()
+    embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
+    assert len(embed.fields) == 2
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert len(buttons) == 2
+
+
+async def test_poll_command_anonymous_maximum_options(mock_ctx):
+    """Test poll command creates anonymous poll with maximum five options."""
+    await main.poll(mock_ctx, "Choose one", True, "Opt1", "Opt2", "Opt3", "Opt4", "Opt5")
+
+    mock_ctx.response.send.assert_called_once()
+    embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
+    assert len(embed.fields) == 5
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert len(buttons) == 5
+
+
+async def test_poll_command_anonymous_button_custom_ids(mock_ctx):
+    """Test anonymous poll buttons have correct custom_id format."""
+    question = "Test question"
+
+    await main.poll(mock_ctx, question, True, "Option1", "Option2")
+
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert buttons[0].custom_id == f"{ListenerType.ANONYMPOLL}:{mock_ctx.id}:Option1"
+    assert buttons[1].custom_id == f"{ListenerType.ANONYMPOLL}:{mock_ctx.id}:Option2"
+
+
+# Test anonymous_poll_resolver function
+async def test_anonymous_poll_resolver_ignores_non_anonymous_custom_id(mock_message_interaction):
+    """Test anonymous_poll_resolver returns early if custom_id doesn't start with ANONYMPOLL."""
+    mock_message_interaction.component.custom_id = "not_an_anonymous_poll_button"
+
+    await main.anonymous_poll_resolver(mock_message_interaction)
+
+    mock_message_interaction.send_message.assert_not_called()
+
+
+async def test_anonymous_poll_resolver_adds_vote(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver adds vote correctly."""
+    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
+    main.polls[poll_hash] = []
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_hash]) == 1
+    assert main.polls[poll_hash][0] == (option, MOCK_VOTER_ID)
+    mock_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_interaction.message.edit.assert_called_once()
+
+
+async def test_anonymous_poll_resolver_updates_embed_field_value(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver updates embed field value with vote count."""
+    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
+    main.polls[poll_hash] = [(option, 11111), (option, 22222)]  # 2 existing votes
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    # Should update field value to 3 (2 existing + 1 new)
+    mock_interaction.message.edit.assert_called_once_with(
+        embed=Embed.from_dict({"fields": [{"name": option, "value": 3}]})
+    )
+
+
+async def test_anonymous_poll_resolver_prevents_duplicate_vote_same_option(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver prevents user from voting twice for same option."""
+    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
+    main.polls[poll_hash] = [(option, MOCK_VOTER_ID)]  # User already voted
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_hash]) == 1  # No new vote added
+    mock_interaction.send.assert_called_once_with(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
+    mock_interaction.message.edit.assert_not_called()
+
+
+async def test_anonymous_poll_resolver_allows_vote_different_option(mock_message_interaction):
+    """Test anonymous_poll_resolver allows voting for different options."""
+    option1 = "Option1"
+    option2 = "Option2"
+    poll_id = mock_message_interaction.id
+
+    # Setup interaction for Option1
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option1}"
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    mock_message_interaction.user.id = MOCK_VOTER_ID
+
+    # Setup embed with both options
+    mock_field1 = MagicMock()
+    mock_field1.name = option1
+    mock_field1.value = 0
+    mock_field2 = MagicMock()
+    mock_field2.name = option2
+    mock_field2.value = 0
+    mock_embed = MagicMock()
+    mock_embed.fields = [mock_field1, mock_field2]
+    mock_embed.to_dict.return_value = {"fields": [{"name": option1, "value": 0}, {"name": option2, "value": 0}]}
+    mock_message_interaction.message.embeds = [mock_embed]
+
+    main.polls[mock_message_interaction.id] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
+
+    # Try to vote for Option2
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option2}"
+
+    await main.anonymous_poll_resolver(mock_message_interaction)
+
+    # Should allow vote for different option
+    assert len(main.polls[poll_id]) == 2
+    assert (option2, MOCK_VOTER_ID) in main.polls[poll_id]
+    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+
+
+async def test_anonymous_poll_resolver_multiple_votes_same_option(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver handles multiple users voting for same option."""
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = [(option, 11111), (option, 22222)]
+
+    # Create second voter
+    mock_interaction.author.id = 33333
+    mock_interaction.user.id = 33333
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_id]) == 3
+    assert (option, 33333) in main.polls[poll_id]
+    mock_interaction.message.edit.assert_called_once_with(
+        embed=Embed.from_dict({"fields": [{"name": option, "value": 3}]})
+    )
+
+
+async def test_anonymous_poll_resolver_finds_correct_field(mock_message_interaction):
+    """Test anonymous_poll_resolver finds and updates correct embed field."""
+    poll_id = mock_message_interaction.id
+    option = "Option2"
+
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option}"
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    mock_message_interaction.user.id = MOCK_VOTER_ID
+
+    # Setup embed with multiple fields
+    mock_field1 = MagicMock()
+    mock_field1.name = "Option1"
+    mock_field1.value = 5
+    mock_field2 = MagicMock()
+    mock_field2.name = option
+    mock_field2.value = 2
+    mock_field3 = MagicMock()
+    mock_field3.name = "Option3"
+    mock_field3.value = 1
+    mock_embed = MagicMock()
+    mock_embed.fields = [mock_field1, mock_field2, mock_field3]
+    mock_embed.to_dict.return_value = {
+        "fields": [{"name": "Option1", "value": 5}, {"name": option, "value": 2}, {"name": "Option3", "value": 1}]
+    }
+    mock_message_interaction.message.embeds = [mock_embed]
+
+    main.polls[poll_id] = [(option, 11111), (option, 22222)]
+
+    await main.anonymous_poll_resolver(mock_message_interaction)
+
+    # Should update Option2 field to 3, leave others unchanged
+    mock_message_interaction.message.edit.assert_called_once_with(
+        embed=Embed.from_dict({
+        "fields": [{"name": "Option1", "value": 5}, {"name": option, "value": 3}, {"name": "Option3", "value": 1}]
+    })
+    )
