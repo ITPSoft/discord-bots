@@ -73,6 +73,17 @@ def mock_message():
     return message
 
 
+@pytest.fixture(scope="function")
+def mock_message_interaction():
+    """Create a mock MessageInteraction for button_vote_access tests."""
+    ctx = AsyncMock()
+    ctx.author.id = 11111
+    ctx.message.embeds = [MagicMock()]
+    ctx.guild.get_member = MagicMock()
+    ctx.guild.get_role = MagicMock()
+    return ctx
+
+
 @pytest.fixture(autouse=True)
 async def cleanup_http_session():
     """Ensure HTTP session is cleaned up after each test."""

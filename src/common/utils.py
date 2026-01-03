@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from disnake import ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot
 
-from common.constants import Server
+from common.constants import Server, Channel
 from disnake.ext import commands
 
 logger = logging.getLogger(__name__)
@@ -145,6 +145,13 @@ class BaseRoleEnum(Enum):
                 return member
         return None
 
+    @classmethod
+    def get_by_button_label(cls, button_label: str) -> Self | None:
+        for member in cls:
+            if member._button_label == button_label:
+                return member
+        return None
+
 
 class SelfServiceRoles(BaseRoleEnum):
     """Seznam rolí, co si lidi sami můžou naklikat"""
@@ -154,6 +161,8 @@ class SelfServiceRoles(BaseRoleEnum):
     PRAZAK = ("Pražák", 998636130511630386)
     BRNAK = ("Brňák", 1105227159712309391)
     CARFAG = ("carfag", 1057281159509319800, "Carfag-péro")
+    MAGIC_THE_GATHERING = ("MagicTheGathering", 1327396658605981797, "Magic The Gathering")
+    KNIZNI_KLUB = ("knižní klub", 1455224895641227409, "Knižní klub")
 
 
 class GamingRoles(BaseRoleEnum):
@@ -183,7 +192,7 @@ class GamingRoles(BaseRoleEnum):
     ARC_RAIDERS = ("ArcRaiders", 1432779821183930401, "Arc Raiders")
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
-    MAGIC_THE_GATHERING = ("magicTheGathering", 1327396658605981797, "Magic The Gathering")
+    TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1422635058996711614, "Table Top Simulator")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
@@ -200,7 +209,24 @@ class ChamberRoles(BaseRoleEnum):
     """Private-ish roles requiring access appeal poll"""
 
     ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
-    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 42, "Ekonpolipéro")  # TODO create actual role and remove placeholder ID
+    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 1454177855943741492, "Ekon-poli-péro")
+
+    def get_channel(self) -> Channel:
+        match self:
+            case ChamberRoles.ITPERO:
+                return Channel.IT_PERO
+            case ChamberRoles.ECONPOLIPERO:
+                return Channel.ECONPOLIPERO
+            case _:
+                raise ValueError(f"Unknown chamber role: {self.role_name}")
+
+    @classmethod
+    def get_channels(cls) -> list[tuple[str, int]]:
+        return [(i.button_label, i.get_channel()) for i in cls]
+
+    @classmethod
+    def get_channel_names(cls) -> list[str]:
+        return [i[0] for i in cls.get_channels()]
 
 
 class SpecialRoles(BaseRoleEnum):

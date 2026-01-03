@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
-from common.constants import HALL_OF_FAME_EMOJIS
-from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles
+from common.constants import HALL_OF_FAME_EMOJIS, Channel
+from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, ChamberRoles
 from ..conftest import MOCK_MESSAGE_ID
 from grossmann import grossmanndict as grossdi
 from grossmann import main
@@ -634,3 +634,185 @@ def test_hall_of_fame_emojis_exist():
     """Test hall of fame emojis list is populated."""
     assert len(HALL_OF_FAME_EMOJIS) > 0
     assert "⭐" in HALL_OF_FAME_EMOJIS
+
+
+@pytest.fixture(autouse=True)
+def cleanup_appeal_votes():
+    """Clean up appeal_votes dictionary before and after each test."""
+    main.appeal_votes.clear()
+    yield
+    main.appeal_votes.clear()
+
+
+async def test_button_vote_access_ignores_non_appeal_custom_id(mock_message_interaction):
+    """Test button_vote_access returns early if custom_id doesn't start with 'appeal_'."""
+    mock_message_interaction.component.custom_id = "not_an_appeal_button"
+
+    await main.button_vote_access(mock_message_interaction)
+
+    mock_message_interaction.send.assert_not_called()
+
+
+async def test_button_vote_access_allow_vote(mock_message_interaction):
+    """Test button_vote_access increments allow vote correctly."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    main.appeal_votes[voting_key] = main.Voting(allow=0, deny=0, voters=[])
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 99999
+    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
+    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+
+    await main.button_vote_access(mock_message_interaction)
+
+    assert main.appeal_votes[voting_key].allow == 1
+    assert main.appeal_votes[voting_key].deny == 0
+    assert mock_message_interaction.author.id in main.appeal_votes[voting_key].voters
+    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_message_interaction.message.embeds[0].clear_fields.assert_called_once()
+    assert mock_message_interaction.message.embeds[0].add_field.call_count == 2
+    mock_message_interaction.message.edit.assert_called_once()
+
+
+async def test_button_vote_access_deny_vote(mock_message_interaction):
+    """Test button_vote_access increments deny vote correctly."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    main.appeal_votes[voting_key] = main.Voting(allow=0, deny=0, voters=[])
+
+    mock_message_interaction.component.custom_id = f"appeal_deny:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 99999
+    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
+    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+
+    await main.button_vote_access(mock_message_interaction)
+
+    assert main.appeal_votes[voting_key].allow == 0
+    assert main.appeal_votes[voting_key].deny == 1
+    assert mock_message_interaction.author.id in main.appeal_votes[voting_key].voters
+    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+
+
+async def test_button_vote_access_prevents_duplicate_vote(mock_message_interaction):
+    """Test button_vote_access prevents user from voting twice."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    voter_id = 99999
+    main.appeal_votes[voting_key] = main.Voting(allow=1, deny=0, voters=[voter_id])
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = voter_id
+
+    await main.button_vote_access(mock_message_interaction)
+
+    assert main.appeal_votes[voting_key].allow == 1
+    assert main.appeal_votes[voting_key].deny == 0
+    mock_message_interaction.send.assert_called_once_with(content="Už jsi hlasoval/a :(", ephemeral=True)
+    mock_message_interaction.message.edit.assert_not_called()
+
+
+async def test_button_vote_access_updates_embed_fields(mock_message_interaction):
+    """Test button_vote_access updates embed with correct vote counts."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    main.appeal_votes[voting_key] = main.Voting(allow=2, deny=1, voters=[11111, 22222])
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 33333
+    mock_embed = MagicMock()
+    mock_embed.clear_fields = MagicMock()
+    mock_embed.add_field = MagicMock()
+    mock_message_interaction.message.embeds = [mock_embed]
+
+    await main.button_vote_access(mock_message_interaction)
+
+    assert main.appeal_votes[voting_key].allow == 3
+    assert main.appeal_votes[voting_key].deny == 1
+    mock_embed.clear_fields.assert_called_once()
+    assert mock_embed.add_field.call_count == 2
+    mock_embed.add_field.assert_any_call(name="Pro", value=3, inline=True)
+    mock_embed.add_field.assert_any_call(name="Proti", value=1, inline=True)
+    mock_message_interaction.message.edit.assert_called_once()
+
+
+async def test_button_vote_access_grants_role_when_threshold_reached_itpero(mock_message_interaction):
+    """Test button_vote_access grants ITPERO role when threshold is reached."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    threshold = grossdi.ACCESS_VOTE_TRESHOLD
+    main.appeal_votes[voting_key] = main.Voting(allow=threshold, deny=0, voters=list(range(threshold)))
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 99999
+    mock_target_user = AsyncMock()
+    mock_target_user.mention = "<@12345>"
+    mock_role = MagicMock()
+    mock_channel = AsyncMock()
+    mock_message_interaction.guild.get_member.return_value = mock_target_user
+    mock_message_interaction.guild.get_role.return_value = mock_role
+    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
+    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_channel
+
+        await main.button_vote_access(mock_message_interaction)
+
+    assert voting_key not in main.appeal_votes
+    mock_target_user.add_roles.assert_called_once_with(mock_role)
+    mock_channel.send.assert_called_once()
+    assert f"Vítej v <#{Channel.IT_PERO}>" in mock_channel.send.call_args[0][0]
+    mock_message_interaction.message.delete.assert_called_once_with(delay=20)
+
+
+async def test_button_vote_access_threshold_with_deny_votes(mock_message_interaction):
+    """Test button_vote_access calculates threshold correctly with deny votes."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    threshold = grossdi.ACCESS_VOTE_TRESHOLD
+    main.appeal_votes[voting_key] = main.Voting(allow=threshold + 3, deny=3, voters=list(range(threshold + 3)))
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 99999
+    mock_target_user = AsyncMock()
+    mock_role = MagicMock()
+    mock_channel = AsyncMock()
+    mock_message_interaction.guild.get_member.return_value = mock_target_user
+    mock_message_interaction.guild.get_role.return_value = mock_role
+    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
+    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = mock_channel
+
+        await main.button_vote_access(mock_message_interaction)
+
+    assert voting_key not in main.appeal_votes
+    mock_target_user.add_roles.assert_called_once()
+
+
+async def test_button_vote_access_threshold_not_reached(mock_message_interaction):
+    """Test button_vote_access doesn't grant role when threshold not reached."""
+    user_id = 12345
+    role_id = ChamberRoles.ITPERO.role_id
+    voting_key = (user_id, role_id)
+    main.appeal_votes[voting_key] = main.Voting(allow=2, deny=0, voters=[11111, 22222])
+
+    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
+    mock_message_interaction.author.id = 33333
+    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
+    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+
+    await main.button_vote_access(mock_message_interaction)
+
+    assert voting_key in main.appeal_votes
+    assert main.appeal_votes[voting_key].allow == 3
+    mock_message_interaction.guild.get_member.assert_not_called()
+    mock_message_interaction.message.delete.assert_not_called()
