@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 
 from common.constants import HALL_OF_FAME_EMOJIS, Channel
-from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, ChamberRoles, SelfServiceRoles, ListenerType
+from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, SelfServiceRoles, ListenerType
 from .conftest import MOCK_CHAMBER_ROLE_ID
 from ..conftest import MOCK_MESSAGE_ID, MOCK_USER_ID, MOCK_VOTER_ID
 from grossmann import grossmanndict as grossdi
@@ -65,7 +65,7 @@ async def test_poll_command_creates_poll(mock_ctx, mock_message, poll_emojis):
     """Test poll command creates poll with correct reactions."""
     mock_ctx.original_response.return_value = mock_message
 
-    await main.poll(mock_ctx, "What game?", "Option1", "Option2", "Option3")
+    await main.poll(mock_ctx, "What game?", False, "Option1", "Option2", "Option3")
 
     mock_ctx.send.assert_called_once()
     assert mock_message.add_reaction.call_count == 3
@@ -82,7 +82,7 @@ async def test_poll_command_minimum_options(mock_ctx, mock_message):
     """Test poll command with minimum two options."""
     mock_ctx.original_response.return_value = mock_message
 
-    await main.poll(mock_ctx, "Yes or no?", "Yes", "No")
+    await main.poll(mock_ctx, "Yes or no?", False, "Yes", "No")
 
     mock_ctx.send.assert_called_once()
     assert mock_message.add_reaction.call_count == 2
@@ -92,7 +92,7 @@ async def test_poll_command_insufficient_options(mock_ctx):
     """Test poll command rejects less than two options."""
     # One option scenario (option2 is required, so simulate passing empty scenario)
     # Since both option1 and option2 are required, this tests the filtering
-    await main.poll(mock_ctx, "Question", "Option1", "Option2")
+    await main.poll(mock_ctx, "Question", False, "Option1", "Option2")
 
     # This should work since we have 2 options
     mock_ctx.send.assert_called()
@@ -528,6 +528,7 @@ async def test_cat_command_with_dimensions(mock_ctx, m):
     """Test cat command with specified dimensions."""
     empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
     m.get("https://placecats.com/200/300", body=empty_png, content_type="image/png")
+    mock_ctx.response.is_done.return_value = True
 
     await main.cat(mock_ctx, width=200, height=300)
 
@@ -540,6 +541,7 @@ async def test_cat_command_random_dimensions(mock_ctx, m):
     """Test cat command with random dimensions."""
     empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
     m.get("https://placecats.com/128/128", body=empty_png, content_type="image/png")
+    mock_ctx.response.is_done.return_value = True
 
     with patch("grossmann.main.random.randint", return_value=128) as mock_randint:
         await main.cat(mock_ctx, width=None, height=None)
@@ -656,27 +658,20 @@ async def test_button_vote_access_ignores_non_appeal_custom_id(mock_message_inte
     mock_message_interaction.send.assert_not_called()
 
 
-async def test_button_vote_access_allow_vote(mock_message_interaction):
+async def test_button_vote_access_allow_vote(mock_access_voting_interaction_allow):
     """Test button_vote_access increments allow vote correctly."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
     main.appeal_votes[voting_key] = AccessVoting(allow=0, deny=0, voters=[])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert main.appeal_votes[voting_key].allow == 1
     assert main.appeal_votes[voting_key].deny == 0
-    assert mock_message_interaction.author.id in main.appeal_votes[voting_key].voters
-    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
-    mock_message_interaction.message.embeds[0].clear_fields.assert_called_once()
-    assert mock_message_interaction.message.embeds[0].add_field.call_count == 2
-    mock_message_interaction.message.edit.assert_called_once()
+    assert mock_access_voting_interaction_allow.author.id in main.appeal_votes[voting_key].voters
+    mock_access_voting_interaction_allow.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_access_voting_interaction_allow.message.embeds[0].clear_fields.assert_called_once()
+    assert mock_access_voting_interaction_allow.message.embeds[0].add_field.call_count == 2
+    mock_access_voting_interaction_allow.message.edit.assert_called_once()
 
 
 async def test_button_vote_access_deny_vote(mock_access_voting_interaction_deny):
@@ -773,21 +768,14 @@ async def test_button_vote_access_threshold_with_deny_votes(mock_access_voting_i
     mock_target_user.add_roles.assert_called_once()
 
 
-async def test_button_vote_access_threshold_not_reached(mock_message_interaction):
+async def test_button_vote_access_threshold_not_reached(mock_access_voting_interaction_allow):
     """Test button_vote_access doesn't grant role when threshold not reached."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
     main.appeal_votes[voting_key] = AccessVoting(allow=2, deny=0, voters=[11111, 22222])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 33333
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert voting_key in main.appeal_votes
     assert main.appeal_votes[voting_key].allow == 3
-    mock_message_interaction.guild.get_member.assert_not_called()
-    mock_message_interaction.message.delete.assert_not_called()
+    mock_access_voting_interaction_allow.guild.get_member.assert_not_called()
+    mock_access_voting_interaction_allow.message.delete.assert_not_called()

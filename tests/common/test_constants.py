@@ -41,3 +41,4 @@ class TestGetGids:
         monkeypatch.setenv("DISCORD_GUILD_IDS", env_value)
         with pytest.raises(ValueError, match="contains invalid guild IDs"):
             _get_gids()
+

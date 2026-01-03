@@ -450,15 +450,15 @@ async def anonymous_poll_resolver(ctx: MessageInteraction):
         return
 
     # {ListenerType.ANONYMPOLL}:{hash(f"{ctx.author.id}{question}")}:{option}
-    _, hash, option = cid.split(":", 2)
+    _, a_hash, option = cid.split(":", 2)
 
-    this_option_votes = [item for item in polls.get(hash) if item[0] == option]
+    this_option_votes = [item for item in polls[a_hash] if item[0] == option]
 
     if ctx.user.id in this_option_votes:
         await ctx.send(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
         return
 
-    polls.get(hash).append((option, ctx.author.id))
+    polls[a_hash].append((option, ctx.author.id))
     await ctx.send("Hlas započítán", ephemeral=True)
 
     embed = ctx.message.embeds[0]
