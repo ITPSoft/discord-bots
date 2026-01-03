@@ -9,6 +9,8 @@ from common import http
 from common.constants import Channel, Server
 
 MOCK_MESSAGE_ID = 12345678
+MOCK_USER_ID = 12345
+MOCK_VOTER_ID = 99999
 
 
 @pytest.fixture(scope="function")
@@ -32,7 +34,6 @@ def mock_ctx(mock_role):
     """Create a mock ApplicationCommandInteraction context."""
 
     ctx = AsyncMock()
-    ctx.component.custom_id = SelfServiceRoles.CLEN.role_name
     ctx.me.top_role.position = 69
     ctx.author.roles = []
     ctx.author.display_name = "TestUser"

@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import logging
 import re
 from urllib.parse import urlparse
@@ -21,6 +22,13 @@ from grossmann.grossmanndict import WAIFU_CATEGORIES
 logger = logging.getLogger(__name__)
 
 ROLE_TAG_RE = re.compile(r"<@&(\d{10,30})>")
+
+
+@dataclasses.dataclass
+class AccessVoting:
+    allow: int
+    deny: int
+    voters: list[int]
 
 
 # useful functions/methods

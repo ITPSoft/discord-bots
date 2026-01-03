@@ -245,6 +245,7 @@ def get_paused_role_id(guild_id: int) -> int:
         return SpecialTestingRoles.PAUSED.role_id
     return SpecialRoles.PAUSED.role_id
 
+
 class ListenerType(StrEnum):
     ROLEPICKER = "rolepicker"
     ANONYMPOLL = "anonympoll"

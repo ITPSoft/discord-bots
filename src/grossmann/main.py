@@ -2,8 +2,8 @@ import logging
 import os
 import random
 import textwrap
+from collections import defaultdict
 from datetime import datetime
-import dataclasses
 from typing import TypeAlias
 
 import disnake
@@ -22,7 +22,7 @@ from common.utils import (
     ping_function,
     ping_content,
     get_paused_role_id,
-    ListenerType
+    ListenerType,
 )
 from disnake import (
     Message,
@@ -55,12 +55,12 @@ from grossmann.utils import (
     validate_waifu_category,
     validate_game_role,
     role_tag2id,
+    AccessVoting,
 )
 
 # preload all useful stuff
 load_dotenv()
 TOKEN = os.getenv("GROSSMANN_DISCORD_TOKEN")
-TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 
 # needed setup to be able to read message contents
 intents = Intents.all()
@@ -75,6 +75,12 @@ logger = logging.getLogger(__name__)
 # Dict maps message_id -> timestamp
 hall_of_fame_message_ids: dict[int, datetime] = {}
 
+appeal_votes: dict[tuple[int, int], AccessVoting] = {}
+
+
+# Poll vote: option - user casting the vote
+PollVote: TypeAlias = tuple[str, int]
+polls: defaultdict[str, list[PollVote]] = defaultdict(list)
 
 # Load and register NetHack commands
 # from nethack_module import setup_nethack_commands
@@ -170,7 +176,7 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
         Button(
             label=role.button_label,
             style=row_colors[role_rows_inv[role]],
-            custom_id=PollType.ROLEPICKER+role.role_name,
+            custom_id=f"{ListenerType.ROLEPICKER}:{role.role_name}",
             row=role_rows_inv[role],
         )
         for role in SelfServiceRoles
@@ -185,7 +191,9 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
     # Build gaming role buttons dynamically from the server's gaming roles enum
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
     gaming_buttons = [
-        Button(label=role.button_label, style=ButtonStyle.blurple, custom_id=PollType.ROLEPICKER+role.role_name)
+        Button(
+            label=role.button_label, style=ButtonStyle.blurple, custom_id=f"{ListenerType.ROLEPICKER}:{role.role_name}"
+        )
         for role in gaming_roles_enum
     ]
     # discord limits 25 components per message
@@ -359,7 +367,7 @@ async def listener(ctx: MessageInteraction):
     if ctx.guild and ctx.guild.id not in GIDS:
         return
 
-    listener_type, _ = ctx.component.custom_id.split(':', 1)
+    listener_type, _ = ctx.component.custom_id.split(":", 1)
 
     match listener_type:
         case ListenerType.ROLEPICKER:
@@ -372,7 +380,7 @@ async def listener(ctx: MessageInteraction):
 
 async def button_role_picker(ctx: MessageInteraction):
     gaming_roles_enum = GAMING_ROLES_PER_SERVER.get(ctx.guild_id, GamingRoles)
-    _, role_id_str = ctx.component.custom_id.split(":", 1) # omit listener type, get only role id
+    _, role_id_str = ctx.component.custom_id.split(":", 1)  # omit listener type, get only role id
     role_id = SelfServiceRoles.get_role_id_by_name(role_id_str) or gaming_roles_enum.get_role_id_by_name(role_id_str)
     logging.info(f"Role ID: {role_id=}, {ctx.component.custom_id=}, {ctx.author.name=}")
 
@@ -390,22 +398,12 @@ async def button_role_picker(ctx: MessageInteraction):
         raise Exception(f"Unknown role ID for custom ID `{ctx.component.custom_id}`")
 
 
-@dataclasses.dataclass
-class AccessVoting:
-    allow: int
-    deny: int
-    voters: list[int]
-
-
-appeal_votes: dict[tuple[int, int], AccessVoting] = {}
-
-
 async def button_vote_access(ctx: MessageInteraction):
     cid = ctx.component.custom_id
     if not cid.startswith(ListenerType.ACCESSPOLL):
         return
 
-    # {PollType.ACCESSPOLL}:{role_id}:{ctx.author.id}:{allow/deny}
+    # {ListenerType.ACCESSPOLL}:{role_id}:{ctx.author.id}:{allow/deny}
     _, role_id_str, user_id_str, vote_str = cid.split(":", 3)
     user_id = int(user_id_str)
     role_id = int(role_id_str)
@@ -445,9 +443,6 @@ async def button_vote_access(ctx: MessageInteraction):
         await ctx.message.delete(delay=20)
         appeal_votes.pop(voting_key)
 
-# Poll vote: option - user casting the vote
-PollVote: TypeAlias = tuple[str, int]
-polls: dict[str, list[PollVote]] = {}
 
 async def anonymous_poll_resolver(ctx: MessageInteraction):
     cid = ctx.component.custom_id
@@ -522,6 +517,7 @@ async def poll(
         await m.add_reaction(emoji_list[i])
     await m.edit(content=poll_mess)
 
+
 # sends embedded message for anonymous voting
 # author and question are hashed not for cryptography reasons,
 # but for implementing distinguished identifier among other polls
@@ -542,6 +538,7 @@ async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, opti
 
     polls[str(poll_identifier)] = []
     await ctx.response.send(embed=embed, components=buttons)
+
 
 # rolls a dice
 @client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
@@ -742,8 +739,16 @@ async def request_role(
     embed.add_field(name="Proti", value=0, inline=True)
 
     buttons = [
-        Button(label="Povolit", style=ButtonStyle.success, custom_id=f"{PollType.ACCESSPOLL}:{role.role_id}:{ctx.author.id}:allow"),
-        Button(label="Zamítnout", style=ButtonStyle.danger, custom_id=f"{PollType.ACCESSPOLL}:{role.role_id}:{ctx.author.id}:deny"),
+        Button(
+            label="Povolit",
+            style=ButtonStyle.success,
+            custom_id=f"{ListenerType.ACCESSPOLL}:{role.role_id}:{ctx.author.id}:allow",
+        ),
+        Button(
+            label="Zamítnout",
+            style=ButtonStyle.danger,
+            custom_id=f"{ListenerType.ACCESSPOLL}:{role.role_id}:{ctx.author.id}:deny",
+        ),
     ]
 
     appeal_votes[(ctx.author.id, role.role_id)] = AccessVoting(allow=0, deny=0, voters=[])

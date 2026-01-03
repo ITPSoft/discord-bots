@@ -7,15 +7,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from common.utils import ListenerType, ChamberRoles
+from ..conftest import MOCK_USER_ID, MOCK_VOTER_ID
+
 # Mock environment variables for testing
 os.environ.setdefault("DISCORD_TOKEN", "test_token")
-os.environ.setdefault("TEXT_SYNTH_TOKEN", "test_token")
 
 # Test guild and channel IDs
 TEST_GUILD_ID = 12345
 TEST_CHANNEL_ID = 67890
 TEST_ADMIN_ROLE_ID = 11111
 TEST_ALLOWED_CHANNEL_ID = 22222
+MOCK_CHAMBER_ROLE_ID = ChamberRoles.ITPERO.role_id
 
 
 @pytest.fixture
@@ -102,3 +105,23 @@ def mock_is_correct_channel() -> Generator[MagicMock, Any, None]:
     with patch("grossmann.nethack_module.is_correct_channel") as _fixture:
         _fixture.side_effect = lambda channel: channel.channel_id == TEST_ALLOWED_CHANNEL_ID
         yield _fixture
+
+
+@pytest.fixture
+def mock_access_voting_interaction_allow(mock_message_interaction):
+    """Create a mock AccessVoting object for testing."""
+    mock_message_interaction.component.custom_id = (
+        f"{ListenerType.ACCESSPOLL}:{MOCK_CHAMBER_ROLE_ID}:{MOCK_USER_ID}:allow"
+    )
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    return mock_message_interaction
+
+
+@pytest.fixture
+def mock_access_voting_interaction_deny(mock_message_interaction):
+    """Create a mock AccessVoting object for testing."""
+    mock_message_interaction.component.custom_id = (
+        f"{ListenerType.ACCESSPOLL}:{MOCK_CHAMBER_ROLE_ID}:{MOCK_USER_ID}:deny"
+    )
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    return mock_message_interaction
