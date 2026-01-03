@@ -831,7 +831,7 @@ async def test_poll_command_anonymous_minimum_options(mock_ctx):
     """Test poll command creates anonymous poll with minimum two options."""
     await main.poll(mock_ctx, "Yes or no?", True, "Yes", "No")
 
-    mock_ctx.response.send.assert_called_once()
+    mock_ctx.response.send_message.assert_called_once()
     embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
     assert len(embed.fields) == 2
     buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
@@ -842,7 +842,7 @@ async def test_poll_command_anonymous_maximum_options(mock_ctx):
     """Test poll command creates anonymous poll with maximum five options."""
     await main.poll(mock_ctx, "Choose one", True, "Opt1", "Opt2", "Opt3", "Opt4", "Opt5")
 
-    mock_ctx.response.send.assert_called_once()
+    mock_ctx.response.send_message.assert_called_once()
     embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
     assert len(embed.fields) == 5
     buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
@@ -872,13 +872,13 @@ async def test_anonymous_poll_resolver_ignores_non_anonymous_custom_id(mock_mess
 
 async def test_anonymous_poll_resolver_adds_vote(mock_anonymous_poll_interaction):
     """Test anonymous_poll_resolver adds vote correctly."""
-    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
-    main.polls[poll_hash] = []
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = []
 
     await main.anonymous_poll_resolver(mock_interaction)
 
-    assert len(main.polls[poll_hash]) == 1
-    assert main.polls[poll_hash][0] == (option, MOCK_VOTER_ID)
+    assert len(main.polls[poll_id]) == 1
+    assert main.polls[poll_id][0] == (option, MOCK_VOTER_ID)
     mock_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
     mock_interaction.message.edit.assert_called_once()
 
@@ -898,12 +898,12 @@ async def test_anonymous_poll_resolver_updates_embed_field_value(mock_anonymous_
 
 async def test_anonymous_poll_resolver_prevents_duplicate_vote_same_option(mock_anonymous_poll_interaction):
     """Test anonymous_poll_resolver prevents user from voting twice for same option."""
-    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
-    main.polls[poll_hash] = [(option, MOCK_VOTER_ID)]  # User already voted
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = [(option, MOCK_VOTER_ID)]  # User already voted
 
     await main.anonymous_poll_resolver(mock_interaction)
 
-    assert len(main.polls[poll_hash]) == 1  # No new vote added
+    assert len(main.polls[poll_id]) == 1  # No new vote added
     mock_interaction.send.assert_called_once_with(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
     mock_interaction.message.edit.assert_not_called()
 
@@ -931,7 +931,7 @@ async def test_anonymous_poll_resolver_allows_vote_different_option(mock_message
     mock_embed.to_dict.return_value = {"fields": [{"name": option1, "value": 0}, {"name": option2, "value": 0}]}
     mock_message_interaction.message.embeds = [mock_embed]
 
-    main.polls[mock_message_interaction.id] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
+    main.polls[str(mock_message_interaction.id)] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
 
     # Try to vote for Option2
     mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option2}"

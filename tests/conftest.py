@@ -80,6 +80,7 @@ def mock_message():
 def mock_message_interaction():
     """Create a mock MessageInteraction for button_vote_access tests."""
     ctx = AsyncMock()
+    ctx.id = 45612378
     ctx.author.id = 11111
     ctx.message.embeds = [MagicMock()]
     ctx.guild.get_member = MagicMock()

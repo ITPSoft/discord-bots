@@ -130,9 +130,8 @@ def mock_access_voting_interaction_deny(mock_message_interaction):
 @pytest.fixture
 def mock_anonymous_poll_interaction(mock_message_interaction):
     """Create a mock MessageInteraction for anonymous poll voting."""
-    poll_hash = str(hash(f"{MOCK_USER_ID}Test question"))
     option = "Option1"
-    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_hash}:{option}"
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{mock_message_interaction.id}:{option}"
     mock_message_interaction.author.id = MOCK_VOTER_ID
     mock_message_interaction.user.id = MOCK_VOTER_ID
 
@@ -145,4 +144,4 @@ def mock_anonymous_poll_interaction(mock_message_interaction):
     mock_embed.fields = [mock_field]
     mock_message_interaction.message.embeds = [mock_embed]
 
-    return mock_message_interaction, poll_hash, option
+    return mock_message_interaction, str(mock_message_interaction.id), option
