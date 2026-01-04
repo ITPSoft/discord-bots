@@ -4,13 +4,15 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
+from disnake import Embed
 
 from common.constants import HALL_OF_FAME_EMOJIS, Channel
-from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, ChamberRoles
-from ..conftest import MOCK_MESSAGE_ID
+from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, SelfServiceRoles, ListenerType
+from .conftest import MOCK_CHAMBER_ROLE_ID
+from ..conftest import MOCK_MESSAGE_ID, MOCK_USER_ID, MOCK_VOTER_ID
 from grossmann import grossmanndict as grossdi
 from grossmann import main
-from grossmann.utils import batch_react
+from grossmann.utils import batch_react, AccessVoting
 
 
 # Test batch_react utility function
@@ -64,7 +66,7 @@ async def test_poll_command_creates_poll(mock_ctx, mock_message, poll_emojis):
     """Test poll command creates poll with correct reactions."""
     mock_ctx.original_response.return_value = mock_message
 
-    await main.poll(mock_ctx, "What game?", "Option1", "Option2", "Option3")
+    await main.poll(mock_ctx, "What game?", False, "Option1", "Option2", "Option3")
 
     mock_ctx.send.assert_called_once()
     assert mock_message.add_reaction.call_count == 3
@@ -81,7 +83,7 @@ async def test_poll_command_minimum_options(mock_ctx, mock_message):
     """Test poll command with minimum two options."""
     mock_ctx.original_response.return_value = mock_message
 
-    await main.poll(mock_ctx, "Yes or no?", "Yes", "No")
+    await main.poll(mock_ctx, "Yes or no?", False, "Yes", "No")
 
     mock_ctx.send.assert_called_once()
     assert mock_message.add_reaction.call_count == 2
@@ -91,7 +93,7 @@ async def test_poll_command_insufficient_options(mock_ctx):
     """Test poll command rejects less than two options."""
     # One option scenario (option2 is required, so simulate passing empty scenario)
     # Since both option1 and option2 are required, this tests the filtering
-    await main.poll(mock_ctx, "Question", "Option1", "Option2")
+    await main.poll(mock_ctx, "Question", False, "Option1", "Option2")
 
     # This should work since we have 2 options
     mock_ctx.send.assert_called()
@@ -192,6 +194,7 @@ def test_help_template_contains_commands():
 # Test button listener role logic
 async def test_role_button_listener_adds_role(mock_ctx, mock_role):
     """Test button listener adds role when user doesn't have it."""
+    mock_ctx.component.custom_id = f"{ListenerType.ROLEPICKER}:{SelfServiceRoles.CLEN.role_name}"
     mock_ctx.author.roles = []  # User doesn't have the role
     mock_ctx.channel_id = 1314388851304955904
     await main.listener(mock_ctx)
@@ -203,6 +206,7 @@ async def test_role_button_listener_adds_role(mock_ctx, mock_role):
 
 async def test_role_button_listener_removes_role(mock_ctx, mock_role):
     """Test button listener removes role when user has it."""
+    mock_ctx.component.custom_id = f"{ListenerType.ROLEPICKER}:{SelfServiceRoles.CLEN.role_name}"
     mock_ctx.author.roles = [mock_role]  # User already has the role
     mock_ctx.channel_id = 1314388851304955904
 
@@ -525,6 +529,7 @@ async def test_cat_command_with_dimensions(mock_ctx, m):
     """Test cat command with specified dimensions."""
     empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
     m.get("https://placecats.com/200/300", body=empty_png, content_type="image/png")
+    mock_ctx.response.is_done.return_value = True
 
     await main.cat(mock_ctx, width=200, height=300)
 
@@ -537,6 +542,7 @@ async def test_cat_command_random_dimensions(mock_ctx, m):
     """Test cat command with random dimensions."""
     empty_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND\xaeB`\x82"
     m.get("https://placecats.com/128/128", body=empty_png, content_type="image/png")
+    mock_ctx.response.is_done.return_value = True
 
     with patch("grossmann.main.random.randint", return_value=128) as mock_randint:
         await main.cat(mock_ctx, width=None, height=None)
@@ -644,6 +650,14 @@ def cleanup_appeal_votes():
     main.appeal_votes.clear()
 
 
+@pytest.fixture(autouse=True)
+def cleanup_polls():
+    """Clean up polls dictionary before and after each test."""
+    main.polls.clear()
+    yield
+    main.polls.clear()
+
+
 async def test_button_vote_access_ignores_non_appeal_custom_id(mock_message_interaction):
     """Test button_vote_access returns early if custom_id doesn't start with 'appeal_'."""
     mock_message_interaction.component.custom_id = "not_an_appeal_button"
@@ -653,83 +667,60 @@ async def test_button_vote_access_ignores_non_appeal_custom_id(mock_message_inte
     mock_message_interaction.send.assert_not_called()
 
 
-async def test_button_vote_access_allow_vote(mock_message_interaction):
+async def test_button_vote_access_allow_vote(mock_access_voting_interaction_allow):
     """Test button_vote_access increments allow vote correctly."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
-    main.appeal_votes[voting_key] = main.Voting(allow=0, deny=0, voters=[])
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
+    main.appeal_votes[voting_key] = AccessVoting(allow=0, deny=0, voters=[])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert main.appeal_votes[voting_key].allow == 1
     assert main.appeal_votes[voting_key].deny == 0
-    assert mock_message_interaction.author.id in main.appeal_votes[voting_key].voters
-    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
-    mock_message_interaction.message.embeds[0].clear_fields.assert_called_once()
-    assert mock_message_interaction.message.embeds[0].add_field.call_count == 2
-    mock_message_interaction.message.edit.assert_called_once()
+    assert mock_access_voting_interaction_allow.author.id in main.appeal_votes[voting_key].voters
+    mock_access_voting_interaction_allow.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_access_voting_interaction_allow.message.embeds[0].clear_fields.assert_called_once()
+    assert mock_access_voting_interaction_allow.message.embeds[0].add_field.call_count == 2
+    mock_access_voting_interaction_allow.message.edit.assert_called_once()
 
 
-async def test_button_vote_access_deny_vote(mock_message_interaction):
+async def test_button_vote_access_deny_vote(mock_access_voting_interaction_deny):
     """Test button_vote_access increments deny vote correctly."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
-    main.appeal_votes[voting_key] = main.Voting(allow=0, deny=0, voters=[])
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
+    main.appeal_votes[voting_key] = AccessVoting(allow=0, deny=0, voters=[])
 
-    mock_message_interaction.component.custom_id = f"appeal_deny:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_deny)
 
     assert main.appeal_votes[voting_key].allow == 0
     assert main.appeal_votes[voting_key].deny == 1
-    assert mock_message_interaction.author.id in main.appeal_votes[voting_key].voters
-    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    assert mock_access_voting_interaction_deny.author.id in main.appeal_votes[voting_key].voters
+    mock_access_voting_interaction_deny.send.assert_called_once_with("Hlas započítán", ephemeral=True)
 
 
-async def test_button_vote_access_prevents_duplicate_vote(mock_message_interaction):
+async def test_button_vote_access_prevents_duplicate_vote(mock_access_voting_interaction_allow):
     """Test button_vote_access prevents user from voting twice."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
-    voter_id = 99999
-    main.appeal_votes[voting_key] = main.Voting(allow=1, deny=0, voters=[voter_id])
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
+    main.appeal_votes[voting_key] = AccessVoting(allow=1, deny=0, voters=[MOCK_VOTER_ID])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = voter_id
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert main.appeal_votes[voting_key].allow == 1
     assert main.appeal_votes[voting_key].deny == 0
-    mock_message_interaction.send.assert_called_once_with(content="Už jsi hlasoval/a :(", ephemeral=True)
-    mock_message_interaction.message.edit.assert_not_called()
+    mock_access_voting_interaction_allow.send.assert_called_once_with(content="Už jsi hlasoval/a :(", ephemeral=True)
+    mock_access_voting_interaction_allow.message.edit.assert_not_called()
 
 
-async def test_button_vote_access_updates_embed_fields(mock_message_interaction):
+async def test_button_vote_access_updates_embed_fields(mock_access_voting_interaction_allow):
     """Test button_vote_access updates embed with correct vote counts."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
-    main.appeal_votes[voting_key] = main.Voting(allow=2, deny=1, voters=[11111, 22222])
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
+    main.appeal_votes[voting_key] = AccessVoting(allow=2, deny=1, voters=[11111, 22222])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 33333
+    mock_access_voting_interaction_allow.author.id = 33333
     mock_embed = MagicMock()
     mock_embed.clear_fields = MagicMock()
     mock_embed.add_field = MagicMock()
-    mock_message_interaction.message.embeds = [mock_embed]
+    mock_access_voting_interaction_allow.message.embeds = [mock_embed]
 
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert main.appeal_votes[voting_key].allow == 3
     assert main.appeal_votes[voting_key].deny == 1
@@ -737,82 +728,267 @@ async def test_button_vote_access_updates_embed_fields(mock_message_interaction)
     assert mock_embed.add_field.call_count == 2
     mock_embed.add_field.assert_any_call(name="Pro", value=3, inline=True)
     mock_embed.add_field.assert_any_call(name="Proti", value=1, inline=True)
-    mock_message_interaction.message.edit.assert_called_once()
+    mock_access_voting_interaction_allow.message.edit.assert_called_once()
 
 
-async def test_button_vote_access_grants_role_when_threshold_reached_itpero(mock_message_interaction):
+async def test_button_vote_access_grants_role_when_threshold_reached_itpero(mock_access_voting_interaction_allow):
     """Test button_vote_access grants ITPERO role when threshold is reached."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
     threshold = grossdi.ACCESS_VOTE_TRESHOLD
-    main.appeal_votes[voting_key] = main.Voting(allow=threshold, deny=0, voters=list(range(threshold)))
+    main.appeal_votes[voting_key] = AccessVoting(allow=threshold, deny=0, voters=list(range(threshold)))
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
     mock_target_user = AsyncMock()
     mock_target_user.mention = "<@12345>"
     mock_role = MagicMock()
     mock_channel = AsyncMock()
-    mock_message_interaction.guild.get_member.return_value = mock_target_user
-    mock_message_interaction.guild.get_role.return_value = mock_role
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+    mock_access_voting_interaction_allow.guild.get_member.return_value = mock_target_user
+    mock_access_voting_interaction_allow.guild.get_role.return_value = mock_role
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = mock_channel
 
-        await main.button_vote_access(mock_message_interaction)
+        await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert voting_key not in main.appeal_votes
     mock_target_user.add_roles.assert_called_once_with(mock_role)
     mock_channel.send.assert_called_once()
     assert f"Vítej v <#{Channel.IT_PERO}>" in mock_channel.send.call_args[0][0]
-    mock_message_interaction.message.delete.assert_called_once_with(delay=20)
+    mock_access_voting_interaction_allow.message.delete.assert_called_once_with(delay=20)
 
 
-async def test_button_vote_access_threshold_with_deny_votes(mock_message_interaction):
+async def test_button_vote_access_threshold_with_deny_votes(mock_access_voting_interaction_allow):
     """Test button_vote_access calculates threshold correctly with deny votes."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
     threshold = grossdi.ACCESS_VOTE_TRESHOLD
-    main.appeal_votes[voting_key] = main.Voting(allow=threshold + 3, deny=3, voters=list(range(threshold + 3)))
+    main.appeal_votes[voting_key] = AccessVoting(allow=threshold + 3, deny=3, voters=list(range(threshold + 3)))
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 99999
     mock_target_user = AsyncMock()
     mock_role = MagicMock()
     mock_channel = AsyncMock()
-    mock_message_interaction.guild.get_member.return_value = mock_target_user
-    mock_message_interaction.guild.get_role.return_value = mock_role
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
+    mock_access_voting_interaction_allow.guild.get_member.return_value = mock_target_user
+    mock_access_voting_interaction_allow.guild.get_role.return_value = mock_role
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = mock_channel
 
-        await main.button_vote_access(mock_message_interaction)
+        await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert voting_key not in main.appeal_votes
     mock_target_user.add_roles.assert_called_once()
 
 
-async def test_button_vote_access_threshold_not_reached(mock_message_interaction):
+async def test_button_vote_access_threshold_not_reached(mock_access_voting_interaction_allow):
     """Test button_vote_access doesn't grant role when threshold not reached."""
-    user_id = 12345
-    role_id = ChamberRoles.ITPERO.role_id
-    voting_key = (user_id, role_id)
-    main.appeal_votes[voting_key] = main.Voting(allow=2, deny=0, voters=[11111, 22222])
+    voting_key = (MOCK_USER_ID, MOCK_CHAMBER_ROLE_ID)
+    main.appeal_votes[voting_key] = AccessVoting(allow=2, deny=0, voters=[11111, 22222])
 
-    mock_message_interaction.component.custom_id = f"appeal_allow:{role_id}:{user_id}"
-    mock_message_interaction.author.id = 33333
-    mock_message_interaction.message.embeds[0].clear_fields = MagicMock()
-    mock_message_interaction.message.embeds[0].add_field = MagicMock()
-
-    await main.button_vote_access(mock_message_interaction)
+    await main.button_vote_access(mock_access_voting_interaction_allow)
 
     assert voting_key in main.appeal_votes
     assert main.appeal_votes[voting_key].allow == 3
-    mock_message_interaction.guild.get_member.assert_not_called()
-    mock_message_interaction.message.delete.assert_not_called()
+    mock_access_voting_interaction_allow.guild.get_member.assert_not_called()
+    mock_access_voting_interaction_allow.message.delete.assert_not_called()
+
+
+# Test anonymous poll creation
+async def test_poll_command_creates_anonymous_poll(mock_ctx):
+    """Test poll command creates anonymous poll with buttons."""
+    await main.poll(mock_ctx, "What game?", True, "Option1", "Option2", "Option3")
+
+    mock_ctx.response.send_message.assert_called_once()
+    call_kwargs = mock_ctx.response.send_message.call_args.kwargs
+    assert "embed" in call_kwargs
+    assert "components" in call_kwargs
+
+    embed = call_kwargs["embed"]
+    assert embed.title == "What game?"
+    assert len(embed.fields) == 3
+    assert embed.fields[0].name == "Option1"
+    assert str(embed.fields[0].value) == "0"
+    assert embed.fields[1].name == "Option2"
+    assert str(embed.fields[1].value) == "0"
+    assert embed.fields[2].name == "Option3"
+    assert str(embed.fields[2].value) == "0"
+
+    buttons = call_kwargs["components"]
+    assert len(buttons) == 3
+    assert buttons[0].label == "Option1"
+    assert buttons[1].label == "Option2"
+    assert buttons[2].label == "Option3"
+
+
+async def test_poll_command_anonymous_initializes_polls_dict(mock_ctx):
+    """Test poll command initializes polls dictionary for anonymous poll."""
+    question = "Test question"
+
+    await main.poll(mock_ctx, question, True, "Yes", "No")
+
+    assert str(mock_ctx.id) in main.polls
+    assert main.polls[mock_ctx.id] == []
+
+
+async def test_poll_command_anonymous_minimum_options(mock_ctx):
+    """Test poll command creates anonymous poll with minimum two options."""
+    await main.poll(mock_ctx, "Yes or no?", True, "Yes", "No")
+
+    mock_ctx.response.send_message.assert_called_once()
+    embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
+    assert len(embed.fields) == 2
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert len(buttons) == 2
+
+
+async def test_poll_command_anonymous_maximum_options(mock_ctx):
+    """Test poll command creates anonymous poll with maximum five options."""
+    await main.poll(mock_ctx, "Choose one", True, "Opt1", "Opt2", "Opt3", "Opt4", "Opt5")
+
+    mock_ctx.response.send_message.assert_called_once()
+    embed = mock_ctx.response.send_message.call_args.kwargs["embed"]
+    assert len(embed.fields) == 5
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert len(buttons) == 5
+
+
+async def test_poll_command_anonymous_button_custom_ids(mock_ctx):
+    """Test anonymous poll buttons have correct custom_id format."""
+    question = "Test question"
+
+    await main.poll(mock_ctx, question, True, "Option1", "Option2")
+
+    buttons = mock_ctx.response.send_message.call_args.kwargs["components"]
+    assert buttons[0].custom_id == f"{ListenerType.ANONYMPOLL}:{mock_ctx.id}:Option1"
+    assert buttons[1].custom_id == f"{ListenerType.ANONYMPOLL}:{mock_ctx.id}:Option2"
+
+
+# Test anonymous_poll_resolver function
+async def test_anonymous_poll_resolver_ignores_non_anonymous_custom_id(mock_message_interaction):
+    """Test anonymous_poll_resolver returns early if custom_id doesn't start with ANONYMPOLL."""
+    mock_message_interaction.component.custom_id = "not_an_anonymous_poll_button"
+
+    await main.anonymous_poll_resolver(mock_message_interaction)
+
+    mock_message_interaction.send_message.assert_not_called()
+
+
+async def test_anonymous_poll_resolver_adds_vote(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver adds vote correctly."""
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = []
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_id]) == 1
+    assert main.polls[poll_id][0] == (option, MOCK_VOTER_ID)
+    mock_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_interaction.message.edit.assert_called_once()
+
+
+async def test_anonymous_poll_resolver_updates_embed_field_value(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver updates embed field value with vote count."""
+    mock_interaction, poll_hash, option = mock_anonymous_poll_interaction
+    main.polls[poll_hash] = [(option, 11111), (option, 22222)]  # 2 existing votes
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    # Should update field value to 3 (2 existing + 1 new)
+    mock_interaction.message.edit.assert_called_once_with(
+        embed=Embed.from_dict({"fields": [{"name": option, "value": 3}]})
+    )
+
+
+async def test_anonymous_poll_resolver_prevents_duplicate_vote_same_option(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver prevents user from voting twice for same option."""
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = [(option, MOCK_VOTER_ID)]  # User already voted
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_id]) == 1  # No new vote added
+    mock_interaction.send.assert_called_once_with(content="Pro tuto možnost už jsi hlasoval/a :(", ephemeral=True)
+    mock_interaction.message.edit.assert_not_called()
+
+
+async def test_anonymous_poll_resolver_allows_vote_different_option(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver allows voting for different options."""
+    mock_interaction, poll_id, option1 = mock_anonymous_poll_interaction
+    option2 = "Option2"
+
+    # Setup embed with both options
+    mock_field1 = MagicMock()
+    mock_field1.name = option1
+    mock_field1.value = 0
+    mock_field2 = MagicMock()
+    mock_field2.name = option2
+    mock_field2.value = 0
+    mock_embed = MagicMock()
+    mock_embed.fields = [mock_field1, mock_field2]
+    mock_embed.to_dict.return_value = {"fields": [{"name": option1, "value": 0}, {"name": option2, "value": 0}]}
+    mock_interaction.message.embeds = [mock_embed]
+
+    main.polls[poll_id] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
+
+    # Try to vote for Option2
+    mock_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option2}"
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    # Should allow vote for different option
+    assert len(main.polls[poll_id]) == 2
+    assert (option2, MOCK_VOTER_ID) in main.polls[poll_id]
+    mock_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+
+
+async def test_anonymous_poll_resolver_multiple_votes_same_option(mock_anonymous_poll_interaction):
+    """Test anonymous_poll_resolver handles multiple users voting for same option."""
+    mock_interaction, poll_id, option = mock_anonymous_poll_interaction
+    main.polls[poll_id] = [(option, 11111), (option, 22222)]
+
+    # Create second voter
+    mock_interaction.author.id = 33333
+    mock_interaction.user.id = 33333
+
+    await main.anonymous_poll_resolver(mock_interaction)
+
+    assert len(main.polls[poll_id]) == 3
+    assert (option, 33333) in main.polls[poll_id]
+    mock_interaction.message.edit.assert_called_once_with(
+        embed=Embed.from_dict({"fields": [{"name": option, "value": 3}]})
+    )
+
+
+async def test_anonymous_poll_resolver_finds_correct_field(mock_message_interaction):
+    """Test anonymous_poll_resolver finds and updates correct embed field."""
+    poll_id = str(mock_message_interaction.id)
+    option = "Option2"
+
+    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option}"
+    mock_message_interaction.author.id = MOCK_VOTER_ID
+    mock_message_interaction.user.id = MOCK_VOTER_ID
+
+    # Setup embed with multiple fields
+    mock_field1 = MagicMock()
+    mock_field1.name = "Option1"
+    mock_field1.value = 5
+    mock_field2 = MagicMock()
+    mock_field2.name = option
+    mock_field2.value = 2
+    mock_field3 = MagicMock()
+    mock_field3.name = "Option3"
+    mock_field3.value = 1
+    mock_embed = MagicMock()
+    mock_embed.fields = [mock_field1, mock_field2, mock_field3]
+    mock_embed.to_dict.return_value = {
+        "fields": [{"name": "Option1", "value": 5}, {"name": option, "value": 2}, {"name": "Option3", "value": 1}]
+    }
+    mock_message_interaction.message.embeds = [mock_embed]
+
+    main.polls[poll_id] = [(option, 11111), (option, 22222)]
+
+    await main.anonymous_poll_resolver(mock_message_interaction)
+
+    # Should update Option2 field to 3, leave others unchanged
+    mock_message_interaction.message.edit.assert_called_once()
+    # can't do assert_called_once_with, because the newly created embed using Embed.from_dict is different instance
+    assert mock_message_interaction.message.edit.mock_calls[0].kwargs["embed"].to_dict() == {
+        "fields": [{"name": "Option1", "value": 5}, {"name": option, "value": 3}, {"name": "Option3", "value": 1}]
+    }

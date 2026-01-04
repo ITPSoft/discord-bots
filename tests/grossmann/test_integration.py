@@ -37,7 +37,7 @@ async def test_poll_command_integration(patched_main, mock_ctx, mock_message, sa
     # Execute the actual poll command function
     question = sample_poll_data["question"]
     options = sample_poll_data["options"]
-    await patched_main.poll(mock_ctx, question, options[0], options[1], options[2], None, None)
+    await patched_main.poll(mock_ctx, question, False, options[0], options[1], options[2], None, None)
 
     # Verify initial message was sent
     mock_ctx.send.assert_called_once_with("Creating poll...", ephemeral=False)

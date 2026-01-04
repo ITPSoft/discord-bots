@@ -1,18 +1,19 @@
+import abc
 import functools
 import inspect
 import logging
 import os
 import subprocess
 from collections.abc import Iterable, Callable
-from enum import Enum
+from enum import Enum, StrEnum, EnumMeta
 from functools import lru_cache
-from typing import Self
+from typing import Self, Generic, cast, Type, TypeVar
 from urllib.parse import urlparse
 
 from disnake import ApplicationCommandInteraction
 from disnake.ext.commands import InteractionBot
 
-from common.constants import Server, Channel
+from common.constants import Server, Channel, TestingChannel
 from disnake.ext import commands
 
 logger = logging.getLogger(__name__)
@@ -205,28 +206,62 @@ class DiscordGamingTestingRoles(BaseRoleEnum):
 GAMING_ROLES_PER_SERVER = {Server.KOUZELNICI: GamingRoles, Server.TEST_SERVER: DiscordGamingTestingRoles}
 
 
-class ChamberRoles(BaseRoleEnum):
+class ABCEnumMeta(EnumMeta, abc.ABCMeta):
+    """Metaclass combining Enum and ABC functionality"""
+
+    pass
+
+
+T = TypeVar("T", bound=BaseRoleEnum)
+
+
+class ChamberRoles(abc.ABC, Generic[T]):
     """Private-ish roles requiring access appeal poll"""
 
-    ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
-    ECONPOLIPERO = ("Ekonpolipéro m o n k e", 1454177855943741492, "Ekon-poli-péro")
-
+    @abc.abstractmethod
     def get_channel(self) -> Channel:
-        match self:
-            case ChamberRoles.ITPERO:
-                return Channel.IT_PERO
-            case ChamberRoles.ECONPOLIPERO:
-                return Channel.ECONPOLIPERO
-            case _:
-                raise ValueError(f"Unknown chamber role: {self.role_name}")
+        pass
 
     @classmethod
     def get_channels(cls) -> list[tuple[str, int]]:
-        return [(i.button_label, i.get_channel()) for i in cls]
+        enum_cls = cast(Type[BaseRoleEnum], cls)
+        return [(i.button_label, i.get_channel()) for i in enum_cls]  # type: ignore # mypy doesn't understand
 
     @classmethod
     def get_channel_names(cls) -> list[str]:
         return [i[0] for i in cls.get_channels()]
+
+
+class KouzelniciChamberRoles(ChamberRoles[BaseRoleEnum], BaseRoleEnum, metaclass=ABCEnumMeta):
+    """Private-ish roles requiring access appeal poll"""
+
+    ITPERO = ("ITPéro m o n k e", 786618350095695872, "IT Péro")
+    ECONPOLIPERO = ("Ekonpolipéro", 1454177855943741492, "Ekon-poli-péro")
+
+    def get_channel(self) -> Channel:
+        match self:
+            case KouzelniciChamberRoles.ITPERO:
+                return Channel.IT_PERO
+            case KouzelniciChamberRoles.ECONPOLIPERO:
+                return Channel.ECONPOLIPERO
+            case _:
+                raise ValueError(f"Unknown chamber role: {self.role_name}")
+
+
+class ChamberTestingRoles(ChamberRoles[BaseRoleEnum], BaseRoleEnum, metaclass=ABCEnumMeta):
+    """Private-ish roles requiring access appeal poll"""
+
+    ILUMINAT = ("Iluminát", 1457055543125475419, "Sraz iluminátů")
+
+    def get_channel(self) -> TestingChannel:
+        match self:
+            case ChamberTestingRoles.ILUMINAT:
+                return TestingChannel.ILUMINATI
+            case _:
+                raise ValueError(f"Unknown chamber role: {self.role_name}")
+
+
+CHAMBER_ROLES_PER_SERVER = {Server.KOUZELNICI: KouzelniciChamberRoles, Server.TEST_SERVER: ChamberTestingRoles}
 
 
 class SpecialRoles(BaseRoleEnum):
@@ -244,3 +279,9 @@ def get_paused_role_id(guild_id: int) -> int:
     if guild_id == Server.TEST_SERVER:
         return SpecialTestingRoles.PAUSED.role_id
     return SpecialRoles.PAUSED.role_id
+
+
+class ListenerType(StrEnum):
+    ROLEPICKER = "rolepicker"
+    ANONYMPOLL = "anonympoll"
+    ACCESSPOLL = "accesspoll"

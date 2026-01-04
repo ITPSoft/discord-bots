@@ -33,7 +33,6 @@ from šimek.morphodita_utils import find_self_reference_a, needs_help_a
 logger = logging.getLogger(__name__)
 
 TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
-TEXT_SYNTH_TOKEN = os.getenv("TEXT_SYNTH_TOKEN")
 REPLIES = (
     "Ano.",
     "Ne.",
