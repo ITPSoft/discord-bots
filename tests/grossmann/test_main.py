@@ -823,7 +823,7 @@ async def test_poll_command_anonymous_initializes_polls_dict(mock_ctx):
 
     await main.poll(mock_ctx, question, True, "Yes", "No")
 
-    assert mock_ctx.id in main.polls
+    assert str(mock_ctx.id) in main.polls
     assert main.polls[mock_ctx.id] == []
 
 
@@ -908,16 +908,10 @@ async def test_anonymous_poll_resolver_prevents_duplicate_vote_same_option(mock_
     mock_interaction.message.edit.assert_not_called()
 
 
-async def test_anonymous_poll_resolver_allows_vote_different_option(mock_message_interaction):
+async def test_anonymous_poll_resolver_allows_vote_different_option(mock_anonymous_poll_interaction):
     """Test anonymous_poll_resolver allows voting for different options."""
-    option1 = "Option1"
+    mock_interaction, poll_id, option1 = mock_anonymous_poll_interaction
     option2 = "Option2"
-    poll_id = mock_message_interaction.id
-
-    # Setup interaction for Option1
-    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option1}"
-    mock_message_interaction.author.id = MOCK_VOTER_ID
-    mock_message_interaction.user.id = MOCK_VOTER_ID
 
     # Setup embed with both options
     mock_field1 = MagicMock()
@@ -929,19 +923,19 @@ async def test_anonymous_poll_resolver_allows_vote_different_option(mock_message
     mock_embed = MagicMock()
     mock_embed.fields = [mock_field1, mock_field2]
     mock_embed.to_dict.return_value = {"fields": [{"name": option1, "value": 0}, {"name": option2, "value": 0}]}
-    mock_message_interaction.message.embeds = [mock_embed]
+    mock_interaction.message.embeds = [mock_embed]
 
-    main.polls[str(mock_message_interaction.id)] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
+    main.polls[poll_id] = [(option1, MOCK_VOTER_ID)]  # User voted for Option1
 
     # Try to vote for Option2
-    mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option2}"
+    mock_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option2}"
 
-    await main.anonymous_poll_resolver(mock_message_interaction)
+    await main.anonymous_poll_resolver(mock_interaction)
 
     # Should allow vote for different option
     assert len(main.polls[poll_id]) == 2
     assert (option2, MOCK_VOTER_ID) in main.polls[poll_id]
-    mock_message_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
+    mock_interaction.send.assert_called_once_with("Hlas započítán", ephemeral=True)
 
 
 async def test_anonymous_poll_resolver_multiple_votes_same_option(mock_anonymous_poll_interaction):
@@ -964,7 +958,7 @@ async def test_anonymous_poll_resolver_multiple_votes_same_option(mock_anonymous
 
 async def test_anonymous_poll_resolver_finds_correct_field(mock_message_interaction):
     """Test anonymous_poll_resolver finds and updates correct embed field."""
-    poll_id = mock_message_interaction.id
+    poll_id = str(mock_message_interaction.id)
     option = "Option2"
 
     mock_message_interaction.component.custom_id = f"{ListenerType.ANONYMPOLL}:{poll_id}:{option}"
@@ -993,8 +987,8 @@ async def test_anonymous_poll_resolver_finds_correct_field(mock_message_interact
     await main.anonymous_poll_resolver(mock_message_interaction)
 
     # Should update Option2 field to 3, leave others unchanged
-    mock_message_interaction.message.edit.assert_called_once_with(
-        embed=Embed.from_dict({
+    mock_message_interaction.message.edit.assert_called_once()
+    # can't do assert_called_once_with, because the newly created embed using Embed.from_dict is different instance
+    assert mock_message_interaction.message.edit.mock_calls[0].kwargs["embed"].to_dict() == {
         "fields": [{"name": "Option1", "value": 5}, {"name": option, "value": 3}, {"name": "Option3", "value": 1}]
-    })
-    )
+    }
