@@ -350,8 +350,13 @@ async def on_reaction_add(reaction: Reaction, user: Member | User):
                 sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1])
                 hall_of_fame_message_ids = dict(sorted_items[-50:])
 
+            if message.channel == Channel.MEMES_SHITPOSTING:
+                hof_memes_thread = client.get_channel(Channel.HOF_MEMES_THREAD)
+                await message.forward(hof_memes_thread)
+                return
+
             await message.forward(hall_of_fame_channel)  # forward that specific messeage
-            break
+            return
 
 
 # on_member_join - happens when a new member joins guild
