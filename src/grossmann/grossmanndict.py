@@ -1,7 +1,6 @@
 from string import Template
 
-from common.constants import Channel
-from common.utils import GamingRoles
+from common.constants import Channel, GamingRoles
 
 WELCOME = Template(f"""
 Vítej, $member!

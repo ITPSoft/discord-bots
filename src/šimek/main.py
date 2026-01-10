@@ -7,9 +7,9 @@ import textwrap
 
 import disnake
 
-from common.constants import GIDS, Channel, ŠIMEK_NAME, KEKWR
+from common.constants import Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
-from common.utils import has_any, has_all, ping_function, ping_content
+from common.utils import has_any, has_all, ping_function, ping_content, get_gids
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction, Forbidden
 from disnake.ext.commands import InteractionBot, default_member_permissions, Param
@@ -77,7 +77,7 @@ CUSTOM_COOLDOWNS = {
 last_reaction_time: dict[int, dt.datetime] = {}
 
 
-@client.slash_command(description="Show last reaction times", guild_ids=GIDS)
+@client.slash_command(description="Show last reaction times", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def show_last_reaction_times(inter: ApplicationCommandInteraction):
     await inter.response.send_message(last_reaction_times())
@@ -93,25 +93,25 @@ def last_reaction_times() -> str:
     return response
 
 
-@client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=GIDS)
+@client.slash_command(name="ping_šimek", description="check šimek latency", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
     await ping_function(client, ctx)
 
 
-@client.slash_command(name="debug_šimek", description="check šimek latency", guild_ids=GIDS)
+@client.slash_command(name="debug_šimek", description="check šimek latency", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def debug_dump(ctx: ApplicationCommandInteraction):
     response = textwrap.dedent(f"""
         {ping_content(client)}
-        {GIDS=}
+        {get_gids()=}
         {last_reaction_times()}
     """)
     await ctx.response.send_message(response)
 
 
 # debug command/trolling
-@client.slash_command(name="respond_šimek", description="Respond something as šimek (admin only)", guild_ids=GIDS)
+@client.slash_command(name="respond_šimek", description="Respond something as šimek (admin only)", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def respond(
     ctx: ApplicationCommandInteraction,
@@ -374,7 +374,7 @@ async def on_message(m: Message):
     logger.debug(
         f"guild id: {m.guild.id if m.guild else 'DM'}, channel id: {m.channel.id}, author: {m.author}, content: {m.content}"
     )
-    if m.guild and m.guild.id not in GIDS:
+    if m.guild and m.guild.id not in get_gids():
         return
     if not m.content:
         return

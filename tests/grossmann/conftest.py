@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from common.utils import ListenerType, KouzelniciChamberRoles
+from common.constants import KouzelniciChamberRoles, ListenerType
 from ..conftest import MOCK_USER_ID, MOCK_VOTER_ID
 
 # Mock environment variables for testing

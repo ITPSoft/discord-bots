@@ -9,6 +9,7 @@ from aiohttp import ClientTimeout
 from disnake import Message, ApplicationCommandInteraction, Embed, File
 from disnake.ext.commands import BadArgument
 
+from common.constants import GAMING_ROLES_PER_SERVER
 from common.http import (
     prepare_http_response,
     EmbedResponse,
@@ -16,7 +17,7 @@ from common.http import (
     ErrorResponse,
     get_http_session,
 )
-from common.utils import validate_param, GAMING_ROLES_PER_SERVER
+from common.utils import validate_param
 from grossmann.grossmanndict import WAIFU_CATEGORIES
 
 logger = logging.getLogger(__name__)
