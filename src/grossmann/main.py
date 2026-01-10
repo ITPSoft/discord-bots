@@ -8,22 +8,27 @@ from typing import TypeAlias
 
 import disnake
 from common import discord_logging
-from common.constants import GIDS, Channel, GROSSMAN_NAME, HALL_OF_FAME_EMOJIS
+from common.constants import (
+    Channel,
+    GROSSMAN_NAME,
+    HALL_OF_FAME_EMOJIS,
+    SelfServiceRoles,
+    ListenerType,
+    GAMING_ROLES_PER_SERVER,
+    GamingRoles,
+    CHAMBER_ROLES_PER_SERVER,
+    KouzelniciChamberRoles,
+)
 from common.http import (
     get_http_session,
     close_http_session,
 )
 from common.utils import (
     has_any,
-    SelfServiceRoles,
-    GamingRoles,
-    GAMING_ROLES_PER_SERVER,
     ping_function,
     ping_content,
     get_paused_role_id,
-    ListenerType,
-    CHAMBER_ROLES_PER_SERVER,
-    KouzelniciChamberRoles,
+    get_gids,
 )
 from disnake import (
     Message,
@@ -85,7 +90,7 @@ polls: defaultdict[str, list[PollVote]] = defaultdict(list)
 
 # Load and register NetHack commands
 # from nethack_module import setup_nethack_commands
-# setup_nethack_commands(client, decdi.GIDS)
+# setup_nethack_commands(client, decdi.get_gids())
 
 
 async def bot_validate(content: str, m: Message):
@@ -307,7 +312,7 @@ async def check_expired_pauses():
 @client.event
 async def on_message(m: Message):
     content = m.content.lower()
-    if m.guild and m.guild.id not in GIDS:
+    if m.guild and m.guild.id not in get_gids():
         return
     if not content:
         return
@@ -362,7 +367,7 @@ async def on_reaction_add(reaction: Reaction, user: Member | User):
 # on_member_join - happens when a new member joins guild
 @client.event
 async def on_member_join(member: Member):
-    if member.guild.id not in GIDS:
+    if member.guild.id not in get_gids():
         return
     welcome_channel = client.get_channel(Channel.WELCOMEPERO)
     await welcome_channel.send(WELCOME.substitute(member=member.mention))
@@ -370,7 +375,7 @@ async def on_member_join(member: Member):
 
 @client.listen("on_button_click")
 async def listener(ctx: MessageInteraction):
-    if ctx.guild and ctx.guild.id not in GIDS:
+    if ctx.guild and ctx.guild.id not in get_gids():
         return
 
     listener_type, _ = ctx.component.custom_id.split(":", 1)
@@ -482,7 +487,7 @@ async def anonymous_poll_resolver(ctx: MessageInteraction):
 
 ## User commands here ->
 # Show all available commands
-@client.slash_command(description="Show all available commands", guild_ids=GIDS)
+@client.slash_command(description="Show all available commands", guild_ids=get_gids())
 async def help(ctx: ApplicationCommandInteraction):
     help_embed = Embed(
         title="Grossman help",
@@ -498,7 +503,7 @@ async def help(ctx: ApplicationCommandInteraction):
 @client.slash_command(
     name="poll",
     description="Creates a poll with given arguments. Each user can select multiple answers.",
-    guild_ids=GIDS,
+    guild_ids=get_gids(),
 )
 async def poll(
     ctx: ApplicationCommandInteraction,
@@ -552,7 +557,7 @@ async def anonymous_poll(ctx: ApplicationCommandInteraction, question: str, opti
 
 
 # rolls a dice
-@client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=GIDS)
+@client.slash_command(name="roll", description="Rolls a dice with given range.", guild_ids=get_gids())
 async def roll(
     ctx: ApplicationCommandInteraction,
     roll_range: int = Param(default=6, gt=0, description="Enter a positive integer (1 or higher, default 6)"),
@@ -562,7 +567,7 @@ async def roll(
 
 # "twitter" functionality
 # works as intended, tested thoroughly
-@client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=GIDS)
+@client.slash_command(name="tweet", description="Posts a 'tweet' in #twitter-pero channel.", guild_ids=get_gids())
 async def tweet(
     ctx: ApplicationCommandInteraction,
     content: str,
@@ -574,13 +579,15 @@ async def tweet(
     await twitter_pero(anonym, content, ctx, media)
 
 
-@client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=GIDS)
+@client.slash_command(name="yesorno", description="Answers with a random yes/no answer.", guild_ids=get_gids())
 async def yesorno(ctx: ApplicationCommandInteraction):
     answers = ("Yes.", "No.", "Perhaps.", "Definitely yes.", "Definitely no.")
     await ctx.response.send_message(f"{random.choice(answers)}")
 
 
-@client.slash_command(name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=GIDS)
+@client.slash_command(
+    name="warcraft_ping", description="Pings Warcraft role and open planning menu", guild_ids=get_gids()
+)
 async def warcraft(
     ctx: ApplicationCommandInteraction,
     start_time: str | None = Param(default=None, description="Time to start playing"),
@@ -594,7 +601,7 @@ async def warcraft(
     await batch_react(m, ["✅", "❎", "🤔", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "❓"])
 
 
-@client.slash_command(name="game_ping", description="Pings any game", guild_ids=GIDS)
+@client.slash_command(name="game_ping", description="Pings any game", guild_ids=get_gids())
 async def game_ping(
     ctx: ApplicationCommandInteraction,
     game_role: str = Param(
@@ -613,7 +620,7 @@ async def game_ping(
     await batch_react(m, ["✅", "❎", "🤔", "☦️"])
 
 
-@client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=GIDS)
+@client.slash_command(name="iwantcat", description="Sends a random cat image.", guild_ids=get_gids())
 async def cat(
     ctx: ApplicationCommandInteraction,
     width: int | None = Param(default=None, gt=60, lt=1000, description="Enter width"),
@@ -626,14 +633,14 @@ async def cat(
     )
 
 
-@client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=GIDS)
+@client.slash_command(name="iwantfox", description="Sends a random fox image.", guild_ids=get_gids())
 async def fox(ctx: ApplicationCommandInteraction):
     await send_http_response(
         ctx, "https://randomfox.ca/floof/", "image", "Server connection error :( No fox image for you."
     )
 
 
-@client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=GIDS)
+@client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=get_gids())
 async def waifu(
     ctx: ApplicationCommandInteraction,
     content_type: str = Param(name="type", choices=list(WAIFU_CATEGORIES.keys()), default="sfw"),
@@ -667,7 +674,7 @@ async def category_autocomplete(ctx: disnake.ApplicationCommandInteraction, curr
 
 # sends an xkcd comic
 @client.slash_command(
-    name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=GIDS
+    name="xkcd", description="Sends an xkcd comic by ID or the latest one if no ID is provided.", guild_ids=get_gids()
 )
 async def xkcd(
     ctx: ApplicationCommandInteraction,
@@ -683,7 +690,7 @@ async def xkcd(
 @client.slash_command(
     name="pause_me",
     description="Give yourself pause from this server for few hours. THERE IS NO WAY BACK UNTIL TIME EXPIRES.",
-    guild_ids=GIDS,
+    guild_ids=get_gids(),
 )
 async def pause_me(
     ctx: ApplicationCommandInteraction,
@@ -723,7 +730,9 @@ async def pause_me(
     logger.info(f"User {user.id} decided to take pause for {hours} hours in server {ctx.guild_id}")
 
 
-@client.slash_command(name="request_role", description="Sends a request for particular channel access.", guild_ids=GIDS)
+@client.slash_command(
+    name="request_role", description="Sends a request for particular channel access.", guild_ids=get_gids()
+)
 async def request_role(
     ctx: ApplicationCommandInteraction,
     requested_channel: str = Param(name="channel"),
@@ -782,7 +791,7 @@ async def chamber_roles_autocomplete(
 
 
 # debug command
-@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=GIDS)
+@client.slash_command(description="Show ids of posts forwarded to fame", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
     response = forwarded_fames()
@@ -808,12 +817,12 @@ def paused_users() -> str:
     return response
 
 
-@client.slash_command(name="debug_grossmann", description="check šimek latency", guild_ids=GIDS)
+@client.slash_command(name="debug_grossmann", description="check šimek latency", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def debug_dump(ctx: ApplicationCommandInteraction):
     response = textwrap.dedent(f"""
         {ping_content(client)}
-        {GIDS=}
+        {get_gids()=}
         {forwarded_fames()}
         {paused_users()}
     """)
@@ -821,20 +830,20 @@ async def debug_dump(ctx: ApplicationCommandInteraction):
 
 
 # debug command/trolling
-@client.slash_command(description="Say something as the bot (admin only)", guild_ids=GIDS)
+@client.slash_command(description="Say something as the bot (admin only)", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def say(ctx: ApplicationCommandInteraction, message: str):
     await ctx.response.send_message("Message sent!")
     await ctx.channel.send(message)
 
 
-@client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=GIDS)
+@client.slash_command(name="ping_grossmann", description="check grossmann latency", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def ping(ctx: ApplicationCommandInteraction):
     await ping_function(client, ctx)
 
 
-@client.slash_command(name="fetchrole", description="Fetch guild roles (admin only)", guild_ids=GIDS)
+@client.slash_command(name="fetchrole", description="Fetch guild roles (admin only)", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def fetch_roles(ctx: ApplicationCommandInteraction):
     # useful for debugging, quickly gives IDs
@@ -843,7 +852,7 @@ async def fetch_roles(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(f"Guild roles:\n```\n{role_list}\n```", ephemeral=True)
 
 
-@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=GIDS)
+@client.slash_command(name="createrolewindow", description="Posts a role picker window.", guild_ids=get_gids())
 @default_member_permissions(administrator=True)
 async def command(ctx: ApplicationCommandInteraction):
     await send_role_picker(ctx)

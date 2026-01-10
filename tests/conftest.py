@@ -3,10 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aioresponses import aioresponses
-from common.utils import SelfServiceRoles
 
 from common import http
-from common.constants import Channel, Server
+from common.constants import Channel, Server, SelfServiceRoles
 
 MOCK_MESSAGE_ID = 12345678
 MOCK_USER_ID = 12345

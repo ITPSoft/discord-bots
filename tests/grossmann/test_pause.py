@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from common.constants import Server
 from grossmann import main
 from grossmann import pause_persistence as pp
 from grossmann.pause_persistence import PausedUser
@@ -36,7 +37,7 @@ def mock_paused_role():
 def mock_ctx_for_pause(mock_paused_role):
     """Create a mock context for pause commands."""
     ctx = MagicMock()
-    ctx.guild_id = 276720867344646144  # Kouzelnici
+    ctx.guild_id = Server.KOUZELNICI
     ctx.guild.get_role.return_value = mock_paused_role
     ctx.me.top_role.position = 50
     ctx.author.id = 999888777

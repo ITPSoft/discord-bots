@@ -6,8 +6,15 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import pytest
 from disnake import Embed
 
-from common.constants import HALL_OF_FAME_EMOJIS, Channel
-from common.utils import DiscordGamingTestingRoles, has_all, GamingRoles, SelfServiceRoles, ListenerType
+from common.constants import (
+    HALL_OF_FAME_EMOJIS,
+    Channel,
+    GamingRoles,
+    ListenerType,
+    SelfServiceRoles,
+    DiscordGamingTestingRoles,
+)
+from common.utils import has_all
 from .conftest import MOCK_CHAMBER_ROLE_ID
 from ..conftest import MOCK_MESSAGE_ID, MOCK_USER_ID, MOCK_VOTER_ID
 from grossmann import grossmanndict as grossdi
