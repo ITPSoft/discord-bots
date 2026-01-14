@@ -167,7 +167,7 @@ async def do_response(reply: str, m: Message, *, chance: int = 10, reaction: boo
         except Forbidden:
             logger.warning(f"Tried to post {reply=} to {m.content=} in {m.channel.name=}, but it's not allowed")
         except Exception as e:
-            logger.exception(f"Failed to send {reply=}, {reaction=}", exc_info=e)
+            logger.exception(f"Failed to send {reply=}, {reaction=} in {m.channel.name=}", exc_info=e)
 
 
 def remove_mentions(reply: str) -> str:

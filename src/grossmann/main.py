@@ -640,10 +640,13 @@ async def fox(ctx: ApplicationCommandInteraction):
     )
 
 
+WAIFU_DEFAULT_TYPE = "sfw"
+
+
 @client.slash_command(name="waifu", description="Sends a random waifu image.", guild_ids=get_gids())
 async def waifu(
     ctx: ApplicationCommandInteraction,
-    content_type: str = Param(name="type", choices=list(WAIFU_CATEGORIES.keys()), default="sfw"),
+    content_type: str = Param(name="type", choices=list(WAIFU_CATEGORIES.keys()), default=WAIFU_DEFAULT_TYPE),
     category: str = Param(converter=validate_waifu_category("category"), default="neko"),
 ):
     # Validate the channel based on content_type
@@ -660,7 +663,7 @@ async def waifu(
 @waifu.autocomplete("category")
 async def category_autocomplete(ctx: disnake.ApplicationCommandInteraction, current: str):
     # Get the selected category from the interaction
-    category = ctx.options.get("type")
+    category = ctx.options.get("type", WAIFU_DEFAULT_TYPE)
 
     if not category or category not in WAIFU_CATEGORIES:
         return []  # No category selected yet
