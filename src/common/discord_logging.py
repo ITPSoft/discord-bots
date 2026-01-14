@@ -52,11 +52,13 @@ def configure_logging(client: InteractionBot, level=logging.INFO):
 
     @client.event
     async def on_error(event_method: str, *args: Any, **kwargs: Any):
-        logger.exception(f"Uncaught exception in event {event_method}")
+        logger.exception(f"Uncaught exception in event {event_method=}, {args=}, {kwargs=}")
 
     @client.event
     async def on_command_error(context: Context, error: CommandError):
-        logger.exception(f"Uncaught exception in event {context}", exc_info=error)
+        logger.exception(
+            f"Uncaught exception in command in channel {context.channel.name=}, {context=}", exc_info=error
+        )
 
     @client.event
     async def on_gateway_error(event: str, data: Any, shard_id: int | None, exc: Exception):
@@ -64,18 +66,24 @@ def configure_logging(client: InteractionBot, level=logging.INFO):
 
     @client.event
     async def on_message_command_error(ctx: ApplicationCommandInteraction, exception: CommandError):
-        logger.exception(f"Uncaught exception in on_message_command_error {ctx}", exc_info=exception)
+        logger.exception(
+            f"Uncaught exception in on_message_command_error in channel {ctx.channel.name=}, {ctx}", exc_info=exception
+        )
 
     @client.event
     async def on_slash_command_error(ctx: ApplicationCommandInteraction, error: CommandError):
         if isinstance(error, UserInputError):  # not handling validation errors
             await ctx.response.send_message(f"❌ Invalid input: {error}", ephemeral=True)
             return
-        logger.exception(f"Uncaught exception in on_slash_command_error {ctx}", exc_info=error)
+        logger.exception(
+            f"Uncaught exception in on_slash_command_error in channel {ctx.channel.name=}, {ctx=}", exc_info=error
+        )
 
     @client.event
     async def on_user_command_error(ctx: ApplicationCommandInteraction, error: CommandError):
-        logger.exception(f"Uncaught exception in on_user_command_error {ctx}", exc_info=error)
+        logger.exception(
+            f"Uncaught exception in on_user_command_error in channel {ctx.channel.name=}, {ctx=}", exc_info=error
+        )
 
 
 logger = logging.getLogger(__name__)
