@@ -789,6 +789,16 @@ async def chamber_roles_autocomplete(
     chamber_roles_enum = CHAMBER_ROLES_PER_SERVER.get(ctx.guild_id, KouzelniciChamberRoles)
     return chamber_roles_enum.get_channel_names()
 
+@client.slash_command(name="join_vc", description="Joins voice channel the ctx author is connected to", guild_ids=get_gids())
+async def join_vc(ctx: ApplicationCommandInteraction):
+    for ch in vc channels:
+        get ch.members
+        if ctx.author in ch.members:
+            channel = ch
+            break
+    
+    await connect to ch
+    #https://docs.disnake.dev/en/stable/api/channels.html#disnake.VoiceChannel.members
 
 ## Admin commands here ->
 
