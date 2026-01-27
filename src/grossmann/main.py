@@ -753,10 +753,11 @@ async def request_role(
 
     await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
 
+    user_name = f"{ctx.author.nick} (@{ctx.author.name})"
     embed = Embed(
         title="Žádost o přístup",
         description=textwrap.dedent(
-            f"""@{ctx.author.name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
+            f"""{user_name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
             Hlasujte nyní, {role.role_tag}."""
         ),
         color=Colour.magenta(),
