@@ -10,6 +10,7 @@ import disnake
 from common import discord_logging
 from common.constants import (
     Channel,
+    VoiceChannel,
     GROSSMAN_NAME,
     HALL_OF_FAME_EMOJIS,
     SelfServiceRoles,
@@ -63,6 +64,8 @@ from grossmann.utils import (
     role_tag2id,
     AccessVoting,
 )
+
+from src.common.constants import VOICE_CHANNELS_PER_SERVER
 
 # preload all useful stuff
 load_dotenv()
@@ -791,13 +794,16 @@ async def chamber_roles_autocomplete(
 
 @client.slash_command(name="join_vc", description="Joins voice channel the ctx author is connected to", guild_ids=get_gids())
 async def join_vc(ctx: ApplicationCommandInteraction):
-    for ch in vc channels:
-        get ch.members
-        if ctx.author in ch.members:
-            channel = ch
+    voice_channels_enum = VOICE_CHANNELS_PER_SERVER.get(ctx.guild_id, VoiceChannel)
+
+    for channel_id in voice_channels_enum:
+        channel = ctx.guild.get_channel(channel_id)
+        members = channel.members
+        if ctx.author in members:
+            channel_connect_to = channel
             break
     
-    await connect to ch
+    await client.connect(channel_connect_to)
     #https://docs.disnake.dev/en/stable/api/channels.html#disnake.VoiceChannel.members
 
 ## Admin commands here ->
