@@ -4,9 +4,6 @@
 # ============================================
 FROM python:3.14-slim AS build
 
-# Build argument for git commit hash
-ARG GIT_COMMIT_HASH=unknown
-
 # Copy uv binary from official distroless image (no pip install needed)
 COPY --from=ghcr.io/astral-sh/uv:0.8.21 /uv /uvx /bin/
 
@@ -37,16 +34,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY src /app/src
 COPY pyproject.toml uv.lock README.md /app/
 
+# Build argument for git commit hash, at the very end of the docker image for better caching
+ARG GIT_COMMIT_HASH=unknown
+
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
 # Do not change the build process unless you manually
 # check the hashes of individual layers using https://github.com/wagoodman/dive
 # ============================================
 FROM python:3.14-slim AS runtime
-
-# Pass build arg to runtime stage
-ARG GIT_COMMIT_HASH=unknown
-ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
 
 # Create non-root user for security
 RUN groupadd -r app && useradd -r -d /app -g app -N app
@@ -70,3 +66,7 @@ ENV PIP_NO_CACHE_DIR=1
 LABEL authors="Matej.Racinsky,Dusik,Skaven"
 
 USER app
+
+# Pass build arg to runtime stage. Must be at the end so everything before can be cached
+ARG GIT_COMMIT_HASH=unknown
+ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
