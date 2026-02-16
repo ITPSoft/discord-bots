@@ -13,10 +13,13 @@ docker pull ghcr.io/itpsoft/discord-bots:sha-6a9d502
 docker pull ghcr.io/itpsoft/discord-bots:sha-0e8127a
 docker pull ghcr.io/itpsoft/discord-bots:sha-e03b524
 docker pull ghcr.io/itpsoft/discord-bots:sha-1cfc7c7
+docker pull ghcr.io/itpsoft/discord-bots:sha-d655371
+docker pull ghcr.io/itpsoft/discord-bots:sha-c8ba253
 
 chmod +x compare-docker-layers.sh
 ./compare-docker-layers.sh ghcr.io/itpsoft/discord-bots:sha-6a9d502 ghcr.io/itpsoft/discord-bots:sha-0e8127a
 ./compare-docker-layers.sh ghcr.io/itpsoft/discord-bots:sha-e03b524 ghcr.io/itpsoft/discord-bots:sha-1cfc7c7
+./compare-docker-layers.sh ghcr.io/itpsoft/discord-bots:sha-d655371 ghcr.io/itpsoft/discord-bots:sha-c8ba253
 ```
 
 ```
