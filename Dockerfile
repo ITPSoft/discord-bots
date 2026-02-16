@@ -31,9 +31,6 @@ COPY pyproject.toml uv.lock README.md /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-group nethack
 
-# Build argument for git commit hash, at the very end of the docker image for better caching
-ARG GIT_COMMIT_HASH=unknown
-
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
 # Do not change the build process unless you manually
