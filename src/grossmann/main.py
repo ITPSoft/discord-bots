@@ -751,7 +751,12 @@ async def request_role(
         await ctx.response.send_message("Tuto roli už máš...", ephemeral=True)
         return
 
-    await ctx.send("Žádost podána, čekám na potvrzení...", ephemeral=True)
+    appeal_vote_requests = appeal_votes.get((ctx.author.id, role.role_id))
+    if appeal_vote_requests is not None:
+        await ctx.send("O tuto roli už jsi žádal(a), počkej prosím na potvrzení.", ephemeral=True)
+        return
+
+    await ctx.send("Žádost podána, počkej prosím na potvrzení.", ephemeral=True)
 
     user_name = f"{ctx.author.nick} (@{ctx.author.name})"
     embed = Embed(
