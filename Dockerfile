@@ -4,9 +4,6 @@
 # ============================================
 FROM python:3.14-slim AS build
 
-# Build argument for git commit hash
-ARG GIT_COMMIT_HASH=unknown
-
 # Copy uv binary from official distroless image (no pip install needed)
 COPY --from=ghcr.io/astral-sh/uv:0.8.21 /uv /uvx /bin/
 
@@ -25,17 +22,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev --no-group nethack
 # remove the --no-group nethack to add the nethack
 
-# Install project itself using bind mounts (avoids copying tests, docs, etc.)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=README.md,target=README.md \
-    --mount=type=bind,source=src,target=src \
-    uv sync --frozen --no-dev --no-group nethack
-
-# Copy only what's needed for runtime and build
+# Copy source code (invalidated only when src changes)
 COPY src /app/src
 COPY pyproject.toml uv.lock README.md /app/
+
+# Install project into existing .venv (invalidated only when src changes)
+# .venv from previous step remains cached
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-group nethack
+
+# Build argument for git commit hash, at the very end of the docker image for better caching
+ARG GIT_COMMIT_HASH=unknown
 
 # ============================================
 # STAGE 2: Runtime stage (no uv, no build tools)
@@ -43,10 +40,6 @@ COPY pyproject.toml uv.lock README.md /app/
 # check the hashes of individual layers using https://github.com/wagoodman/dive
 # ============================================
 FROM python:3.14-slim AS runtime
-
-# Pass build arg to runtime stage
-ARG GIT_COMMIT_HASH=unknown
-ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
 
 # Create non-root user for security
 RUN groupadd -r app && useradd -r -d /app -g app -N app
@@ -70,3 +63,7 @@ ENV PIP_NO_CACHE_DIR=1
 LABEL authors="Matej.Racinsky,Dusik,Skaven"
 
 USER app
+
+# Pass build arg to runtime stage. Must be at the end so everything before can be cached
+ARG GIT_COMMIT_HASH=unknown
+ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
