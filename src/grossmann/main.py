@@ -784,7 +784,7 @@ async def request_role(
     ]
 
     appeal_votes[(ctx.author.id, role.role_id)] = AccessVoting(allow=0, deny=0, voters=[])
-    await channel.send(f"{role.role_tag}")
+    await channel.send(f"@here")
     await channel.send(embed=embed, components=buttons)
 
 
