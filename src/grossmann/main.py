@@ -758,12 +758,11 @@ async def request_role(
 
     await ctx.send("Žádost podána, počkej prosím na potvrzení.", ephemeral=True)
 
-    user_name = f"{ctx.author.nick} (@{ctx.author.name})"
     embed = Embed(
         title="Žádost o přístup",
         description=textwrap.dedent(
-            f"""{user_name} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
-            Hlasujte nyní, {role.role_tag}."""
+            f"""{ctx.author.mention} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
+            Hlasujte nyní."""
         ),
         color=Colour.magenta(),
     )
@@ -785,6 +784,7 @@ async def request_role(
     ]
 
     appeal_votes[(ctx.author.id, role.role_id)] = AccessVoting(allow=0, deny=0, voters=[])
+    await channel.send("@here")
     await channel.send(embed=embed, components=buttons)
 
 
