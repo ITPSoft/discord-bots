@@ -9,7 +9,7 @@ import disnake
 
 from common.constants import Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
-from common.utils import has_any, has_all, ping_function, ping_content, get_gids
+from common.utils import has_all, ping_function, ping_content, get_gids
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction, Forbidden
 from disnake.ext.commands import InteractionBot, default_member_permissions, Param
@@ -219,17 +219,17 @@ async def manage_response(m: Message):
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
-    if m.channel.id == Channel.ECONPOLIPERO:
-        if has_any(
-            mess, [":kekwr:", ":kekw:"]
-        ):  # need to compare lowered versions, here we don't care of specific kekw instance
-            await do_response(
-                "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",
-                m,
-                chance=4,
-                reaction=False,
-            )
-        return
+    # if m.channel.id == Channel.ECONPOLIPERO:
+    #    if has_any(
+    #        mess, [":kekwr:", ":kekw:"]
+    #    ):  # need to compare lowered versions, here we don't care of specific kekw instance
+    #        await do_response(
+    #            "https://media.discordapp.net/attachments/786626221856391199/1420065025896349777/a6yolw.gif?ex=68f0625d&is=68ef10dd&hm=084f583c9cc1b0a6e6279ccf44933984cdb51167c7fe265c52c3be44725540cf&=&width=450&height=253",
+    #            m,
+    #            chance=4,
+    #            reaction=False,
+    #        )
+    #    return
 
     elif m.channel.id not in ALLOW_CHANNELS:
         return
