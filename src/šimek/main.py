@@ -9,7 +9,7 @@ import disnake
 
 from common.constants import Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
-from common.utils import has_any, has_all, ping_function, ping_content, get_gids
+from common.utils import has_all, ping_function, ping_content, get_gids
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction, Forbidden
 from disnake.ext.commands import InteractionBot, default_member_permissions, Param
@@ -219,7 +219,7 @@ async def manage_response(m: Message):
         return
 
     # ECONPOLIPERO IS A SERIOUS CHANNEL, NO SHITPOSTING ALLOWED gif
-    #if m.channel.id == Channel.ECONPOLIPERO:
+    # if m.channel.id == Channel.ECONPOLIPERO:
     #    if has_any(
     #        mess, [":kekwr:", ":kekw:"]
     #    ):  # need to compare lowered versions, here we don't care of specific kekw instance
