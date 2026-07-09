@@ -829,7 +829,10 @@ async def backfill_fame(
     ctx: ApplicationCommandInteraction,
     channel: disnake.TextChannel | None = Param(default=None, description="Channel to scan (defaults to current)"),
     limit: int = Param(
-        default=500, gt=0, le=5000, description="How many recent messages to scan (mutually exclusive with after/before)"
+        default=500,
+        gt=0,
+        le=5000,
+        description="How many recent messages to scan (mutually exclusive with after/before)",
     ),
     after: str | None = Param(
         default=None, description="Scan the whole window after this UTC date (YYYY-MM-DD); overrides limit"
