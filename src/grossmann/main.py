@@ -346,6 +346,8 @@ async def forward_to_fame_if_qualifies(message: Message) -> bool:
 
     Returns True when a forward happened. Shared by the live reaction listener and the backfill command.
     """
+    # Skip the fame channels themselves, and avoid duplicate forwarding by checking if already sent.
+    # The persistence cache is a dict lookup, much faster than fetching channel history.
     if message.channel.id in FAME_CHANNELS or fame_persistence.is_forwarded(message.id):
         return False
     if not qualifies_for_fame(message):
