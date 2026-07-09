@@ -45,7 +45,8 @@ def truncate_emojis(text):
 
 def format_time_ago(time: dt.datetime) -> str:
     """Format a datetime as a relative time string (e.g., '2 hours, 15 minutes ago')."""
-    now = dt.datetime.now()
+    # Match the awareness of the input so aware (API) datetimes work too.
+    now = dt.datetime.now(time.tzinfo)
     delta = now - time
     total_seconds = int(delta.total_seconds())
     is_future = total_seconds < 0

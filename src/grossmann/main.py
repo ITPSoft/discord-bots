@@ -12,6 +12,7 @@ from common.constants import (
     Channel,
     GROSSMAN_NAME,
     HALL_OF_FAME_EMOJIS,
+    HALL_OF_FAME_MIN_REACTIONS,
     SelfServiceRoles,
     ListenerType,
     GAMING_ROLES_PER_SERVER,
@@ -46,6 +47,7 @@ from disnake.ext.commands import Param, InteractionBot, default_member_permissio
 from disnake.ext import tasks
 from disnake.ui import Button, View
 from dotenv import load_dotenv
+from grossmann import fame_persistence
 from grossmann import grossmanndict as grossdi
 from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME, GAME_EN, GAME_CZ
 from grossmann.pause_persistence import (
@@ -76,10 +78,6 @@ client = InteractionBot(intents=intents)
 discord_logging.configure_logging(client)
 
 logger = logging.getLogger(__name__)
-
-# Store last 50 forwarded message IDs for hall of fame duplicate checking
-# Dict maps message_id -> timestamp
-hall_of_fame_message_ids: dict[int, datetime] = {}
 
 appeal_votes: dict[tuple[int, int], AccessVoting] = {}
 
@@ -225,8 +223,8 @@ async def send_role_picker(ctx: ApplicationCommandInteraction):
 # on_ready event - happens when bot connects to Discord API
 @client.event
 async def on_ready():
-    global hall_of_fame_message_ids
-    # Preload last 50 message IDs from hall of fame channel
+    # Seed the forwarded-message cache from channel history (covers messages
+    # forwarded before persistence existed and before the current process).
     await hall_of_fame_history_fetching()
     # Restore paused roles for users who were paused before restart
     await restore_paused_users()
@@ -237,22 +235,15 @@ async def on_ready():
 
 
 async def hall_of_fame_history_fetching():
-    global hall_of_fame_message_ids
-    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
-    if hall_of_fame_channel:
-        current_time = datetime.now()
-        async for msg in hall_of_fame_channel.history(limit=50):
-            # Extract original message ID from forwarded message
-            # Forwarded messages have a reference to the original message
+    # Both the main hall of fame channel and the memes thread receive forwards.
+    for channel_id in (Channel.HALL_OF_FAME, Channel.HOF_MEMES_THREAD):
+        channel = client.get_channel(channel_id)
+        if not channel:
+            continue
+        async for msg in channel.history(limit=50):
+            # Forwarded messages reference the original message they came from.
             if msg.reference and msg.reference.message_id:
-                original_id = msg.reference.message_id
-                # Use message creation time as timestamp, or current time if unavailable
-                timestamp = msg.created_at if hasattr(msg, "created_at") else current_time
-                hall_of_fame_message_ids[original_id] = timestamp
-        # Keep only the 50 most recent entries (by timestamp)
-        if len(hall_of_fame_message_ids) > 50:
-            sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1], reverse=True)
-            hall_of_fame_message_ids = dict(sorted_items[:50])
+                fame_persistence.mark_forwarded(msg.reference.message_id, msg.created_at.timestamp())
 
 
 async def restore_paused_users():
@@ -322,46 +313,58 @@ async def on_message(m: Message):
         await bot_validate(content, m)
 
 
+# Channels that receive forwards and must never be treated as a forwarding source.
+FAME_CHANNELS = frozenset({Channel.HALL_OF_FAME, Channel.HOF_MEMES_THREAD})
+
+
+def qualifies_for_fame(message: Message) -> bool:
+    # Anything interesting enough to gather more than the threshold of a single
+    # hall of fame emoji belongs in the hall of fame.
+    return any(str(r.emoji) in HALL_OF_FAME_EMOJIS and r.count > HALL_OF_FAME_MIN_REACTIONS for r in message.reactions)
+
+
+def fame_destination(message: Message) -> disnake.TextChannel | disnake.Thread:
+    # Memes get their own thread, everything else goes to the main channel.
+    channel_id = Channel.HOF_MEMES_THREAD if message.channel.id == Channel.MEMES_SHITPOSTING else Channel.HALL_OF_FAME
+    channel = client.get_channel(channel_id)
+    assert channel is not None, f"Hall of fame channel {channel_id!r} not found"
+    return channel
+
+
+def progress_bar(done: int, total: int, width: int = 20) -> str:
+    ratio = done / total if total else 1.0
+    filled = int(ratio * width)
+    return f"[{'█' * filled}{'░' * (width - filled)}] {int(ratio * 100)}% ({done}/{total})"
+
+
+def _fmt_time(moment: datetime) -> str:
+    return moment.strftime("%Y-%m-%d %H:%M UTC")
+
+
+async def forward_to_fame_if_qualifies(message: Message) -> bool:
+    """Forward a message to its hall of fame destination if it qualifies and wasn't sent yet.
+
+    Returns True when a forward happened. Shared by the live reaction listener and the backfill command.
+    """
+    if message.channel.id in FAME_CHANNELS or fame_persistence.is_forwarded(message.id):
+        return False
+    if not qualifies_for_fame(message):
+        return False
+
+    # Mark BEFORE forwarding so simultaneous reactions only forward once.
+    fame_persistence.mark_forwarded(message.id, datetime.now().timestamp())
+    await message.forward(fame_destination(message))
+    return True
+
+
 # on reaction add event - hall of fame functionality
 @client.event
 async def on_reaction_add(reaction: Reaction, user: Member | User):
-    global hall_of_fame_message_ids
-    hall_of_fame_channel = client.get_channel(Channel.HALL_OF_FAME)
     message = reaction.message
     # Ensure the message is on server (not a DM)
     if not message.guild:
         return
-    if message.channel == hall_of_fame_channel:  # ignore hall of fame channel itself
-        return
-
-    # Avoid duplicate forwarding by checking if already sent
-    # Check against cached message IDs (much faster than fetching channel history)
-    if message.id in hall_of_fame_message_ids:
-        return
-
-    # Custom emojis (IDs must match actual server emojis)
-    # TODO check that the match is correctly done
-
-    # anything that is interesting enough to cause more than 10 reactions with specific emoji should be interesting enough for hall of fame
-    for r in message.reactions:
-        if str(r.emoji) in HALL_OF_FAME_EMOJIS and r.count > 10:
-            # Add message ID to cache BEFORE forwarding to prevent race conditions
-            # This ensures that if multiple reactions come in simultaneously, only one forward happens
-            current_time = datetime.now()
-            hall_of_fame_message_ids[message.id] = current_time
-            # Keep only the 50 most recent entries (by timestamp)
-            if len(hall_of_fame_message_ids) > 50:
-                # Sort by timestamp (oldest first) and remove the oldest
-                sorted_items = sorted(hall_of_fame_message_ids.items(), key=lambda x: x[1])
-                hall_of_fame_message_ids = dict(sorted_items[-50:])
-
-            if message.channel.id == Channel.MEMES_SHITPOSTING:
-                hof_memes_thread = client.get_channel(Channel.HOF_MEMES_THREAD)
-                await message.forward(hof_memes_thread)
-                return
-
-            await message.forward(hall_of_fame_channel)  # forward that specific message
-            return
+    await forward_to_fame_if_qualifies(message)
 
 
 # on_member_join - happens when a new member joins guild
@@ -807,10 +810,62 @@ async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
     await ctx.response.send_message(response)
 
 
+@client.slash_command(
+    name="backfill_fame",
+    description="Scan channel history and forward any missed hall of fame messages (admin only).",
+    guild_ids=get_gids(),
+)
+@default_member_permissions(administrator=True)
+async def backfill_fame(
+    ctx: ApplicationCommandInteraction,
+    channel: disnake.TextChannel | None = Param(default=None, description="Channel to scan (defaults to current)"),
+    limit: int = Param(default=500, gt=0, le=5000, description="How many recent messages to scan"),
+):
+    await ctx.response.defer(ephemeral=True)
+    target = channel or ctx.channel
+
+    # Phase 1: scan history, reporting progress against the requested limit.
+    candidates = []
+    scanned = 0
+    async for message in target.history(limit=limit):
+        scanned += 1
+        if qualifies_for_fame(message):
+            candidates.append(message)
+        if scanned % 100 == 0:
+            await ctx.edit_original_response(
+                content=f"Scanning {target.mention}… {progress_bar(scanned, limit)}\nFound {len(candidates)} candidate(s) so far."
+            )
+    # Forward oldest-first so the hall of fame stays chronological.
+    candidates.reverse()
+
+    # Phase 2: forward candidates, reporting progress and the message's own timestamp.
+    forwarded_times: list[datetime] = []
+    total = len(candidates)
+    for i, message in enumerate(candidates, start=1):
+        if await forward_to_fame_if_qualifies(message):
+            forwarded_times.append(message.created_at)
+        if i % 5 == 0 or i == total:
+            await ctx.edit_original_response(
+                content=f"Forwarding to hall of fame… {progress_bar(i, total)}\nLast message from {_fmt_time(message.created_at)}."
+            )
+
+    forwarded = len(forwarded_times)
+    logger.info(f"Backfill of #{target.name} by {ctx.author.name}: forwarded {forwarded} messages")
+
+    summary = (
+        f"Backfill of {target.mention} complete: forwarded {forwarded} new message(s) "
+        f"out of {total} candidate(s) in the last {scanned} scanned."
+    )
+    if forwarded_times:
+        summary += f"\nMessages from {_fmt_time(min(forwarded_times))} to {_fmt_time(max(forwarded_times))}."
+    await ctx.edit_original_response(content=summary)
+
+
 def forwarded_fames() -> str:
     response = "Last messages forwarded to hall of fame ids and times:\n"
-    for message_id, sent_time in hall_of_fame_message_ids.items():
-        response += f"{message_id}: {sent_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    for message_id, sent_ts in fame_persistence.get_forwarded().items():
+        sent_time = datetime.fromtimestamp(sent_ts).strftime("%Y-%m-%d %H:%M:%S")
+        response += f"{message_id}: {sent_time}\n"
     return response
 
 

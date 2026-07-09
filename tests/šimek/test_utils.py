@@ -70,3 +70,12 @@ def test_format_time_ago(seconds_offset, expected):
         result = utils.format_time_ago(target_time)
 
     assert result == expected
+
+
+def test_format_time_ago_accepts_aware_datetime():
+    """Timezone-aware (API) datetimes must not raise the naive/aware comparison error."""
+    aware_past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5)
+
+    result = utils.format_time_ago(aware_past)
+
+    assert result.endswith("ago")

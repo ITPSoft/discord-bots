@@ -19,7 +19,19 @@ from .conftest import MOCK_CHAMBER_ROLE_ID
 from ..conftest import MOCK_MESSAGE_ID, MOCK_USER_ID, MOCK_VOTER_ID
 from grossmann import grossmanndict as grossdi
 from grossmann import main
+from grossmann import fame_persistence as fame
 from grossmann.utils import batch_react, AccessVoting
+
+
+@pytest.fixture
+def temp_fame_file(tmp_path):
+    """Isolate hall of fame persistence in a temporary file per test."""
+    fame_file = tmp_path / "forwarded_fames.json"
+    with patch.object(fame, "_get_fame_file_path", return_value=fame_file):
+        fame._reset_cache()
+        fame._init_cache()
+        yield fame_file
+        fame._reset_cache()
 
 
 # Test batch_react utility function
@@ -348,7 +360,7 @@ async def test_send_role_picker(mock_ctx):
 
 
 # Test hall_of_fame_history_fetching function
-async def test_hall_of_fame_history_fetching():
+async def test_hall_of_fame_history_fetching(temp_fame_file):
     """Test hall_of_fame_history_fetching loads message IDs."""
 
     async def mock_history(limit):
@@ -370,27 +382,25 @@ async def test_hall_of_fame_history_fetching():
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = mock_channel
-        main.hall_of_fame_message_ids = {}
 
         await main.hall_of_fame_history_fetching()
 
-    assert 111111 in main.hall_of_fame_message_ids
-    assert 222222 in main.hall_of_fame_message_ids
+    assert fame.is_forwarded(111111)
+    assert fame.is_forwarded(222222)
 
 
-async def test_hall_of_fame_history_fetching_no_channel():
+async def test_hall_of_fame_history_fetching_no_channel(temp_fame_file):
     """Test hall_of_fame_history_fetching handles missing channel."""
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = None
-        main.hall_of_fame_message_ids = {}
 
         await main.hall_of_fame_history_fetching()
 
-    assert main.hall_of_fame_message_ids == {}
+    assert fame.get_forwarded() == {}
 
 
 # Test on_reaction_add event
-async def test_on_reaction_add_forwards_to_hall_of_fame(mock_message):
+async def test_on_reaction_add_forwards_to_hall_of_fame(mock_message, temp_fame_file):
     """Test on_reaction_add forwards message when threshold reached."""
     mock_reaction = MagicMock()
     mock_reaction.message = mock_message
@@ -410,12 +420,11 @@ async def test_on_reaction_add_forwards_to_hall_of_fame(mock_message):
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = mock_hall_channel
-        main.hall_of_fame_message_ids = {}
 
         await main.on_reaction_add(mock_reaction, MagicMock())
 
     mock_message.forward.assert_called_once_with(mock_hall_channel)
-    assert mock_message.id in main.hall_of_fame_message_ids
+    assert fame.is_forwarded(mock_message.id)
 
 
 async def test_on_reaction_add_ignores_dm():
@@ -433,7 +442,7 @@ async def test_on_reaction_add_ignores_dm():
     assert not hasattr(mock_message, "forward") or not mock_message.forward.called
 
 
-async def test_on_reaction_add_ignores_below_threshold(mock_message):
+async def test_on_reaction_add_ignores_below_threshold(mock_message, temp_fame_file):
     """Test on_reaction_add ignores messages below reaction threshold."""
     mock_reaction = MagicMock()
     mock_reaction.message = mock_message
@@ -448,15 +457,14 @@ async def test_on_reaction_add_ignores_below_threshold(mock_message):
 
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = mock_hall_channel
-        main.hall_of_fame_message_ids = {}
 
         await main.on_reaction_add(mock_reaction, MagicMock())
 
     mock_message.forward.assert_not_called()
 
 
-async def test_on_reaction_add_ignores_already_forwarded(mock_message):
-    """Test on_reaction_add ignores already forwarded messages."""
+async def test_on_reaction_add_ignores_already_forwarded(mock_message, temp_fame_file):
+    """Test on_reaction_add ignores already forwarded messages (persisted across restarts)."""
     mock_reaction = MagicMock()
     mock_reaction.message = mock_message
 
@@ -465,13 +473,136 @@ async def test_on_reaction_add_ignores_already_forwarded(mock_message):
     reaction_obj.count = 15
     mock_message.reactions = [reaction_obj]
 
+    fame.mark_forwarded(MOCK_MESSAGE_ID, datetime.now().timestamp())
+
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = MagicMock()
-        main.hall_of_fame_message_ids = {MOCK_MESSAGE_ID: datetime.now()}
 
         await main.on_reaction_add(mock_reaction, MagicMock())
 
     mock_message.forward.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "done,total,expected_pct",
+    [
+        (0, 10, "0%"),
+        (5, 10, "50%"),
+        (10, 10, "100%"),
+        (0, 0, "100%"),  # avoid division by zero, treat empty as complete
+    ],
+)
+def test_progress_bar(done, total, expected_pct):
+    bar = main.progress_bar(done, total)
+    assert bar.startswith("[") and expected_pct in bar
+    assert f"({done}/{total})" in bar
+
+
+def _reaction(emoji: str, count: int):
+    reaction_obj = MagicMock()
+    reaction_obj.emoji = emoji
+    reaction_obj.count = count
+    return reaction_obj
+
+
+async def test_forward_to_fame_skips_fame_source_channel(mock_message, temp_fame_file):
+    """A message already living in a fame channel must never be re-forwarded."""
+    mock_message.channel.id = Channel.HALL_OF_FAME
+    mock_message.reactions = [_reaction("⭐", 50)]
+
+    with patch.object(main, "client"):
+        result = await main.forward_to_fame_if_qualifies(mock_message)
+
+    assert result is False
+    mock_message.forward.assert_not_called()
+
+
+async def test_forward_to_fame_routes_memes_to_thread(mock_message, temp_fame_file):
+    """Memes-shitposting messages go to the dedicated thread."""
+    mock_message.channel.id = Channel.MEMES_SHITPOSTING
+    mock_message.reactions = [_reaction("⭐", 11)]
+    thread = AsyncMock()
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = thread
+
+        result = await main.forward_to_fame_if_qualifies(mock_message)
+
+    assert result is True
+    mock_client.get_channel.assert_called_once_with(Channel.HOF_MEMES_THREAD)
+    mock_message.forward.assert_called_once_with(thread)
+
+
+async def test_backfill_fame_forwards_only_qualifying(mock_ctx, temp_fame_file):
+    """Backfill forwards missed qualifying messages, oldest first, and skips the rest."""
+
+    def make_msg(msg_id, count, created_at):
+        msg = AsyncMock()
+        msg.id = msg_id
+        msg.channel = MagicMock()
+        msg.channel.id = Channel.GENERAL
+        msg.reactions = [_reaction("⭐", count)]
+        msg.created_at = created_at
+        return msg
+
+    # history yields newest-first
+    newest_good = make_msg(3, 15, datetime(2024, 3, 3, 10, 0))
+    oldest_good = make_msg(1, 11, datetime(2024, 1, 1, 9, 0))
+    below_threshold = make_msg(2, 3, datetime(2024, 2, 2, 9, 0))
+
+    async def mock_history(limit):
+        for msg in [newest_good, below_threshold, oldest_good]:
+            yield msg
+
+    target = MagicMock()
+    target.name = "general"
+    target.mention = "#general"
+    target.history = mock_history
+    mock_ctx.channel = target
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = AsyncMock()
+
+        await main.backfill_fame(mock_ctx, channel=None, limit=500)
+
+    newest_good.forward.assert_called_once()
+    oldest_good.forward.assert_called_once()
+    below_threshold.forward.assert_not_called()
+    # oldest qualifying message is forwarded before the newer one
+    assert fame.is_forwarded(1) and fame.is_forwarded(3)
+    final_summary = mock_ctx.edit_original_response.call_args.kwargs["content"]
+    assert "forwarded 2" in final_summary
+    # message timestamps are shown as a range
+    assert "2024-01-01 09:00 UTC" in final_summary
+    assert "2024-03-03 10:00 UTC" in final_summary
+
+
+async def test_backfill_fame_skips_already_forwarded(mock_ctx, temp_fame_file):
+    """Backfill does not re-forward messages already recorded as forwarded."""
+    already = AsyncMock()
+    already.id = 777
+    already.channel = MagicMock()
+    already.channel.id = Channel.GENERAL
+    already.reactions = [_reaction("⭐", 20)]
+    already.created_at = datetime(2024, 1, 1, 9, 0)
+    fame.mark_forwarded(already.id, datetime.now().timestamp())
+
+    async def mock_history(limit):
+        yield already
+
+    target = MagicMock()
+    target.name = "general"
+    target.mention = "#general"
+    target.history = mock_history
+    mock_ctx.channel = target
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = AsyncMock()
+
+        await main.backfill_fame(mock_ctx, channel=None, limit=500)
+
+    already.forward.assert_not_called()
+    assert "forwarded 0" in mock_ctx.edit_original_response.call_args.kwargs["content"]
 
 
 # Test on_member_join event

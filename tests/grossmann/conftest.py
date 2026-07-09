@@ -101,10 +101,14 @@ def assert_reactions_added(mock_message, expected_reactions):
 
 
 @pytest.fixture(autouse=True)
-def mock_is_correct_channel() -> Generator[MagicMock, Any, None]:
-    with patch("grossmann.nethack_module.is_correct_channel") as _fixture:
-        _fixture.side_effect = lambda channel: channel.channel_id == TEST_ALLOWED_CHANNEL_ID
-        yield _fixture
+def mock_is_correct_channel() -> Generator[MagicMock | None, Any, None]:
+    # nethack is optional; skip patching when its (heavy) deps aren't installed.
+    try:
+        with patch("grossmann.nethack_module.is_correct_channel") as _fixture:
+            _fixture.side_effect = lambda channel: channel.channel_id == TEST_ALLOWED_CHANNEL_ID
+            yield _fixture
+    except (ImportError, AttributeError):
+        yield None
 
 
 @pytest.fixture

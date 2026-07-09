@@ -68,7 +68,7 @@ addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", 
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--cov=src", "--cov-report=html"]
 
 [build-system]
-requires = ["uv_build>=0.9.13,<0.10.0"]
+requires = ["uv_build>=0.9.13,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
