@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_FAME_FILE = Path(__file__).parent.parent.parent / "data" / "grossmann" / "forwarded_fames.json"
 
 # Keep only the most recent forwarded messages around for duplicate checking.
-MAX_TRACKED = 50
+# Sized to cover a full backfill window so re-runs don't re-forward evicted entries.
+MAX_TRACKED = 5000
 
 # In-memory cache: original message_id -> unix timestamp when forwarded
 _forwarded_cache: dict[int, float] = {}
