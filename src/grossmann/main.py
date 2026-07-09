@@ -3,7 +3,7 @@ import os
 import random
 import textwrap
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TypeAlias
 
 import disnake
@@ -339,6 +339,13 @@ def progress_bar(done: int, total: int, width: int = 20) -> str:
 
 def _fmt_time(moment: datetime) -> str:
     return moment.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _parse_backfill_date(value: str | None) -> datetime | None:
+    # Interpret a YYYY-MM-DD date as midnight UTC so history() gets a tz-aware bound.
+    if value is None:
+        return None
+    return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
 
 async def forward_to_fame_if_qualifies(message: Message) -> bool:
@@ -821,24 +828,53 @@ async def show_forwarded_fames(ctx: ApplicationCommandInteraction):
 async def backfill_fame(
     ctx: ApplicationCommandInteraction,
     channel: disnake.TextChannel | None = Param(default=None, description="Channel to scan (defaults to current)"),
-    limit: int = Param(default=500, gt=0, le=5000, description="How many recent messages to scan"),
+    limit: int = Param(
+        default=500, gt=0, le=5000, description="How many recent messages to scan (mutually exclusive with after/before)"
+    ),
+    after: str | None = Param(
+        default=None, description="Scan the whole window after this UTC date (YYYY-MM-DD); overrides limit"
+    ),
+    before: str | None = Param(
+        default=None, description="Scan the whole window before this UTC date (YYYY-MM-DD); overrides limit"
+    ),
 ):
+    """Two mutually exclusive modes:
+
+    - Count mode (default): scan the most recent `limit` messages, newest-first.
+    - Date-range mode: pass `after` and/or `before` (YYYY-MM-DD, UTC) to scan the entire
+      time window regardless of count. Setting either date ignores `limit`.
+    """
     await ctx.response.defer(ephemeral=True)
     target = channel or ctx.channel
 
-    # Phase 1: scan history, reporting progress against the requested limit.
+    after_dt = _parse_backfill_date(after)
+    before_dt = _parse_backfill_date(before)
+
+    # Date-range mode: scan the whole window (no count cap) oldest-first; disnake already
+    # yields chronologically so no reverse is needed. Otherwise scan the most recent `limit`
+    # messages newest-first and reverse before forwarding.
+    if after_dt is not None or before_dt is not None:
+        history = target.history(limit=None, after=after_dt, before=before_dt, oldest_first=True)
+        scan_target = None
+    else:
+        history = target.history(limit=limit)
+        scan_target = limit
+
+    # Phase 1: scan history, reporting progress.
     candidates = []
     scanned = 0
-    async for message in target.history(limit=limit):
+    async for message in history:
         scanned += 1
         if qualifies_for_fame(message):
             candidates.append(message)
         if scanned % 100 == 0:
+            progress = progress_bar(scanned, scan_target) if scan_target else f"scanned {scanned}"
             await ctx.edit_original_response(
-                content=f"Scanning {target.mention}… {progress_bar(scanned, limit)}\nFound {len(candidates)} candidate(s) so far."
+                content=f"Scanning {target.mention}… {progress}\nFound {len(candidates)} candidate(s) so far."
             )
     # Forward oldest-first so the hall of fame stays chronological.
-    candidates.reverse()
+    if scan_target is not None:
+        candidates.reverse()
 
     # Phase 2: forward candidates, reporting progress and the message's own timestamp.
     forwarded_times: list[datetime] = []
