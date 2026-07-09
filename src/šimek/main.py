@@ -329,7 +329,7 @@ async def manage_response(m: Message):
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
         case "youtu.be" | "youtube.com" if not re.search(
-            "(?:youtube\.com|youtu\.be)/(?:channel/|c/|user/|@)[^\s/?#]+(?:[/?#][^\s]*)", mess
+            r"(?:youtube\.com|youtu\.be)/(?:channel/|c/|user/|@)[^\s/?#]+(?:[/?#][^\s]*)", mess
         ):
             await do_response(random.choice(šimekdict.RECENZE), m, chance=5)
         case "špatný bot" | "spatny bot":
