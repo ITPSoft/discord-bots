@@ -9,7 +9,7 @@ import disnake
 
 from common.constants import Channel, ŠIMEK_NAME, KEKWR
 from common.http import close_http_session, prepare_http_response, TextResponse
-from common.utils import has_all, ping_function, ping_content, get_gids
+from common.utils import has_all, ping_function, ping_content, get_gids, has_any
 from common import discord_logging
 from disnake import Message, ApplicationCommandInteraction, Forbidden
 from disnake.ext.commands import InteractionBot, default_member_permissions, Param
@@ -33,6 +33,7 @@ from šimek.morphodita_utils import find_self_reference_a, needs_help_a
 logger = logging.getLogger(__name__)
 
 TOKEN = os.getenv("ŠIMEK_DISCORD_TOKEN")
+JOKES_TOKEN = os.getenv("ŠIMEK_JOKES_TOKEN")
 REPLIES = (
     "Ano.",
     "Ne.",
@@ -298,7 +299,9 @@ async def manage_response(m: Message):
         case "israel" | "izrael":
             await do_response(":pensive:", m, chance=5)
         case "mama" | "mamá" | "mami" | "mommy" | "mamka" | "mamko":
-            match await prepare_http_response(url="https://yomama-jokes.com/api/random", resp_key="joke"):
+            match await prepare_http_response(
+                url=f"https://api.humorapi.com/jokes/random?api-key={JOKES_TOKEN}&include-tags=yo_mama", resp_key="joke"
+            ):
                 case TextResponse(_, content):
                     await do_response(content, m, chance=4)
         case "lagtrain":
@@ -325,7 +328,9 @@ async def manage_response(m: Message):
             await do_response("👍", m, chance=1, reaction=True)
         case "reminder":
             await do_response("kind reminder: ur a bitch :)", m, chance=4)
-        case "youtu.be" | "youtube.com":
+        case "youtu.be" | "youtube.com" if not re.search(
+            r"(?:youtube\.com|youtu\.be)/(?:channel/|c/|user/|@)[^\s/?#]+(?:[/?#][^\s]*)", mess
+        ):
             await do_response(random.choice(šimekdict.RECENZE), m, chance=5)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
@@ -340,8 +345,8 @@ async def manage_response(m: Message):
 
     without_links = re.sub(r"https?://\S+", "", mess)
     match Substring(without_links):
-        case "twitter" | "twiter":
-            await do_response("preferuji #twitter-péro", m, chance=1)
+        case "twitter" | "twiter" if not has_any(mess, ["per", "pér"]):
+            await do_response("preferuji #twitter-péro", m, chance=2)  # it was too often
         case _:
             if random.randint(1, 500) == 1:
                 messages = []

@@ -9,6 +9,7 @@ fixtures and other test-related code, including dpytest and other code related t
 - The testing code must exercise actual bot commands, using the bot commands, not copy-pasting the logic to tests.
 - No `if __name__ == "__main__":` is used in tests, pytest handles this automatically.
 - Never run tests using unittest, use pytest instead.
+- The nethack tests need the optional `nethack` dependency group (`PIL`/`pexpect`/`pyte`); install all groups before running tests (`uv sync --all-groups`, as CI does). If you can't install them, skip with `--ignore=tests/grossmann/test_nethack.py`.
 
 ## Coding 
 - Always follow the best engineering practices, especially KISS and DRY. Skip overly verbose comments, UIs, etc. When importing a package, don't `try` if it's installed but import directly.

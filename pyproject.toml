@@ -5,7 +5,11 @@ description = "Šimek&Grossmann bots."
 readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
-    "aiohttp>=3.11.11,<4.0.0",
+    # capped <3.14: aiohttp 3.14.0 added a required `stream_writer` kwarg to ClientResponse.__init__, which
+    # aioresponses 0.7.9 (latest) does not pass -> every mocked-HTTP test raises TypeError. No aioresponses fix released.
+    # works: aiohttp 3.13.x + aioresponses 0.7.8/0.7.9. broken: aiohttp >=3.14.0.
+    # https://github.com/aio-libs/aiohttp/issues/12815 | https://github.com/pnuckowski/aioresponses/issues/289
+    "aiohttp>=3.11.11,<3.14",
     "attrs>=24.0.0",
     "cattrs>=24.0.0",
     "discord-handler>=0.0.5",
@@ -68,7 +72,7 @@ addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", 
 #addopts = ["--import-mode=importlib", "--ignore=./scripts", "-v", "--tb=short", "--ruff", "--ruff-format", "--cov=src", "--cov-report=html"]
 
 [build-system]
-requires = ["uv_build>=0.9.13,<0.10.0"]
+requires = ["uv_build>=0.9.13,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]

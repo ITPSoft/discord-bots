@@ -1,5 +1,6 @@
 """Basic smoke tests for Šimek Discord bot."""
 
+import re
 from unittest.mock import AsyncMock, patch, call
 
 import pytest
@@ -52,6 +53,8 @@ from šimek import main
         # YouTube links
         ("https://youtube.com/shorts/mI1j_27pE-s?si=ezwOsgzXzsjqd1_G", ["recenze: strašnej banger"], []),
         ("podívej na https://youtu.be/dQw4w9WgXcQ", ["recenze: strašnej banger"], []),
+        ("tohle je nejlepší kanál https://www.youtube.com/c/3blue1brown", [], []),
+        ("dropnuli banger https://www.youtube.com/@GLITCH jako obvykle", [], []),
         # Questions
         ("co se děje?", ["Ano."], []),
         # Note: "?" case is checked before "proč/proc", so messages ending with ? will trigger "?" case
@@ -99,6 +102,8 @@ from šimek import main
         # Social media links that should be ignored
         ("https://fxtwitter.com/litteralyme0/status/1994088426300232075", [], []),
         ("https://cdn.discordapp.com/attachments/xyz/abc/ssstwitter.com_1764410721090.mp4", [], []),
+        # mentions of twitterpero to ignore
+        ("Změnil bych twitter péro na Xpéro", [], []),
     ],
 )
 async def test_maybe_respond(
@@ -128,18 +133,17 @@ async def test_mama_joke_api(mock_message, always_answer, m):
     """Test yo mama joke API call."""
     main.COOLDOWN = -1
     mock_message.content = "tvoje mama"
+    joke = "Yo momma is so stupid that she put a quarter in a parking meter and waited for a gumball to come out."
+    # regex because the api-key query param varies by environment (None in tests)
     m.get(
-        "https://yomama-jokes.com/api/random",
+        re.compile(r"^https://api\.humorapi\.com/jokes/random\?.*"),
         payload={
-            "id": 126,
-            "joke": "Yo mama is so old she remembers when the Mayans published their calendar.",
-            "category": "old",
+            "id": 6330,
+            "joke": joke,
         },
     )
     await main.manage_response(mock_message)
-    mock_message.reply.assert_called_once_with(
-        "Yo mama is so old she remembers when the Mayans published their calendar."
-    )
+    mock_message.reply.assert_called_once_with(joke)
 
 
 async def test_jsem_self_reference(mock_message, always_answer):

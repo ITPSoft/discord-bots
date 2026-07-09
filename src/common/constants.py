@@ -52,6 +52,9 @@ class TestingChannel(IntEnum):
     ILUMINATI = 1457055480747786443
 
 
+# A message needs more than this many of a single hall of fame emoji to be forwarded.
+HALL_OF_FAME_MIN_REACTIONS = 10
+
 KEKW = "<:kekw:940326430028488794>"
 
 KEKW2 = "<:kekW:940324801585741844>"
