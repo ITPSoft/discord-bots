@@ -1,6 +1,6 @@
 """Comprehensive tests for Grossmann Discord bot using pytest and mocking."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
@@ -550,7 +550,7 @@ async def test_backfill_fame_forwards_only_qualifying(mock_ctx, temp_fame_file):
     oldest_good = make_msg(1, 11, datetime(2024, 1, 1, 9, 0))
     below_threshold = make_msg(2, 3, datetime(2024, 2, 2, 9, 0))
 
-    async def mock_history(limit):
+    async def mock_history(limit, before=None):
         for msg in [newest_good, below_threshold, oldest_good]:
             yield msg
 
@@ -563,7 +563,7 @@ async def test_backfill_fame_forwards_only_qualifying(mock_ctx, temp_fame_file):
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = AsyncMock()
 
-        await main.backfill_fame(mock_ctx, channel=None, limit=500)
+        await main.backfill_fame(mock_ctx, channel=None, limit=500, after=None, before=None)
 
     newest_good.forward.assert_called_once()
     oldest_good.forward.assert_called_once()
@@ -587,7 +587,7 @@ async def test_backfill_fame_skips_already_forwarded(mock_ctx, temp_fame_file):
     already.created_at = datetime(2024, 1, 1, 9, 0)
     fame.mark_forwarded(already.id, datetime.now().timestamp())
 
-    async def mock_history(limit):
+    async def mock_history(limit, before=None):
         yield already
 
     target = MagicMock()
@@ -599,10 +599,54 @@ async def test_backfill_fame_skips_already_forwarded(mock_ctx, temp_fame_file):
     with patch.object(main, "client") as mock_client:
         mock_client.get_channel.return_value = AsyncMock()
 
-        await main.backfill_fame(mock_ctx, channel=None, limit=500)
+        await main.backfill_fame(mock_ctx, channel=None, limit=500, after=None, before=None)
 
     already.forward.assert_not_called()
     assert "forwarded 0" in mock_ctx.edit_original_response.call_args.kwargs["content"]
+
+
+async def test_backfill_fame_after_date_scans_whole_window(mock_ctx, temp_fame_file):
+    """An 'after' date scans the whole time window (no count cap) and forwards chronologically."""
+
+    def make_msg(msg_id, count, created_at):
+        msg = AsyncMock()
+        msg.id = msg_id
+        msg.channel = MagicMock()
+        msg.channel.id = Channel.GENERAL
+        msg.reactions = [_reaction("⭐", count)]
+        msg.created_at = created_at
+        return msg
+
+    # With 'after', disnake yields oldest-first already, so no reversing should happen.
+    oldest_good = make_msg(1, 11, datetime(2026, 5, 28, 9, 0))
+    newest_good = make_msg(2, 15, datetime(2026, 6, 1, 10, 0))
+    captured = {}
+
+    async def mock_history(limit=100, after=None, before=None, oldest_first=None):
+        captured["limit"] = limit
+        captured["after"] = after
+        captured["oldest_first"] = oldest_first
+        for msg in [oldest_good, newest_good]:
+            yield msg
+
+    target = MagicMock()
+    target.name = "general"
+    target.mention = "#general"
+    target.history = mock_history
+    mock_ctx.channel = target
+
+    with patch.object(main, "client") as mock_client:
+        mock_client.get_channel.return_value = AsyncMock()
+
+        await main.backfill_fame(mock_ctx, channel=None, limit=500, after="2026-05-27", before=None)
+
+    # The count cap is bypassed and the whole window is requested oldest-first.
+    assert captured["limit"] is None
+    assert captured["oldest_first"] is True
+    assert captured["after"] == datetime(2026, 5, 27, tzinfo=timezone.utc)
+    oldest_good.forward.assert_called_once()
+    newest_good.forward.assert_called_once()
+    assert "forwarded 2" in mock_ctx.edit_original_response.call_args.kwargs["content"]
 
 
 # Test on_member_join event
