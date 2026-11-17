@@ -751,7 +751,13 @@ async def pause_me(
 async def request_role(
     ctx: ApplicationCommandInteraction,
     requested_channel: str = Param(name="channel"),
+    reason: str = Param(description="Reason for requesting access"),
 ):
+    reason = reason.strip()
+    if not reason:
+        await ctx.response.send_message("Důvod žádosti nesmí být prázdný.", ephemeral=True)
+        return
+
     chamber_roles_enum = CHAMBER_ROLES_PER_SERVER.get(ctx.guild_id, KouzelniciChamberRoles)
     role = chamber_roles_enum.get_by_button_label(requested_channel)
     assert role is not None, f"Unknown role name `{requested_channel}`"
@@ -773,7 +779,8 @@ async def request_role(
     embed = Embed(
         title="Žádost o přístup",
         description=textwrap.dedent(
-            f"""{ctx.author.mention} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti. 
+            f"""{ctx.author.mention} požádal/a o přístup, je potřeba o {grossdi.ACCESS_VOTE_TRESHOLD} hlasů Pro více než Proti.
+            důvod žádosti: {reason}
             Hlasujte nyní."""
         ),
         color=Colour.magenta(),
@@ -931,7 +938,9 @@ async def debug_dump(ctx: ApplicationCommandInteraction):
         {forwarded_fames()}
         {paused_users()}
     """)
-    await ctx.response.send_message(response)
+    await ctx.response.send_message(response[:2000])
+    for offset in range(2000, len(response), 2000):
+        await ctx.followup.send(response[offset : offset + 2000])
 
 
 # debug command/trolling

@@ -666,6 +666,35 @@ async def test_on_member_join_sends_welcome(mock_member):
     assert "Vítej" in sent_content or "Welcome" in sent_content
 
 
+async def test_request_role_includes_required_reason_in_embed(mock_ctx):
+    mock_ctx.author.id = 123
+    mock_ctx.author.global_name = "Test User"
+    mock_ctx.author.avatar = "https://example.com/avatar.png"
+
+    role = MagicMock()
+    role.get_channel.return_value = 456
+    role.role_id = 789
+    roles_enum = MagicMock()
+    roles_enum.get_by_button_label.return_value = role
+    request_channel = AsyncMock()
+
+    with (
+        patch.object(main, "CHAMBER_ROLES_PER_SERVER", {mock_ctx.guild_id: roles_enum}),
+        patch.object(main, "client") as mock_client,
+    ):
+        mock_client.get_channel.return_value = request_channel
+        await main.request_role(mock_ctx, "test-channel", "  Need access for testing  ")
+
+    embed = request_channel.send.call_args_list[1].kwargs["embed"]
+    assert "důvod žádosti: Need access for testing" in embed.description
+
+
+async def test_request_role_rejects_blank_reason(mock_ctx):
+    await main.request_role(mock_ctx, "test-channel", "  ")
+
+    mock_ctx.response.send_message.assert_awaited_once_with("Důvod žádosti nesmí být prázdný.", ephemeral=True)
+
+
 # Test game_ping command
 async def test_game_ping_command_english(mock_ctx, mock_message):
     """Test game_ping command creates announcement with reactions in English."""
