@@ -938,9 +938,10 @@ async def debug_dump(ctx: ApplicationCommandInteraction):
         {forwarded_fames()}
         {paused_users()}
     """)
-    await ctx.response.send_message(response[:2000])
-    for offset in range(2000, len(response), 2000):
-        await ctx.followup.send(response[offset : offset + 2000])
+    max_message_length = 1_900
+    await ctx.response.send_message(response[:max_message_length])
+    for offset in range(max_message_length, len(response), max_message_length):
+        await ctx.followup.send(response[offset : offset + max_message_length])
 
 
 # debug command/trolling
