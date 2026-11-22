@@ -331,7 +331,7 @@ async def manage_response(m: Message):
         case "youtu.be" | "youtube.com" if not re.search(
             r"(?:youtube\.com|youtu\.be)/(?:channel/|c/|user/|@)[^\s/?#]+(?:[/?#][^\s]*)", mess
         ):
-            await do_response(random.choice(šimekdict.RECENZE), m, chance=5)
+            await do_response(random.choice(šimekdict.RECENZE), m, chance=10)
         case "špatný bot" | "spatny bot":
             await do_response("i'm trying my best :pensive:", m, chance=1)
         case "podle mě" | "myslím si" | "myslim si":
@@ -346,7 +346,7 @@ async def manage_response(m: Message):
     without_links = re.sub(r"https?://\S+", "", mess)
     match Substring(without_links):
         case "twitter" | "twiter" if not has_any(mess, ["per", "pér"]):
-            await do_response("preferuji #twitter-péro", m, chance=2)  # it was too often
+            await do_response("preferuji #twitter-péro", m, chance=5) 
         case _:
             if random.randint(1, 500) == 1:
                 messages = []
