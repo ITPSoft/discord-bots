@@ -120,6 +120,10 @@ class GamingRoles(BaseRoleEnum):
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
     TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1422635058996711614, "Table Top Simulator")
+    VR = ("VR", 1569323695028183131, "VR")
+    Slay_the_Spire = ("SlayTheSpire", 1559302594311102484, "Slay the Spire")
+    wardogs = ("wardogs", 1552606572339789864, "War Dogs")
+    deadbydaylight = ("deadbydaylight", 1552300661805424750, "Dead by Daylight")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):
