@@ -10,6 +10,41 @@ from disnake.ext.commands import InteractionBot, Context, CommandError, UserInpu
 
 fs = "%(asctime)s:{}:%(name)s:%(levelname)s:%(message).200s".format(socket.gethostname())  # max 200 chars of message
 
+class DiscordFormatter(logging.Formatter):
+    def __init__(self, fmt: str | None = None, max_size: int = 1_900):
+        super().__init__(fmt)
+        self.max_size = max_size
+
+    def format(self, record: logging.LogRecord) -> str:
+        formatted = super().format(record)
+
+        if len(formatted) <= self.max_size:
+            return formatted
+
+        exception_text = getattr(record, "exc_text", None)
+        if exception_text:
+            traceback_rows = exception_text.splitlines()
+            available_size = self.max_size - len("\n...\n")
+
+            head_size = available_size // 2
+            tail_size = available_size - head_size
+
+            while traceback_rows and sum(
+                len(row) + 1 for row in traceback_rows[: len(traceback_rows)]
+            ) > available_size:
+                traceback_rows = traceback_rows[1:-1]
+
+            traceback_text = "\n".join(traceback_rows)
+            if len(traceback_text) > available_size:
+                traceback_text = (
+                    traceback_text[:head_size].rstrip()
+                    + "\n...\n"
+                    + traceback_text[-tail_size:].lstrip()
+                )
+
+            formatted = formatted.replace(exception_text, traceback_text)
+
+        return formatted[: self.max_size]
 
 def configure_logging(client: InteractionBot, level=logging.INFO):
     try:
@@ -24,7 +59,7 @@ def configure_logging(client: InteractionBot, level=logging.INFO):
             handler.setLevel(logging.ERROR)
             # discord handler must have the message less than 2000 characters, so I'm trimming this here
             # formatter copied from basicConfig
-            handler.setFormatter(logging.Formatter(fs))
+            handler.setFormatter(DiscordFormatter(fs, max_size=1_900))
     except ImportError:
         handler = None
 
