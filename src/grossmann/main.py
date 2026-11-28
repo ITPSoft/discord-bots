@@ -3,67 +3,68 @@ import os
 import random
 import textwrap
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TypeAlias
 
 import disnake
+from disnake import (
+    ApplicationCommandInteraction,
+    ButtonStyle,
+    Colour,
+    Embed,
+    Intents,
+    Member,
+    Message,
+    MessageInteraction,
+    Reaction,
+    User,
+)
+from disnake.ext import tasks
+from disnake.ext.commands import InteractionBot, Param, default_member_permissions
+from disnake.ui import Button, View
+from dotenv import load_dotenv
+
 from common import discord_logging
 from common.constants import (
-    Channel,
+    CHAMBER_ROLES_PER_SERVER,
+    GAMING_ROLES_PER_SERVER,
     GROSSMAN_NAME,
     HALL_OF_FAME_EMOJIS,
     HALL_OF_FAME_MIN_REACTIONS,
-    SelfServiceRoles,
-    ListenerType,
-    GAMING_ROLES_PER_SERVER,
+    Channel,
     GamingRoles,
-    CHAMBER_ROLES_PER_SERVER,
     KouzelniciChamberRoles,
+    ListenerType,
+    SelfServiceRoles,
 )
 from common.http import (
-    get_http_session,
     close_http_session,
+    get_http_session,
 )
 from common.utils import (
-    has_any,
-    ping_function,
-    ping_content,
-    get_paused_role_id,
     get_gids,
+    get_paused_role_id,
+    has_any,
+    ping_content,
+    ping_function,
 )
-from disnake import (
-    Message,
-    ApplicationCommandInteraction,
-    ButtonStyle,
-    Reaction,
-    Member,
-    User,
-    MessageInteraction,
-    Embed,
-    Colour,
-    Intents,
-)
-from disnake.ext.commands import Param, InteractionBot, default_member_permissions
-from disnake.ext import tasks
-from disnake.ui import Button, View
-from dotenv import load_dotenv
 from grossmann import fame_persistence
 from grossmann import grossmanndict as grossdi
-from grossmann.grossmanndict import WAIFU_CATEGORIES, WAIFU_ALLOWED_NSFW, WELCOME, GAME_EN, GAME_CZ
+from grossmann.grossmanndict import GAME_CZ, GAME_EN, WAIFU_ALLOWED_NSFW, WAIFU_CATEGORIES, WELCOME
 from grossmann.pause_persistence import (
     add_paused_user,
-    remove_expired_pauses,
     get_paused_users,
     get_user_pause,
+    remove_expired_pauses,
 )
 from grossmann.utils import (
+    AccessVoting,
     batch_react,
+    role_tag2id,
     send_http_response,
+    validate_game_role,
     validate_image_url,
     validate_waifu_category,
-    validate_game_role,
-    role_tag2id,
-    AccessVoting,
 )
 
 # preload all useful stuff
@@ -305,9 +306,7 @@ async def on_message(m: Message):
     content = m.content.lower()
     if m.guild and m.guild.id not in get_gids():
         return
-    if not content:
-        return
-    elif str(m.author) == GROSSMAN_NAME:
+    if not content or str(m.author) == GROSSMAN_NAME:
         return
     else:
         await bot_validate(content, m)
@@ -345,7 +344,7 @@ def _parse_backfill_date(value: str | None) -> datetime | None:
     # Interpret a YYYY-MM-DD date as midnight UTC so history() gets a tz-aware bound.
     if value is None:
         return None
-    return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=UTC)
 
 
 async def forward_to_fame_if_qualifies(message: Message) -> bool:
@@ -381,6 +380,12 @@ async def on_reaction_add(reaction: Reaction, user: Member | User):
 async def on_member_join(member: Member):
     if member.guild.id not in get_gids():
         return
+
+    role = member.guild.get_role(SelfServiceRoles.TAG_ALLOW.role_id)
+    if role is None:
+        raise RuntimeError(f"TAG_ALLOW role {SelfServiceRoles.TAG_ALLOW.role_id} not found in guild {member.guild.id}")
+
+    await member.add_roles(role, reason="Tagallow for new member, cant be on button picker")
     welcome_channel = client.get_channel(Channel.WELCOMEPERO)
     await welcome_channel.send(WELCOME.substitute(member=member.mention))
 
