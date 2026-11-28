@@ -1,6 +1,6 @@
 from enum import IntEnum, StrEnum
 
-from common.types import ChamberRoles, BaseRoleEnum, ABCEnumMeta
+from common.types import ABCEnumMeta, BaseRoleEnum, ChamberRoles
 
 ŠIMEK_NAME = "šimek#3885"
 GROSSMAN_NAME = "grossmann#1086"
@@ -90,6 +90,7 @@ class SelfServiceRoles(BaseRoleEnum):
     CARFAG = ("carfag", 1057281159509319800, "Carfag-péro")
     MAGIC_THE_GATHERING = ("MagicTheGathering", 1327396658605981797, "Magic The Gathering")
     KNIZNI_KLUB = ("knižní klub", 1455224895641227409, "Knižní klub")
+    TAG_ALLOW = ("Tagallow", 1570046243084959796, "technical role to allow tagging, should not be a button")
 
 
 class GamingRoles(BaseRoleEnum):
@@ -120,6 +121,10 @@ class GamingRoles(BaseRoleEnum):
     FRIENDSLOP = ("Friendslop", 1435240483852124292)
     BAROTRAUMA = ("barotrauma", 1405232484987437106)
     TABLE_TOP_SIMULATOR = ("TabletopSimulator", 1422635058996711614, "Table Top Simulator")
+    VR = ("VR", 1569323695028183131, "VR")
+    SLAY_THE_SPIRE = ("SlayTheSpire", 1559302594311102484, "Slay the Spire")
+    WARDOGS = ("wardogs", 1552606572339789864, "War Dogs")
+    DEADBYDAYLIGHT = ("dbd", 1552300661805424750, "Dead by Daylight")
 
 
 class DiscordGamingTestingRoles(BaseRoleEnum):

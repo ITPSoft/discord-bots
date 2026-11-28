@@ -116,7 +116,20 @@ def markov_chain(messages, max_words=20):
     if not markov_counts:
         return "Not enough data for trigram Markov chain."
 
-    start_key = random.choice(list(markov_counts.keys()))
+    start_key = None
+    if messages:
+        last_words = [
+            truncate_emojis(word).strip(" ").strip(".,!?;:()[]{}\"'").lower()
+            for word in str(messages[-1]).split()
+        ]
+        last_words = [word for word in last_words if word]
+        if len(last_words) >= 2:
+            candidate = (last_words[-2], last_words[-1])
+            if candidate in markov_counts:
+                start_key = candidate
+
+    if start_key is None:
+        start_key = random.choice(list(markov_counts.keys()))
     sentence = [start_key[0], start_key[1]]
 
     for _ in range(max_words - 2):
